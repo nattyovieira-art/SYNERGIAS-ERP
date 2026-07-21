@@ -1,8 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   CalendarDays,
-  ChevronRight,
+  ChevronDown,
+  Columns3,
+  Download,
+  CircleDollarSign,
+  Search,
+  ShoppingBag,
+  Ticket,
+  Users,
   Printer,
   RefreshCw,
 } from 'lucide-react'
@@ -17,6 +24,8 @@ import type { EstoqueMovimentacao } from '../../types/Estoque'
 import type { ContaReceber, LancamentoOFX } from '../../types/Financeiro'
 import type { Produto } from '../../types/Produto'
 import type { Venda } from '../../types/Venda'
+import { ERP_STORAGE_UPDATED_EVENT, obterColecaoMemoria } from '../../services/erpApi'
+import { consolidarVendasRelatorios } from '../../services/relatoriosData'
 
 
 
@@ -240,7 +249,7 @@ function valorVenda(venda: Venda) {
 }
 
 function somentePedidos(vendas: Venda[]) {
-  return vendas.filter((venda) => venda.tipo === 'Pedido' || Boolean(venda.numeroPedido))
+  return consolidarVendasRelatorios(vendas).pedidos
 }
 
 function agrupar<T>(lista: T[], chave: (item: T) => string) {
@@ -252,12 +261,12 @@ function agrupar<T>(lista: T[], chave: (item: T) => string) {
   return mapa
 }
 
-function agruparNormalizado<T>(lista: T[], chave: (item: T) => string) {
+function agruparNormalizado<T>(lista: T[], chave: (item: T) => string, rotulo?: (item: T) => string) {
   const mapa = new Map<string, { rotulo: string; itens: T[] }>()
 
   lista.forEach((item) => {
-    const rotuloInformado = texto(chave(item)) || 'Não informado'
-    const chaveNormalizada = normalizar(rotuloInformado)
+    const rotuloInformado = texto(rotulo?.(item) ?? chave(item)) || 'Não informado'
+    const chaveNormalizada = normalizar(chave(item)) || normalizar(rotuloInformado)
     const atual = mapa.get(chaveNormalizada)
 
     if (atual) {
@@ -686,7 +695,11 @@ function gerarVendas(id: string, vendas: Venda[], produtos: Produto[]): Resultad
   }
 
   if (id === 'cliente') {
-    const grupos = agruparNormalizado(pedidos, (venda) => venda.clienteNome || 'Cliente não informado')
+    const grupos = agruparNormalizado(
+      pedidos,
+      (venda) => venda.clienteCodigo || venda.clienteDocumento || venda.clienteNome || 'Cliente não informado',
+      (venda) => venda.clienteNome || 'Cliente não informado',
+    )
     const linhas = Array.from(grupos.values())
       .map(({ rotulo: cliente, itens: lista }) => {
         const total = lista.reduce((soma, venda) => soma + valorVenda(venda), 0)
@@ -723,7 +736,7 @@ function gerarVendas(id: string, vendas: Venda[], produtos: Produto[]): Resultad
     const mapa = new Map<string, { produto: string; quantidade: number; faturamento: number; pedidos: Set<string> }>()
     pedidos.forEach((venda) => {
       venda.itens.forEach((item) => {
-        const chave = item.codigoProduto || item.descricao
+        const chave = normalizar(item.codigoProduto || item.codigoBarras || item.descricao)
         const atual = mapa.get(chave) || { produto: item.descricao, quantidade: 0, faturamento: 0, pedidos: new Set<string>() }
         atual.quantidade += numero(item.quantidade)
         atual.faturamento += numero(item.valorTotal)
@@ -759,9 +772,9 @@ function gerarVendas(id: string, vendas: Venda[], produtos: Produto[]): Resultad
   }
 
   if (id === 'pagamento') {
-    const grupos = agrupar(pedidos, (venda) => venda.formaPagamento || venda.tipoCobranca || 'Não informado')
-    const linhas = Array.from(grupos.entries())
-      .map(([forma, lista]) => {
+    const grupos = agruparNormalizado(pedidos, (venda) => venda.formaPagamento || venda.tipoCobranca || 'Não informado')
+    const linhas = Array.from(grupos.values())
+      .map(({ rotulo: forma, itens: lista }) => {
         const total = lista.reduce((s, venda) => s + valorVenda(venda), 0)
         return {
           forma,
@@ -946,7 +959,7 @@ function gerarVendas(id: string, vendas: Venda[], produtos: Produto[]): Resultad
     indicadores: [
       ['Pedidos', inteiro(pedidos.length)],
       ['Faturamento', dinheiro(faturamento)],
-      ['Clientes', inteiro(new Set(pedidos.map((venda) => venda.clienteNome).filter(Boolean)).size)],
+      ['Clientes', inteiro(new Set(pedidos.map((venda) => normalizar(venda.clienteCodigo || venda.clienteDocumento || venda.clienteNome)).filter(Boolean)).size)],
       ['Ticket médio', dinheiro(pedidos.length ? faturamento / pedidos.length : 0)],
     ],
     colunas: [
@@ -978,7 +991,7 @@ function mapaVendasProdutos(vendas: Venda[]) {
   >()
   pedidos.forEach((venda) => {
     venda.itens.forEach((item) => {
-      const chave = item.codigoProduto || item.descricao
+      const chave = normalizar(item.codigoProduto || item.codigoBarras || item.descricao)
       const atual = mapa.get(chave) || {
         codigo: item.codigoProduto,
         descricao: item.descricao,
@@ -1831,16 +1844,29 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
   const [dataInicial, setDataInicial] = useState('')
   const [dataFinal, setDataFinal] = useState('')
   const [versaoDados, setVersaoDados] = useState(0)
+  const [busca, setBusca] = useState('')
+  const [status, setStatus] = useState('')
+  const [formaPagamento, setFormaPagamento] = useState('')
+  const [menuMaisAberto, setMenuMaisAberto] = useState(false)
+  const [menuColunasAberto, setMenuColunasAberto] = useState(false)
+  const [colunasOcultas, setColunasOcultas] = useState<Set<string>>(new Set())
+  const maisRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const atualizar = () => setVersaoDados((valor) => valor + 1)
+    window.addEventListener(ERP_STORAGE_UPDATED_EVENT, atualizar)
+    return () => window.removeEventListener(ERP_STORAGE_UPDATED_EVENT, atualizar)
+  }, [])
 
   const dados = useMemo(() => {
     void versaoDados
     return {
       contas: lerStorage<ContaReceber>('synergias_contas_receber'),
       lancamentos: lerStorage<LancamentoOFX>('synergias_lancamentos_ofx'),
-      vendas: lerStorage<Venda>('synergias_vendas'),
+      vendas: obterColecaoMemoria<Venda>('vendas'),
       compras: lerStorage<Compra>('synergias_erp_compras'),
-      produtos: lerStorage<Produto>('synergias_produtos'),
-      clientes: lerStorage<Cliente>('synergias_clientes'),
+      produtos: obterColecaoMemoria<Produto>('produtos'),
+      clientes: obterColecaoMemoria<Cliente>('clientes'),
       movimentacoes: lerStorage<EstoqueMovimentacao>('synergias_estoque_movimentacoes'),
       contasBancarias: lerStorage<ContaBancariaRelatorio>('synergias_contas_bancarias'),
     }
@@ -1849,13 +1875,20 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
   const dadosFiltrados = useMemo(() => ({
     contas: dados.contas.filter((item) => dentroPeriodo(dataIso(item.dataRecebimento || item.dataEmissao || item.dataVencimento), dataInicial, dataFinal)),
     lancamentos: dados.lancamentos.filter((item) => dentroPeriodo(dataIso(item.data), dataInicial, dataFinal)),
-    vendas: dados.vendas.filter((item) => dentroPeriodo(dataVenda(item), dataInicial, dataFinal)),
+    vendas: consolidarVendasRelatorios(dados.vendas).vendas.filter((item) => {
+      if (!dentroPeriodo(dataVenda(item), dataInicial, dataFinal)) return false
+      const termo = normalizar(busca)
+      if (termo && !normalizar([item.numeroPedido, item.numeroOrcamento, item.clienteNome, item.vendedor, item.itens?.map((i) => i.descricao).join(' ')].join(' ')).includes(termo)) return false
+      if (status && normalizar(item.statusPedido || item.statusOrcamento) !== normalizar(status)) return false
+      if (formaPagamento && normalizar(item.formaPagamento || item.tipoCobranca) !== normalizar(formaPagamento)) return false
+      return true
+    }),
     compras: dados.compras.filter((item) => dentroPeriodo(dataIso(item.dataEmissao || item.criadoEm), dataInicial, dataFinal)),
     produtos: dados.produtos,
     clientes: dados.clientes,
     movimentacoes: dados.movimentacoes.filter((item) => dentroPeriodo(dataIso(item.data || item.criadoEm), dataInicial, dataFinal)),
     contasBancarias: dados.contasBancarias,
-  }), [dados, dataFinal, dataInicial])
+  }), [busca, dados, dataFinal, dataInicial, formaPagamento, status])
 
   const definicaoAtiva = configuracao.relatorios.find((item) => item.id === relatorioAtivo) || configuracao.relatorios[0]
 
@@ -1877,6 +1910,31 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
     }
     return gerarClientes(relatorioAtivo, dadosFiltrados.clientes, dadosFiltrados.vendas)
   }, [dadosFiltrados, relatorioAtivo, tipo])
+
+  useEffect(() => setColunasOcultas(new Set()), [relatorioAtivo])
+
+  const colunasVisiveis = resultado.colunas.filter((coluna) => !colunasOcultas.has(coluna.chave))
+  const relatoriosPrincipais = configuracao.relatorios.slice(0, 6)
+  const relatoriosExtras = configuracao.relatorios.slice(6)
+
+  function selecionarRelatorio(id: string) {
+    if (id === 'brindes') navigate('/relatorios/brindes')
+    else setRelatorioAtivo(id)
+    setMenuMaisAberto(false)
+  }
+
+  function exportarCsv() {
+    const escapar = (valor: unknown) => `"${String(valor ?? '').replace(/"/g, '""')}"`
+    const csv = [
+      colunasVisiveis.map((coluna) => escapar(coluna.titulo)).join(';'),
+      ...resultado.linhas.map((linha) => colunasVisiveis.map((coluna) => escapar(linha[coluna.chave])).join(';')),
+    ].join('\r\n')
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }))
+    link.download = `${definicaoAtiva.titulo.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.csv`
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }
 
   return (
     <main className="relatorios-page" data-layout={RELATORIOS_VENDAS_MARKER_V239}>
@@ -1948,37 +2006,12 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
           </div>
         </section>
 
+        <nav className="relatorios-nav" aria-label="RelatÃ³rios disponÃ­veis">
+          {relatoriosPrincipais.map((relatorio) => <button key={relatorio.id} type="button" className={relatorioAtivo === relatorio.id ? 'is-active' : ''} onClick={() => selecionarRelatorio(relatorio.id)}>{relatorio.titulo}</button>)}
+          {relatoriosExtras.length > 0 && <div className="relatorios-mais" ref={maisRef}><button type="button" className={relatoriosExtras.some((item) => item.id === relatorioAtivo) ? 'is-active' : ''} onClick={() => setMenuMaisAberto((aberto) => !aberto)}>Mais relatÃ³rios <ChevronDown size={16} /></button>{menuMaisAberto && <div className="relatorios-mais-menu">{relatoriosExtras.map((relatorio) => <button key={relatorio.id} type="button" onClick={() => selecionarRelatorio(relatorio.id)}><strong>{relatorio.titulo}</strong><small>{relatorio.descricao}</small></button>)}</div>}</div>}
+        </nav>
+
         <section className={`relatorios-workspace relatorios-workspace-${configuracao.corClasse}`}>
-          <aside className="relatorios-menu">
-            <div className="relatorios-menu-header">
-              <strong>Relatórios disponíveis</strong>
-              <span>{configuracao.relatorios.length} opções</span>
-            </div>
-
-            <div className="relatorios-menu-lista">
-              {configuracao.relatorios.map((relatorio) => (
-                <button
-                  key={relatorio.id}
-                  type="button"
-                  className={`relatorios-menu-item ${relatorioAtivo === relatorio.id ? 'is-active' : ''}`}
-                  onClick={() => {
-                    if (relatorio.id === 'brindes') {
-                      navigate('/relatorios/brindes')
-                      return
-                    }
-                    setRelatorioAtivo(relatorio.id)
-                  }}
-                >
-                  <span>
-                    <strong>{relatorio.titulo}</strong>
-                    <small>{relatorio.descricao}</small>
-                  </span>
-                  <ChevronRight size={18} strokeWidth={2.2} />
-                </button>
-              ))}
-            </div>
-          </aside>
-
           <div className={`relatorios-resultado relatorios-resultado-${relatorioAtivo}`}>
             <div className="relatorios-resultado-header">
               <div>
@@ -1990,12 +2023,13 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
             </div>
 
             <section className={`relatorios-indicadores relatorios-indicadores-${configuracao.corClasse}`}>
-              {resultado.indicadores.map(([rotulo, valor]) => (
-                <article key={rotulo} className="relatorios-indicador-card">
-                  <span>{rotulo}</span>
-                  <strong>{valor}</strong>
+              {resultado.indicadores.map(([rotulo, valor], index) => {
+                const Icone = [ShoppingBag, CircleDollarSign, Users, Ticket][index % 4]
+                return <article key={rotulo} className="relatorios-indicador-card">
+                  <span className="relatorios-indicador-icon"><Icone size={22} /></span>
+                  <span className="relatorios-indicador-conteudo"><span>{rotulo}</span><strong>{valor}</strong><small>{index === 3 ? 'Média no período' : 'Total no período'}</small></span>
                 </article>
-              ))}
+              })}
             </section>
 
             {resultado.observacao && (
@@ -2003,6 +2037,18 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
             )}
 
             <section className="relatorios-lista-card">
+              <div className="relatorios-table-toolbar">
+                <label className="relatorios-busca-wrap"><input className="relatorios-busca" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar pedido, cliente, vendedor..." aria-label="Pesquisar no relatório" /><Search size={18} /></label>
+                {tipo === 'vendas' && <>
+                  <label className="relatorios-select-wrap"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Todos</option>{Array.from(new Set(dados.vendas.map((item) => item.statusPedido || item.statusOrcamento).filter(Boolean))).map((valor) => <option key={valor} value={valor}>{valor}</option>)}</select></label>
+                  <label className="relatorios-select-wrap"><span>Pagamento</span><select value={formaPagamento} onChange={(event) => setFormaPagamento(event.target.value)}><option value="">Todos</option>{Array.from(new Set(dados.vendas.map((item) => item.formaPagamento || item.tipoCobranca).filter(Boolean))).map((valor) => <option key={valor} value={valor}>{valor}</option>)}</select></label>
+                </>}
+                {(busca || status || formaPagamento || dataInicial || dataFinal) && <button className="relatorios-clear-btn" type="button" onClick={() => { setBusca(''); setStatus(''); setFormaPagamento(''); setDataInicial(''); setDataFinal('') }}>Limpar</button>}
+                <div className="relatorios-table-actions">
+                  <div className="relatorios-colunas-wrap"><button type="button" className="relatorios-outline-btn" onClick={() => setMenuColunasAberto((aberto) => !aberto)}><Columns3 size={18} />Colunas</button>{menuColunasAberto && <div className="relatorios-colunas-menu">{resultado.colunas.map((coluna, index) => <label key={coluna.chave}><input type="checkbox" checked={!colunasOcultas.has(coluna.chave)} disabled={index === 0} onChange={() => setColunasOcultas((atuais) => { const proximas = new Set(atuais); if (proximas.has(coluna.chave)) proximas.delete(coluna.chave); else proximas.add(coluna.chave); return proximas })} />{coluna.titulo}</label>)}</div>}</div>
+                  <button type="button" className="relatorios-export-btn" onClick={exportarCsv}><Download size={18} />Exportar</button>
+                </div>
+              </div>
               {resultado.linhas.length === 0 ? (
                 <div className="relatorios-vazio">
                   Nenhum registro encontrado para este relatório no período selecionado.
@@ -2012,7 +2058,7 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
                   <table className="relatorios-tabela">
                     <thead>
                       <tr>
-                        {resultado.colunas.map((coluna) => (
+                        {colunasVisiveis.map((coluna) => (
                           <th key={coluna.chave} className={`align-${coluna.alinhar || 'left'}`}>
                             {coluna.titulo}
                           </th>
@@ -2022,7 +2068,7 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
                     <tbody>
                       {resultado.linhas.map((linha, index) => (
                         <tr key={`${relatorioAtivo}-${index}`}>
-                          {resultado.colunas.map((coluna) => (
+                          {colunasVisiveis.map((coluna) => (
                             <td key={coluna.chave} className={`align-${coluna.alinhar || 'left'}`}>
                               {linha[coluna.chave] ?? '-'}
                             </td>

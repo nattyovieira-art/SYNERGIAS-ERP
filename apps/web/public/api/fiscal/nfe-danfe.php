@@ -140,6 +140,28 @@ $detalhes = $xp->query('//*[local-name()="det"]');
 $duplicatas = $xp->query('//*[local-name()="dup"]');
 $infCpl = $q($xp, '//*[local-name()="infAdic"]/*[local-name()="infCpl"]');
 
+// O cEAN fiscal aceita somente GTIN, mas o ERP tambem usa codigos internos
+// (por exemplo, codigos de 10 digitos). Recupera-os do cadastro para o DANFE.
+$codigosProdutosDanfe = [];
+try {
+    $pdoProdutosDanfe = obterPdo();
+    $stmtProdutosDanfe = $pdoProdutosDanfe->prepare('SELECT payload FROM erp_storage WHERE collection = :collection LIMIT 1');
+    $stmtProdutosDanfe->execute(['collection' => 'produtos']);
+    $registroProdutosDanfe = $stmtProdutosDanfe->fetch();
+    $produtosDanfe = $registroProdutosDanfe ? json_decode((string)$registroProdutosDanfe['payload'], true) : [];
+    foreach (is_array($produtosDanfe) ? $produtosDanfe : [] as $produtoDanfe) {
+        if (!is_array($produtoDanfe)) continue;
+        $barrasDanfe = trim((string)($produtoDanfe['codigoBarras'] ?? $produtoDanfe['ean'] ?? $produtoDanfe['gtin'] ?? ''));
+        if ($barrasDanfe === '') continue;
+        foreach (['id', 'codigo', 'codigoInterno', 'codigoProduto', 'codigoBarras'] as $campoDanfe) {
+            $referenciaDanfe = trim((string)($produtoDanfe[$campoDanfe] ?? ''));
+            if ($referenciaDanfe !== '') $codigosProdutosDanfe[$referenciaDanfe] = $barrasDanfe;
+        }
+    }
+} catch (Throwable $erroProdutosDanfe) {
+    error_log('[DANFE CODIGO PRODUTO] '.$erroProdutosDanfe->getMessage());
+}
+
 // NF-es antigas podem ter sido autorizadas sem <cobr>/<dup>. Nesse caso,
 // recupera a fatura do pedido persistido no servidor, sem alterar o XML autorizado.
 $faturaFallback = [];
@@ -197,7 +219,7 @@ html,body{margin:0;padding:0;background:#fff;color:#000;font-family:Arial,Helvet
 body{font-size:7.8px}
 .actions{max-width:200mm;margin:8px auto;display:flex;gap:8px}
 .actions button{padding:8px 12px;border:1px solid #777;border-radius:6px;background:#fff;font-weight:700;cursor:pointer}
-.danfe{width:198mm;margin:0 auto}
+.danfe{width:198mm;margin:0 auto;overflow:visible}
 .box{border:1px solid #000}
 .row{display:flex;width:100%}
 .cell{border-right:1px solid #000;border-bottom:1px solid #000;padding:2.5px 4px;min-height:9mm;overflow:hidden}
@@ -244,7 +266,7 @@ body{font-size:7.8px}
 .additional>div:last-child{border-right:0}
 .watermark{position:fixed;inset:42% 0 auto;text-align:center;transform:rotate(-28deg);font-size:42px;font-weight:700;color:rgba(0,0,0,.07);pointer-events:none;z-index:0}
 .content{position:relative;z-index:1}
-@media print{.actions{display:none}.danfe{width:198mm}.watermark{display:block}.grid-table thead{display:table-header-group}.grid-table tr{break-inside:avoid;page-break-inside:avoid}.section-title{break-after:avoid;page-break-after:avoid}.additional{break-inside:avoid;page-break-inside:avoid}}
+@media print{html,body{height:auto!important;overflow:visible!important}.actions{display:none}.danfe{width:198mm;height:auto!important;overflow:visible!important}.watermark{display:block}.grid-table{break-inside:auto;page-break-inside:auto}.grid-table thead{display:table-header-group}.grid-table tbody{break-inside:auto;page-break-inside:auto}.grid-table tr{break-inside:avoid;page-break-inside:avoid;page-break-after:auto}.section-title{break-after:avoid;page-break-after:avoid}.tax,.fatura-table,.additional{break-inside:avoid;page-break-inside:avoid}}
 .fatura-table th,.fatura-table td{border:1px solid #777;padding:1.2mm;font-size:7px}.fatura-table td{font-size:8.5px;font-weight:700}
 </style>
 </head>
@@ -412,6 +434,10 @@ body{font-size:7.8px}
           $codigoBarrasDanfe = $q($xp,'.//*[local-name()="cEAN"]',$prod);
           if ($codigoBarrasDanfe === '' || strtoupper($codigoBarrasDanfe) === 'SEM GTIN') {
             $codigoBarrasDanfe = $q($xp,'.//*[local-name()="cEANTrib"]',$prod);
+          }
+          if ($codigoBarrasDanfe === '' || strtoupper($codigoBarrasDanfe) === 'SEM GTIN') {
+            $codigoProdutoDanfe = $q($xp,'.//*[local-name()="cProd"]',$prod);
+            $codigoBarrasDanfe = $codigosProdutosDanfe[$codigoProdutoDanfe] ?? $codigoProdutoDanfe;
           }
           if ($codigoBarrasDanfe === '' || strtoupper($codigoBarrasDanfe) === 'SEM GTIN') {
             $codigoBarrasDanfe = '-';

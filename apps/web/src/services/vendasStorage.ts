@@ -1,6 +1,7 @@
 // SYNERGIAS_SALVAR_VENDAS_MYSQL_CONFIRMADO_V284
 import type { ParcelaVenda, Venda } from '../types/Venda'
-import { carregarColecaoCentral, definirColecaoMemoria, obterColecaoMemoria, sincronizarColecaoCentral, sincronizarColecaoCentralAgora } from './erpApi'
+import { atualizarRegistroColecaoCentral, carregarColecaoCentral, definirColecaoMemoria, excluirRegistroColecaoCentral, obterColecaoMemoria, sincronizarColecaoCentral, sincronizarColecaoCentralAgora } from './erpApi'
+import { determinarEstadoRealOrcamento, normalizarNovoOrcamentoImportado } from './orcamentoEstado'
 
 
 
@@ -150,6 +151,18 @@ export function excluirVendaStorage(id: string) {
   salvarVendasStorage(atualizadas)
 
   return atualizadas
+}
+
+export async function excluirVendaStorageConfirmado(id: string): Promise<Venda[]> {
+  await excluirRegistroColecaoCentral('vendas', id)
+  const confirmacao = await carregarColecaoCentral<Venda>('vendas')
+  const vendasConfirmadas = Array.isArray(confirmacao.data) ? confirmacao.data : []
+  if (vendasConfirmadas.some((venda) => String(venda.id) === String(id))) {
+    throw new Error('O pedido continuou presente no MySQL após a exclusão.')
+  }
+  definirColecaoMemoria('vendas', vendasConfirmadas)
+  salvarBackupLocal(vendasConfirmadas)
+  return vendasConfirmadas
 }
 
 export function listarOrcamentosStorage() {
@@ -363,6 +376,27 @@ export async function salvarVendasStorageConfirmado(vendas: Venda[]) {
   await sincronizarColecaoCentralAgora('vendas', vendasNormalizadas)
 }
 
+export async function corrigirOrcamentosImportadosSemPedidoReal(): Promise<string[]> {
+  const vendas = listarVendasStorage()
+  const corrigidos: string[] = []
+  const atualizadas = vendas.map((venda) => {
+    const registro = venda as any
+    const tipo = String(registro.tipo || '').toLocaleLowerCase('pt-BR')
+    const status = String(registro.statusOrcamento || registro.status || '').toLocaleLowerCase('pt-BR')
+    const temLegadoBloqueador = Boolean(registro.numeroPedido || registro.pedidoId || registro.pedidoGeradoId || registro.pedidoGeradoEm || registro.convertido || registro.pedidoGerado)
+    const estado = determinarEstadoRealOrcamento(registro, vendas)
+    if (!tipo.includes('orçamento') || !status.includes('abert') || !temLegadoBloqueador || estado.convertido) return venda
+
+    const copia = { ...registro, tipo: 'Orçamento', status: 'ABERTO', statusOrcamento: 'Aberto', aprovado: false, reprovado: false, convertido: false, pedidoGerado: false }
+    for (const campo of ['numeroPedido', 'pedidoId', 'pedidoGeradoId', 'pedidoGeradoEm', 'dataConversao']) delete copia[campo]
+    corrigidos.push(String(registro.numeroOrcamento || registro.id))
+    return copia as Venda
+  })
+
+  if (corrigidos.length > 0) await salvarVendasStorageConfirmado(atualizadas)
+  return corrigidos
+}
+
 function numeroLogicoVenda(venda: Venda): string {
   const registro = venda as any
   const tipo = String(registro?.tipo || '').toLocaleLowerCase('pt-BR')
@@ -399,9 +433,13 @@ export async function salvarVendaStorageConfirmado(venda: Venda) {
 
   const vendaBase = venda as VendaComMetadados
   const existente = vendasServidor.find((item) => mesmoRegistroVenda(item, venda))
+  const marcadorImportacao = Boolean((venda as any).importado || (venda as any).importacaoHistorica || String((venda as any).origem || '').toLowerCase().includes('import'))
+  const vendaEntrada = !existente && marcadorImportacao && String((venda as any).tipo || '').toLocaleLowerCase('pt-BR').includes('orçamento')
+    ? normalizarNovoOrcamentoImportado(venda as any)
+    : venda
   const vendaAtualizada = normalizarVenda({
     ...(existente as VendaComMetadados | undefined),
-    ...vendaBase,
+    ...(vendaEntrada as VendaComMetadados),
     id: String(vendaBase.id || (existente as any)?.id || ''),
     criadoEm:
       (existente as VendaComMetadados | undefined)?.criadoEm ||
@@ -410,13 +448,10 @@ export async function salvarVendaStorageConfirmado(venda: Venda) {
     atualizadoEm: gerarDataAtual(),
   }) as unknown as Venda
 
-  const atualizadas = existente
-    ? vendasServidor.map((item) =>
-        mesmoRegistroVenda(item, vendaAtualizada) ? vendaAtualizada : item,
-      )
-    : [...vendasServidor, vendaAtualizada]
-
-  await sincronizarColecaoCentralAgora('vendas', atualizadas)
+  const atualizacao = await atualizarRegistroColecaoCentral('vendas', vendaAtualizada)
+  if (String((atualizacao.record as any)?.id || '') !== String((vendaAtualizada as any).id || '')) {
+    throw new Error('O MySQL confirmou um ID diferente do orçamento enviado.')
+  }
 
   const confirmacao = await carregarColecaoCentral<Venda>('vendas')
   const vendasConfirmadas = Array.isArray(confirmacao.data)
@@ -430,8 +465,19 @@ export async function salvarVendaStorageConfirmado(venda: Venda) {
     throw new Error('O servidor não devolveu o orçamento/pedido após a gravação.')
   }
 
+  if (JSON.stringify(gravada) !== JSON.stringify(vendaAtualizada)) {
+    throw new Error('A releitura do MySQL divergiu dos dados enviados. Recarregue o orçamento antes de tentar novamente.')
+  }
+
+  if (String((gravada as any).id || '') !== String((vendaAtualizada as any).id || '')) {
+    throw new Error('O servidor devolveu um ID diferente após a gravação do pedido.')
+  }
+  if (String((gravada as any).numeroPedido || '') !== String((vendaAtualizada as any).numeroPedido || '')) {
+    throw new Error('O servidor devolveu um número de pedido diferente após a gravação.')
+  }
+
   definirColecaoMemoria('vendas', vendasConfirmadas)
   salvarBackupLocal(vendasConfirmadas)
 
-  return vendasConfirmadas
+  return gravada
 }

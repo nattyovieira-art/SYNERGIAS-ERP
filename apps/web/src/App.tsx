@@ -3,6 +3,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Login from './pages/Login/Login'
 import { authApi, type AuthUser } from './services/authApi'
 import { inicializarArmazenamentoCentral } from './services/erpApi'
+import { corrigirOrcamentosImportadosSemPedidoReal } from './services/vendasStorage'
+import { carregarCacheMovimentacoesCentral } from './services/pedidoEntregaApi'
 
 import Dashboard from './pages/Dashboard/Dashboard'
 import Clientes from './pages/Clientes/Clientes'
@@ -74,6 +76,8 @@ function App() {
           setStorageLoading(true)
           try {
             await inicializarArmazenamentoCentral()
+            await carregarCacheMovimentacoesCentral()
+            await corrigirOrcamentosImportadosSemPedidoReal()
             if (!ativo) return
             setAuthUser(status.user)
           } catch (erro) {
@@ -93,6 +97,8 @@ function App() {
     setStorageLoading(true)
     try {
       await inicializarArmazenamentoCentral()
+      await carregarCacheMovimentacoesCentral()
+      await corrigirOrcamentosImportadosSemPedidoReal()
       setAuthUser(user)
     } catch (erro) {
       alert(`Não foi possível carregar os dados do servidor: ${erro instanceof Error ? erro.message : String(erro)}`)

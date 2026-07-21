@@ -448,3 +448,137 @@
     width: 100%;
   }
 }
+.locais-entrega-cadastro {
+  width: auto;
+  margin: 0 18px 18px;
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+
+.locais-entrega-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.locais-entrega-cabecalho h3,
+.locais-entrega-cabecalho small {
+  margin: 0;
+}
+
+.locais-entrega-cabecalho button,
+.danger-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.locais-entrega-cabecalho .locais-entrega-adicionar {
+  border: 0;
+  background: #0284c7;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.locais-entrega-cabecalho .locais-entrega-toggle {
+  min-width: 0;
+  flex: 1;
+  justify-content: space-between;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: #0f172a;
+  text-align: left;
+}
+
+.locais-entrega-toggle > span {
+  display: grid;
+  gap: 3px;
+}
+
+.locais-entrega-toggle small {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.locais-entrega-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.locais-entrega-lista > button {
+  min-width: 0;
+  padding: 13px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+}
+
+.locais-entrega-lista > button.ativo {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.12);
+}
+
+.locais-entrega-lista span,
+.locais-entrega-lista small {
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+  color: #64748b;
+}
+
+.local-entrega-editor {
+  padding: 18px 0 0;
+  border-top: 1px solid #cbd5e1;
+}
+
+.local-entrega-editor .checkbox-line {
+  min-height: 42px;
+  flex-direction: row;
+  align-items: center;
+}
+
+.local-entrega-editor .checkbox-line input {
+  width: auto;
+  height: auto;
+}
+
+.danger-button {
+  align-self: end;
+  border: 1px solid #ef4444;
+  background: #7f1d1d;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .locais-entrega-cadastro {
+    margin: 0 18px 18px;
+    padding: 14px;
+  }
+
+  .locais-entrega-cabecalho {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .locais-entrega-lista {
+    grid-template-columns: 1fr;
+  }
+}

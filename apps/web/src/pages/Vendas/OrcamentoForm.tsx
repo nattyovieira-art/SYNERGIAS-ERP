@@ -28,7 +28,10 @@ import logoSynergiasUrl from '../../assets/logo-synergias.png'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import { carregarColecaoCentral, ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
 import { salvarClientesStorageConfirmado } from '../../services/clientesStorage'
+import type { Cliente, EnderecoEntregaCliente } from '../../types/Cliente'
+import { enderecoEntregaVazio, formatarEnderecoEntrega, normalizarEnderecosEntrega } from '../../services/enderecosEntrega'
 import { listarVendasStorage as listarVendasCentral, salvarVendaStorageConfirmado as salvarVendaCentralConfirmado } from '../../services/vendasStorage'
+import { determinarEstadoRealOrcamento } from '../../services/orcamentoEstado'
 
 import '../../styles/clientes.css'
 import '../../styles/orcamento-form.css'
@@ -46,7 +49,8 @@ type ClienteOrcamento = {
   indicadorIE: string
   enderecoFaturamento: string
   enderecoEntrega: string
-  enderecosEntrega: string[]
+  enderecosEntrega: EnderecoEntregaCliente[]
+  emailPrincipal: string
   limiteCredito: number
   totalVencidas: number
   totalAVencer: number
@@ -104,6 +108,16 @@ type VendaStorage = {
   dataEntrega: string
   enderecoFaturamento: string
   enderecoEntrega: string
+  enderecoEntregaId?: string
+  enderecoEntregaNome?: string
+  enderecoEntregaCompleto?: string
+  emailEnvio?: string
+  enderecoEntregaSnapshot?: EnderecoEntregaCliente
+  responsavelEntrega?: string
+  telefoneEntrega?: string
+  celularEntrega?: string
+  horarioEntrega?: string
+  observacoesLocalEntrega?: string
   itens: ItemOrcamento[]
   tipoDesconto: TipoDesconto
   descontoInformado: number
@@ -564,13 +578,8 @@ function mapearClientesOrcamento(clientes: any[]): ClienteOrcamento[] {
       indicadorIE: normalizarIndicadorIECliente(cliente.indicadorIE, cliente.inscricaoEstadual || cliente.ie),
       enderecoFaturamento: montarEnderecoFiscal(cliente),
       enderecoEntrega: montarEnderecoEntrega(cliente),
-      enderecosEntrega: Array.isArray(cliente.enderecosEntrega)
-        ? cliente.enderecosEntrega.map((endereco: unknown) => compactarEnderecoEmDuasLinhas(String(endereco || ''))).filter(Boolean)
-        : String(cliente.enderecoEntrega || montarEnderecoEntrega(cliente))
-            .split(/\n\s*\n+/)
-            .map((endereco: string) => compactarEnderecoEmDuasLinhas(endereco))
-            .map((endereco: string) => endereco.trim())
-            .filter(Boolean),
+      enderecosEntrega: normalizarEnderecosEntrega(cliente as Cliente),
+      emailPrincipal: String(cliente.email || ''),
       limiteCredito: Number(cliente.limiteCredito || 0),
       totalVencidas: Number(cliente.totalVencidas || 0),
       totalAVencer: Number(cliente.totalAVencer || 0),
@@ -906,6 +915,7 @@ function OrcamentoForm() {
   const [enderecoFaturamento, setEnderecoFaturamento] = useState('')
   const [, setEnderecoEntrega] = useState('')
   const [enderecosEntregaLista, setEnderecosEntregaLista] = useState<string[]>([''])
+  const [enderecosEntregaDados, setEnderecosEntregaDados] = useState<EnderecoEntregaCliente[]>([])
   const [enderecoEntregaSelecionadoIndice, setEnderecoEntregaSelecionadoIndice] = useState(0)
   const [enderecoEntregaEditandoIndice, setEnderecoEntregaEditandoIndice] = useState<number | null>(null)
 
@@ -955,9 +965,11 @@ function OrcamentoForm() {
   const [novoProdutoNome, setNovoProdutoNome] = useState('')
   const [novoProdutoValorTexto, setNovoProdutoValorTexto] = useState('0,00')
 
-  const statusConvertido = ['convertido', 'efetivado'].some((termo) => String(status || '').toLowerCase().includes(termo))
-  const possuiPedidoOriginario = Boolean(pedidoOriginarioNumero) || Boolean(pedidoOriginarioId)
-  const statusEhConcluido = statusConvertido || possuiPedidoOriginario
+  const vendasEstadoReal = carregarVendasStorage()
+  const registroEstadoReal = vendasEstadoReal.find((registro) => String(registro.id || '') === String(idOrcamento || id || ''))
+  const estadoRealOrcamento = determinarEstadoRealOrcamento(registroEstadoReal || { id: idOrcamento, numeroOrcamento: numero, statusOrcamento: status }, vendasEstadoReal)
+  const possuiPedidoOriginario = estadoRealOrcamento.vinculoUnico
+  const statusEhConcluido = estadoRealOrcamento.convertido
   const classeStatusExibicao = statusEhConcluido
     ? 'concluido'
     : String(status || 'Aberto').toLowerCase()
@@ -1073,8 +1085,9 @@ function OrcamentoForm() {
 
     setIdOrcamento(orcamentoEncontrado.id)
     setStatus(orcamentoEncontrado.statusOrcamento || 'Aberto')
-    setPedidoOriginarioId(String((orcamentoEncontrado as any).pedidoGeradoId || ''))
-    setPedidoOriginarioNumero(String((orcamentoEncontrado as any).numeroPedido || ''))
+    const estadoReal = determinarEstadoRealOrcamento(orcamentoEncontrado, carregarVendasStorage())
+    setPedidoOriginarioId(String(estadoReal.pedidoReal?.id || ''))
+    setPedidoOriginarioNumero(String(estadoReal.pedidoReal?.numeroPedido || ''))
     setNumero(String(Number(String(orcamentoEncontrado.numeroOrcamento || '').replace(/\D/g, '')) || ''))
     setVendedor(orcamentoEncontrado.vendedor || '')
     setClienteId(orcamentoEncontrado.clienteId || '')
@@ -1088,7 +1101,11 @@ function OrcamentoForm() {
     setDataValidade(orcamentoEncontrado.dataValidade || somarDiasUteis(hoje, 5))
     setDataEntrega(orcamentoEncontrado.dataEntrega || somarDiasUteis(hoje, 2))
     setEnderecoFaturamento(compactarEnderecoEmDuasLinhas(orcamentoEncontrado.enderecoFaturamento || ''))
-    aplicarEnderecosEntrega(orcamentoEncontrado.enderecoEntrega || '')
+    const snapshot = orcamentoEncontrado.enderecoEntregaSnapshot
+    if (snapshot) {
+      setEnderecosEntregaDados([snapshot])
+      aplicarEnderecosEntrega(formatarEnderecoEntrega(snapshot) || orcamentoEncontrado.enderecoEntrega || '')
+    } else aplicarEnderecosEntrega(orcamentoEncontrado.enderecoEntrega || '')
     setItens((orcamentoEncontrado.itens || []).map((item, indice) => ({ ...item, id: String(item.id || `item-${indice}-${gerarId()}`) })))
     setTipoDesconto(orcamentoEncontrado.tipoDesconto || 'valor')
     setDescontoInformadoTexto(numeroParaCampo(orcamentoEncontrado.descontoInformado || 0))
@@ -1166,7 +1183,6 @@ function OrcamentoForm() {
       enderecosEntregaLista[enderecoEntregaSelecionadoIndice] || ''
     )
   }, [enderecosEntregaLista, enderecoEntregaSelecionadoIndice])
-
   const opcoesCobrancaDisponiveis = formaPagamentoSelecionada
     ? OPCOES_COBRANCA_POR_FORMA[formaPagamentoSelecionada] || []
     : []
@@ -1333,13 +1349,16 @@ function OrcamentoForm() {
     setClienteBusca(cliente.nome)
     setClienteNome(cliente.nome)
     setClienteDocumento(cliente.documento)
-    setClienteEmailNotaFiscal(cliente.emailNotaFiscal || '')
+    const locaisAtivos = cliente.enderecosEntrega.filter((endereco) => endereco.ativo)
+    setEnderecosEntregaDados(locaisAtivos)
+    const primeiroLocal = locaisAtivos[0]
+    setClienteEmailNotaFiscal(primeiroLocal?.emailEnvio || cliente.emailPrincipal || '')
     setClienteInscricaoEstadual(cliente.inscricaoEstadual || '')
     setClienteIndicadorIE(normalizarIndicadorIECliente(cliente.indicadorIE, cliente.inscricaoEstadual))
     setEnderecoFaturamento(compactarEnderecoEmDuasLinhas(cliente.enderecoFaturamento))
     aplicarEnderecosEntrega(
-      (cliente.enderecosEntrega && cliente.enderecosEntrega.length > 0
-        ? cliente.enderecosEntrega.join('\n\n')
+      (locaisAtivos.length > 0
+        ? locaisAtivos.map(formatarEnderecoEntrega).join('\n\n')
         : cliente.enderecoEntrega || cliente.enderecoFaturamento),
     )
     setClienteSugestoesAbertas(false)
@@ -1370,15 +1389,38 @@ function OrcamentoForm() {
     )
 
     setEnderecosEntregaLista(listaAtualizada)
+    setEnderecosEntregaDados((atuais) => {
+      const base = atuais[indice] || {
+        ...enderecoEntregaVazio(),
+        nomeLocal: `Local ${indice + 1}`,
+      }
+      const atualizado = {
+        ...base,
+        logradouro: valor,
+        numero: '',
+        complemento: '',
+        bairro: '',
+        cidade: '',
+        uf: '',
+        cep: '',
+      }
+      const lista = [...atuais]
+      lista[indice] = atualizado
+      return lista
+    })
 
     if (indice === enderecoEntregaSelecionadoIndice) {
       setEnderecoEntrega(valor)
     }
   }
 
-  async function persistirEnderecosEntregaCliente(lista: string[]) {
+  async function persistirEnderecosEntregaCliente(
+    lista: string[],
+    dados: EnderecoEntregaCliente[] = enderecosEntregaDados,
+  ) {
     if (!clienteId) return
     const enderecos = lista.map((endereco) => compactarEnderecoEmDuasLinhas(endereco)).filter(Boolean)
+    const dadosPreenchidos = dados.filter((_, indice) => Boolean(lista[indice]?.trim()))
     try {
       const resposta = await carregarColecaoCentral<any>('clientes')
       const atuais = Array.isArray(resposta.data) ? resposta.data : []
@@ -1387,7 +1429,7 @@ function OrcamentoForm() {
         if (codigo !== String(clienteId)) return cliente
         return {
           ...cliente,
-          enderecosEntrega: enderecos,
+          enderecosEntrega: dadosPreenchidos.length ? dadosPreenchidos : enderecos.map((logradouro, indice) => ({ ...enderecoEntregaVazio(), id: `ent-${Date.now()}-${indice}`, nomeLocal: `Local ${indice + 1}`, logradouro })),
           enderecoEntrega: enderecos[0] || cliente.enderecoEntrega || '',
           atualizadoEm: new Date().toISOString(),
         }
@@ -1400,7 +1442,10 @@ function OrcamentoForm() {
   }
 
   function adicionarEnderecoEntrega() {
+    const novo = enderecoEntregaVazio()
+    novo.nomeLocal = `Local ${enderecosEntregaDados.length + 1}`
     const listaAtualizada = [...enderecosEntregaLista, '']
+    setEnderecosEntregaDados((atuais) => [...atuais, novo])
 
     setEnderecosEntregaLista(listaAtualizada)
     setEnderecoEntregaSelecionadoIndice(listaAtualizada.length - 1)
@@ -1416,11 +1461,13 @@ function OrcamentoForm() {
     const novoIndice = Math.min(enderecoEntregaSelecionadoIndice, listaFinal.length - 1)
 
     setEnderecosEntregaLista(listaFinal)
+    const dadosAtualizados = enderecosEntregaDados.filter((_, atual) => atual !== indice)
+    setEnderecosEntregaDados(dadosAtualizados)
     setEnderecoEntregaSelecionadoIndice(novoIndice)
     setEnderecoEntrega(listaFinal[novoIndice] || '')
     setEnderecoEntregaEditandoIndice(null)
     setEditandoEntrega(false)
-    void persistirEnderecosEntregaCliente(listaFinal)
+    void persistirEnderecosEntregaCliente(listaFinal, dadosAtualizados)
   }
 
   function selecionarEnderecoEntrega(indice: number) {
@@ -1428,6 +1475,9 @@ function OrcamentoForm() {
 
     setEnderecoEntregaSelecionadoIndice(indiceSeguro)
     setEnderecoEntrega(enderecosEntregaLista[indiceSeguro] || '')
+    const local = enderecosEntregaDados[indiceSeguro]
+    const cliente = clientes.find((item) => item.id === clienteId)
+    if (local) setClienteEmailNotaFiscal(local.emailEnvio || cliente?.emailPrincipal || '')
     setEnderecoEntregaEditandoIndice(null)
     setEditandoEntrega(false)
     void persistirEnderecosEntregaCliente(enderecosEntregaLista)
@@ -1563,6 +1613,7 @@ function OrcamentoForm() {
     const idNovoCliente = gerarId()
     const endereco = novoClienteEndereco.trim()
     const documento = novoClienteDocumento.trim()
+    const novoLocal = { ...enderecoEntregaVazio(), nomeLocal: 'Principal', logradouro: endereco, responsavel: nome, telefone: novoClienteTelefone.trim(), emailEnvio: novoClienteEmail.trim() }
 
     const clienteParaStorage = {
       id: idNovoCliente,
@@ -1585,6 +1636,7 @@ function OrcamentoForm() {
       cep: '',
       pais: 'Brasil',
       mesmoEnderecoFiscal: true,
+      enderecosEntrega: endereco ? [novoLocal] : [],
       situacao: 'Ativo',
       criadoEm: new Date().toISOString(),
       itensEditadosManual: true,
@@ -1604,7 +1656,8 @@ function OrcamentoForm() {
         emailNotaFiscal: novoClienteEmail.trim(),
         enderecoFaturamento: endereco,
         enderecoEntrega: endereco,
-        enderecosEntrega: endereco ? [endereco] : [],
+        enderecosEntrega: endereco ? [novoLocal] : [],
+        emailPrincipal: novoClienteEmail.trim(),
         limiteCredito: 10000,
         totalVencidas: 0,
         totalAVencer: 0,
@@ -1967,6 +2020,9 @@ function OrcamentoForm() {
 
   function montarOrcamento(statusAtual: StatusOrcamento = status): VendaStorage {
     const registroAtual = buscarOrcamentoPorId(idOrcamento)
+    const localSelecionado = enderecosEntregaDados[enderecoEntregaSelecionadoIndice]
+    const clienteSelecionado = clientes.find((cliente) => cliente.id === clienteId)
+    const emailEnvio = localSelecionado?.emailEnvio || clienteSelecionado?.emailPrincipal || clienteEmailNotaFiscal.trim()
     return {
       ...(registroAtual || {}),
       id: idOrcamento,
@@ -1976,7 +2032,8 @@ function OrcamentoForm() {
       clienteId,
       clienteNome: clienteNome || clienteBusca,
       clienteDocumento,
-      clienteEmailNotaFiscal: clienteEmailNotaFiscal.trim(),
+      clienteEmailNotaFiscal: emailEnvio,
+      emailEnvio,
       clienteInscricaoEstadual: clienteIndicadorIE === '9' ? '' : clienteInscricaoEstadual.trim(),
       clienteIndicadorIE,
       dataEmissao,
@@ -1984,6 +2041,15 @@ function OrcamentoForm() {
       dataEntrega,
       enderecoFaturamento: compactarEnderecoEmDuasLinhas(enderecoFaturamento),
       enderecoEntrega: enderecoEntregaFinal,
+      enderecoEntregaId: localSelecionado?.id || '',
+      enderecoEntregaNome: localSelecionado?.nomeLocal || 'Local de entrega',
+      enderecoEntregaCompleto: enderecoEntregaFinal,
+      enderecoEntregaSnapshot: localSelecionado ? { ...localSelecionado, emailEnvio } : undefined,
+      responsavelEntrega: localSelecionado?.responsavel || '',
+      telefoneEntrega: localSelecionado?.telefone || '',
+      celularEntrega: localSelecionado?.celular || '',
+      horarioEntrega: localSelecionado?.horarioEntrega || '',
+      observacoesLocalEntrega: localSelecionado?.observacoes || '',
       itens,
       tipoDesconto,
       descontoInformado,
@@ -2005,7 +2071,7 @@ function OrcamentoForm() {
 
     try {
       await salvarOrcamentoStorage(orcamento)
-      void persistirEnderecosEntregaCliente(enderecosEntregaLista)
+      await persistirEnderecosEntregaCliente(enderecosEntregaLista)
       setStatus(statusAtual)
 
       if (!silencioso) {
@@ -3610,6 +3676,7 @@ function abrirImpressaoOrcamento() {
                             onBlur={() => {
                               setEnderecoEntregaEditandoIndice(null)
                               setEditandoEntrega(false)
+                              void persistirEnderecosEntregaCliente(enderecosEntregaLista)
                             }}
                           />
                         ) : (

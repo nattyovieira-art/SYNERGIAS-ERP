@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Filter, List, Save, SaveAll, Search } from 'lucide-react'
+import { ChevronDown, ChevronUp, Filter, List, Plus, Save, SaveAll, Search, Trash2 } from 'lucide-react'
 
 import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import type { Cliente } from '../../types/Cliente'
+import type { EnderecoEntregaCliente } from '../../types/Cliente'
+import { enderecoEntregaVazio, formatarEnderecoEntrega, normalizarEnderecosEntrega } from '../../services/enderecosEntrega'
 
 import {
   buscarClienteStorage,
@@ -32,6 +34,8 @@ function ClienteForm({ modo }: ClienteFormProps) {
   const [abaAtiva, setAbaAtiva] = useState('geral')
   const [buscandoCnpj, setBuscandoCnpj] = useState(false)
   const [buscandoCepEntrega, setBuscandoCepEntrega] = useState(false)
+  const [enderecoEntregaSelecionado, setEnderecoEntregaSelecionado] = useState(0)
+  const [locaisEntregaAbertos, setLocaisEntregaAbertos] = useState(false)
 
   const [pesquisaClientes, setPesquisaClientes] = useState('')
   const [mostrarFiltrosClientes, setMostrarFiltrosClientes] = useState(false)
@@ -98,9 +102,32 @@ function ClienteForm({ modo }: ClienteFormProps) {
     valorAno: clienteEncontrado?.valorAno || 0,
     caracteristicas: clienteEncontrado?.caracteristicas || '',
     pedidos: (clienteEncontrado as any)?.pedidos || [],
+    enderecosEntrega: clienteEncontrado ? normalizarEnderecosEntrega(clienteEncontrado) : [],
   } as Cliente)
 
   const c = cliente as any
+  const enderecosEntrega = normalizarEnderecosEntrega(cliente)
+  const enderecoAtual = enderecosEntrega[enderecoEntregaSelecionado]
+
+  function atualizarEnderecoEntrega(campo: keyof EnderecoEntregaCliente, valor: string | boolean) {
+    const lista = [...enderecosEntrega]
+    if (!lista[enderecoEntregaSelecionado]) return
+    lista[enderecoEntregaSelecionado] = { ...lista[enderecoEntregaSelecionado], [campo]: valor }
+    setCliente((atual) => ({ ...atual, enderecosEntrega: lista }))
+  }
+
+  function adicionarEnderecoEntrega() {
+    const lista = [...enderecosEntrega, enderecoEntregaVazio()]
+    setCliente((atual) => ({ ...atual, enderecosEntrega: lista, mesmoEnderecoFiscal: false }))
+    setEnderecoEntregaSelecionado(lista.length - 1)
+    setLocaisEntregaAbertos(true)
+  }
+
+  function excluirEnderecoEntrega(indice: number) {
+    const lista = enderecosEntrega.filter((_, atual) => atual !== indice)
+    setCliente((atual) => ({ ...atual, enderecosEntrega: lista }))
+    setEnderecoEntregaSelecionado(Math.max(0, Math.min(indice, lista.length - 1)))
+  }
   const titulo = modo === 'novo' ? 'Novo Cliente' : 'Editar Cliente'
 
   const limiteUtilizado = Number(c.totalAVencer || 0) + Number(c.totalVencidas || 0)
@@ -758,7 +785,8 @@ function ClienteForm({ modo }: ClienteFormProps) {
           )}
 
           {abaAtiva === 'endereco' && (
-            <div className="form-grid">
+            <div className="endereco-tab">
+              <div className="form-grid endereco-principal-grid">
               <h3 className="span-2">Endereço Fiscal</h3>
 
               <label>
@@ -943,16 +971,6 @@ function ClienteForm({ modo }: ClienteFormProps) {
                 />
               </label>
 
-              <label className="span-2">
-                Outros endereços de entrega (um endereço completo por linha)
-                <textarea
-                  rows={5}
-                  value={(c.enderecosEntrega || []).join('\n')}
-                  onChange={(e) => atualizarCliente('enderecosEntrega', e.target.value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean))}
-                  placeholder="Cadastre outros endereços para escolher no orçamento"
-                />
-              </label>
-
               <label>
                 País Entrega
                 <input
@@ -961,6 +979,40 @@ function ClienteForm({ modo }: ClienteFormProps) {
                   disabled={!!c.mesmoEnderecoFiscal}
                 />
               </label>
+              </div>
+
+              <section className="locais-entrega-cadastro">
+                <div className="locais-entrega-cabecalho">
+                  <button
+                    type="button"
+                    className="locais-entrega-toggle"
+                    aria-expanded={locaisEntregaAbertos}
+                    onClick={() => setLocaisEntregaAbertos((aberto) => !aberto)}
+                  >
+                    <span><h3>Locais de entrega</h3><small>{enderecosEntrega.length} {enderecosEntrega.length === 1 ? 'local cadastrado' : 'locais cadastrados'}</small></span>
+                    {locaisEntregaAbertos ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </button>
+                  <button type="button" className="locais-entrega-adicionar" onClick={adicionarEnderecoEntrega}><Plus size={17} /> Adicionar</button>
+                </div>
+                {locaisEntregaAbertos && <>
+                  <div className="locais-entrega-lista">
+                  {enderecosEntrega.map((endereco, indice) => <button type="button" key={endereco.id} className={indice === enderecoEntregaSelecionado ? 'ativo' : ''} onClick={() => setEnderecoEntregaSelecionado(indice)}><strong>{endereco.nomeLocal || `Local ${indice + 1}`}</strong><span>{formatarEnderecoEntrega(endereco) || 'Endereço ainda não preenchido'}</span><small>{endereco.emailEnvio || 'Usará o e-mail principal'} · {endereco.responsavel || 'Sem responsável'} · {endereco.ativo ? 'Ativo' : 'Inativo'}</small></button>)}
+                  {!enderecosEntrega.length && <p>Nenhum local cadastrado. Clique em Adicionar.</p>}
+                  </div>
+                  {enderecoAtual && <div className="form-grid local-entrega-editor">
+                  <label>Nome do local<input value={enderecoAtual.nomeLocal} onChange={(e) => atualizarEnderecoEntrega('nomeLocal', e.target.value)} placeholder="Matriz, Filial, Bloco A..." /></label>
+                  <label>Tipo<select value={enderecoAtual.tipoLocal} onChange={(e) => atualizarEnderecoEntrega('tipoLocal', e.target.value)}><option>Residencial</option><option>Comercial</option><option>Outro</option></select></label>
+                  <label>CEP<input value={enderecoAtual.cep} onChange={(e) => atualizarEnderecoEntrega('cep', e.target.value)} /></label><label>Logradouro<input value={enderecoAtual.logradouro} onChange={(e) => atualizarEnderecoEntrega('logradouro', e.target.value)} /></label>
+                  <label>Número<input value={enderecoAtual.numero} onChange={(e) => atualizarEnderecoEntrega('numero', e.target.value)} /></label><label>Complemento<input value={enderecoAtual.complemento} onChange={(e) => atualizarEnderecoEntrega('complemento', e.target.value)} /></label>
+                  <label>Bairro<input value={enderecoAtual.bairro} onChange={(e) => atualizarEnderecoEntrega('bairro', e.target.value)} /></label><label>Cidade<input value={enderecoAtual.cidade} onChange={(e) => atualizarEnderecoEntrega('cidade', e.target.value)} /></label>
+                  <label>UF<input value={enderecoAtual.uf} maxLength={2} onChange={(e) => atualizarEnderecoEntrega('uf', e.target.value.toUpperCase())} /></label><label>Responsável<input value={enderecoAtual.responsavel} onChange={(e) => atualizarEnderecoEntrega('responsavel', e.target.value)} /></label>
+                  <label>Telefone<input value={enderecoAtual.telefone} onChange={(e) => atualizarEnderecoEntrega('telefone', e.target.value)} /></label><label>Celular / WhatsApp<input value={enderecoAtual.celular} onChange={(e) => atualizarEnderecoEntrega('celular', e.target.value)} /></label>
+                  <label>Horário de entrega<input value={enderecoAtual.horarioEntrega} onChange={(e) => atualizarEnderecoEntrega('horarioEntrega', e.target.value)} /></label><label>E-mail de envio<input type="email" value={enderecoAtual.emailEnvio} onChange={(e) => atualizarEnderecoEntrega('emailEnvio', e.target.value)} /></label>
+                  <label className="span-2">Observações<textarea rows={3} value={enderecoAtual.observacoes} onChange={(e) => atualizarEnderecoEntrega('observacoes', e.target.value)} /></label>
+                  <label className="checkbox-line"><input type="checkbox" checked={enderecoAtual.ativo} onChange={(e) => atualizarEnderecoEntrega('ativo', e.target.checked)} /> Local ativo</label><button type="button" className="danger-button" onClick={() => excluirEnderecoEntrega(enderecoEntregaSelecionado)}><Trash2 size={16} /> Excluir local</button>
+                  </div>}
+                </>}
+              </section>
             </div>
           )}
 

@@ -72,6 +72,10 @@ type ContaPagar = {
   jurosPagos?: number
   descontosObtidos?: number
   valorPago?: number
+  compraId?: string
+  numeroCompra?: string
+  numeroNFe?: string
+  chaveAcessoNFe?: string
 }
 
 type LancamentoOfx = {
@@ -163,6 +167,7 @@ const STORAGE_CONTAS_PAGAR = 'synergias_contas_pagar'
 const STORAGE_LANCAMENTOS_OFX = 'synergias_lancamentos_ofx'
 const STORAGE_CONCILIACOES = 'synergias_conciliacoes_bancarias'
 const STORAGE_VENDAS = 'synergias_vendas'
+const STORAGE_COMPRAS = 'synergias_erp_compras'
 
 function hoje() {
   return new Date().toISOString().slice(0, 10)
@@ -382,6 +387,29 @@ function salvarContaPagarStorage(conta: ContaPagar) {
     ? lista.map((item) => (String(item.id) === String(conta.id) ? conta : item))
     : [...lista, conta]
   salvarStorage(STORAGE_CONTAS_PAGAR, novaLista)
+}
+
+function atualizarStatusCompraPorContaPagar(conta: ContaPagar) {
+  if (!conta.compraId) return
+  const contasCompra = listarContasPagarStorage().filter(
+    (item) => String(item.compraId || '') === String(conta.compraId),
+  )
+  if (contasCompra.length === 0) return
+  const todasPagas = contasCompra.every(
+    (item) => item.status === 'Paga' || item.conciliado,
+  )
+  const compras = lerStorage<any>(STORAGE_COMPRAS)
+  const atualizadas = compras.map((compra) =>
+    String(compra.id || '') === String(conta.compraId)
+      ? {
+          ...compra,
+          status: todasPagas ? 'Concluído' : 'Faturado',
+          statusFinanceiro: todasPagas ? 'Pago' : 'Em pagamento',
+          atualizadoEm: agoraIso(),
+        }
+      : compra,
+  )
+  salvarStorage(STORAGE_COMPRAS, atualizadas)
 }
 
 function extrairTagOfx(texto: string, tag: string) {
@@ -740,7 +768,7 @@ function conciliarConta(
       return false
     }
 
-    salvarContaPagarStorage({
+    const contaPaga: ContaPagar = {
       ...original,
       status: 'Paga',
       dataPagamento: lancamento.data,
@@ -749,7 +777,9 @@ function conciliarConta(
       jurosPagos: Number((Number(original.jurosPagos || 0) + juros).toFixed(2)),
       descontosObtidos: Number((Number(original.descontosObtidos || 0) + desconto).toFixed(2)),
       valorPago: Number((Number(original.valorPago || 0) + valorMovimentado).toFixed(2)),
-    })
+    }
+    salvarContaPagarStorage(contaPaga)
+    atualizarStatusCompraPorContaPagar(contaPaga)
   }
 
   const registro: ConciliacaoRegistro = {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowDownToLine,
   ArrowLeft,
@@ -21,8 +21,14 @@ import type { Compra, ItemCompra, StatusCompra } from '../../types/Compra'
 import {
   buscarCompraStorage,
   gerarNumeroCompraStorage,
+  listarComprasStorage,
   salvarCompraStorage,
 } from '../../services/comprasStorage'
+import {
+  listarProdutosStorage,
+  salvarProdutoStorage,
+} from '../../services/produtosStorage'
+import { parseNFeCompraXml } from '../../services/nfeCompraXml'
 import {
   confirmarEntradaCompraComCustoMedioStorage,
 } from '../../services/estoqueStorage'
@@ -60,6 +66,49 @@ function numero(valor: unknown) {
   return Number.isFinite(convertido) ? convertido : 0
 }
 
+function sincronizarContasPagarCompra(compra: Compra) {
+  const chave = 'synergias_contas_pagar'
+  let atuais: Array<Record<string, unknown>> = []
+  try {
+    const dados = JSON.parse(localStorage.getItem(chave) || '[]')
+    if (Array.isArray(dados)) atuais = dados
+  } catch {
+    atuais = []
+  }
+  const parcelas = compra.parcelasPagamento || []
+  parcelas.forEach((parcela, indice) => {
+    const id = `compra-${compra.id}-parcela-${parcela.numero || indice + 1}`
+    const conta = {
+      id,
+      fornecedor: compra.fornecedorNome,
+      documento: compra.chaveAcessoNFe || compra.numeroNFe || compra.numeroCompra,
+      descricao: `NF-e ${compra.numeroNFe || '-'} · Pedido ${compra.numeroCompra} · Parcela ${parcela.numero}`,
+      categoria: 'Compras de materiais',
+      emissao: compra.dataEmissao,
+      vencimento: parcela.vencimento,
+      valor: parcela.valor,
+      status: 'Em aberto',
+      observacao: `Fornecedor ${compra.fornecedorDocumento}. Chave NF-e ${compra.chaveAcessoNFe || '-'}.`,
+      conciliado: false,
+      compraId: compra.id,
+      numeroCompra: compra.numeroCompra,
+      numeroNFe: compra.numeroNFe,
+      chaveAcessoNFe: compra.chaveAcessoNFe,
+      parcelaNumero: parcela.numero,
+    }
+    const posicao = atuais.findIndex((item) => item.id === id)
+    if (posicao >= 0) {
+      const existente = atuais[posicao]
+      atuais[posicao] = existente.status === 'Paga' || existente.conciliado
+        ? { ...conta, ...existente }
+        : { ...existente, ...conta }
+    } else {
+      atuais.unshift(conta)
+    }
+  })
+  localStorage.setItem(chave, JSON.stringify(atuais))
+}
+
 function normalizarItem(item: ItemCompra): ItemCompra {
   const unidadeFiscal = item.unidadeFiscal || item.unidade || 'UN'
   const quantidadeFiscal = numero(item.quantidadeFiscal ?? item.quantidade)
@@ -71,8 +120,10 @@ function normalizarItem(item: ItemCompra): ItemCompra {
   const quantidadeConvertida =
     numero(item.quantidadeConvertida) || quantidadeFiscal * fatorConversao
   const custoUnitarioConvertido =
-    numero(item.custoUnitarioConvertido) ||
-    (fatorConversao > 0 ? custoUnitarioFiscal / fatorConversao : 0)
+    numero(item.custoFinalItem) > 0 && quantidadeConvertida > 0
+      ? numero(item.custoFinalItem) / quantidadeConvertida
+      : numero(item.custoUnitarioConvertido) ||
+        (fatorConversao > 0 ? custoUnitarioFiscal / fatorConversao : 0)
 
   return {
     ...item,
@@ -93,12 +144,16 @@ function normalizarItem(item: ItemCompra): ItemCompra {
 
 function CompraForm({ modo }: CompraFormProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { id } = useParams()
 
   const compraEncontrada =
     modo === 'editar' && id ? buscarCompraStorage(id) : undefined
 
   const [buscaFormulario, setBuscaFormulario] = useState('')
+  const produtosDisponiveis = useMemo(() => listarProdutosStorage(), [])
+  const [buscasProduto, setBuscasProduto] = useState<Record<string, string>>({})
+  const [produtoBuscaAberta, setProdutoBuscaAberta] = useState<string | null>(null)
   const [mostrarFiltrosFormulario, setMostrarFiltrosFormulario] = useState(false)
   const [filtroFormulario, setFiltroFormulario] = useState<'todos' | 'fornecedor' | 'produtos' | 'pagamento'>('todos')
 
@@ -113,6 +168,14 @@ function CompraForm({ modo }: CompraFormProps) {
     }
 
     const dataEmissao = hoje()
+    const xmlRecebido = (location.state as { xmlCompra?: string } | null)?.xmlCompra
+    if (modo === 'novo' && xmlRecebido) {
+      return parseNFeCompraXml(
+        xmlRecebido,
+        listarProdutosStorage(),
+        gerarNumeroCompraStorage(),
+      )
+    }
 
     return {
       id: criarId(),
@@ -146,7 +209,11 @@ function CompraForm({ modo }: CompraFormProps) {
   const subtotal = useMemo(
     () =>
       compra.itens.reduce(
-        (soma, item) => soma + numero(item.totalFiscal ?? item.total),
+        (soma, item) =>
+          soma +
+          (item.incluidoNoSistema === false
+            ? 0
+            : numero(item.custoFinalItem ?? item.totalFiscal ?? item.total)),
         0,
       ),
     [compra.itens],
@@ -176,13 +243,37 @@ function CompraForm({ modo }: CompraFormProps) {
     input.type = 'file'
     input.accept = '.xml,text/xml,application/xml'
 
-    input.onchange = () => {
+    input.onchange = async () => {
       const arquivo = input.files?.[0]
 
       if (!arquivo) return
 
+      try {
+        const xml = await arquivo.text()
+        const importada = parseNFeCompraXml(xml, listarProdutosStorage(), compra.numeroCompra)
+        const duplicada = listarComprasStorage().find(
+          (item) => item.chaveAcessoNFe === importada.chaveAcessoNFe && item.id !== compra.id,
+        )
+        if (duplicada) {
+          alert(`Esta NF-e já foi importada na compra ${duplicada.numeroCompra}.`)
+          return
+        }
+        setCompra(importada)
+        alert(
+          `NF-e ${importada.numeroNFe} preparada para conferência.\n\n` +
+          importada.itens.map((item) =>
+            `${item.quantidadeFiscal} ${item.unidadeFiscal} × ${item.fatorConversao} = ${item.quantidadeConvertida} ${item.unidadeControle}`,
+          ).join('\n') +
+          '\n\nNenhuma compra, produto, custo ou quantidade em estoque foi alterada.',
+        )
+        return
+      } catch (error) {
+        alert(error instanceof Error ? error.message : 'Não foi possível ler o XML.')
+        return
+      }
+
       alert(
-        `Arquivo XML selecionado: ${arquivo.name}\n\n` +
+        `Arquivo XML selecionado: ${arquivo!.name}\n\n` +
           'A importação automática do XML será conectada ao fluxo fiscal. ' +
           'Nenhum pedido ou estoque foi alterado.',
       )
@@ -263,7 +354,11 @@ function CompraForm({ modo }: CompraFormProps) {
 
         const quantidadeConvertida = quantidadeFiscal * fatorConversao
         const custoUnitarioConvertido =
-          fatorConversao > 0 ? custoUnitarioFiscal / fatorConversao : 0
+          numero(atualizado.custoFinalItem) > 0 && quantidadeConvertida > 0
+            ? numero(atualizado.custoFinalItem) / quantidadeConvertida
+            : fatorConversao > 0
+              ? custoUnitarioFiscal / fatorConversao
+              : 0
         const totalFiscal = quantidadeFiscal * custoUnitarioFiscal
 
         return {
@@ -288,9 +383,109 @@ function CompraForm({ modo }: CompraFormProps) {
     }))
   }
 
+  function definirInclusaoItem(itemId: string, incluir: boolean) {
+    let motivo = ''
+    if (!incluir) {
+      motivo = window.prompt('Informe o motivo do descarte (ex.: compra pessoal ou brinde):')?.trim() || ''
+      if (!motivo) return
+    }
+    setCompra((atual) => ({
+      ...atual,
+      itens: atual.itens.map((item) => item.id === itemId
+        ? { ...item, incluidoNoSistema: incluir, motivoDescarte: incluir ? '' : motivo }
+        : item),
+    }))
+  }
+
+  function vincularProduto(itemId: string, codigo: string) {
+    const produto = produtosDisponiveis.find((item) => item.codigo === codigo)
+    if (produto) {
+      setBuscasProduto((atual) => ({
+        ...atual,
+        [itemId]: `${produto.codigo} - ${produto.descricao}`,
+      }))
+      setProdutoBuscaAberta(null)
+    }
+    setCompra((atual) => ({
+      ...atual,
+      itens: atual.itens.map((item) => item.id === itemId
+        ? {
+            ...item,
+            produtoCodigo: codigo,
+            novoProdutoPendente: false,
+            novoProdutoNome: '',
+            correspondencia: produto ? 'DESCRICAO' : 'NAO_VINCULADO',
+          }
+        : item),
+    }))
+  }
+
+  function normalizarBuscaProduto(valor: string) {
+    return valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+  }
+
+  function produtosSugeridos(busca: string) {
+    const termo = normalizarBuscaProduto(busca)
+    if (!termo) return []
+    return produtosDisponiveis.filter((produto) =>
+      normalizarBuscaProduto(
+        `${produto.codigo} ${produto.codigoBarras || ''} ${produto.descricao} ${produto.nome || ''}`,
+      ).includes(termo),
+    ).slice(0, 10)
+  }
+
+  function prepararNovoProduto(itemId: string) {
+    const nome = window.prompt('Qual será o nome deste novo produto no sistema?')?.trim() || ''
+    if (!nome) return
+    const item = compra.itens.find((atual) => atual.id === itemId)
+    const codigo = item?.eanTributavel || item?.eanComercial || `NOVO-${Date.now()}`
+    setCompra((atual) => ({
+      ...atual,
+      itens: atual.itens.map((atualItem) => atualItem.id === itemId
+        ? {
+            ...atualItem,
+            produtoCodigo: codigo,
+            novoProdutoNome: nome,
+            novoProdutoPendente: true,
+            correspondencia: 'NAO_VINCULADO',
+          }
+        : atualItem),
+    }))
+  }
+
+  function definirDecisaoDesconto(
+    decisao: NonNullable<Compra['decisaoDescontoFinanceiro']>,
+  ) {
+    const originais = compra.itensOriginaisNFe || compra.itens
+    const baseProdutos = originais.reduce(
+      (soma, item) => soma + numero(item.totalFiscal),
+      0,
+    )
+    setCompra((atual) => ({
+      ...atual,
+      decisaoDescontoFinanceiro: decisao,
+      itens: atual.itens.map((item) => {
+        const original = originais.find((base) => base.id === item.id) || item
+        const custoIntegral = numero(original.totalFiscal) + numero(original.icmsSt) + numero(original.ipi) + numero(original.difal)
+        const descontoRateado = decisao === 'LIQUIDO_COM_DESCONTO' && baseProdutos > 0
+          ? numero(atual.descontoFinanceiroNFe) * (numero(original.totalFiscal) / baseProdutos)
+          : 0
+        const custoFinalItem = Math.max(0, custoIntegral - descontoRateado)
+        return {
+          ...item,
+          custoFinalItem,
+          custoUnitarioConvertido: numero(item.quantidadeConvertida) > 0
+            ? custoFinalItem / numero(item.quantidadeConvertida)
+            : 0,
+        }
+      }),
+    }))
+  }
+
   function compraAtualizadaParaSalvar(): Compra {
     return {
       ...compra,
+      status: compra.parcelasPagamento?.length ? 'Faturado' : compra.status,
       subtotal,
       totalFinal,
       atualizadoEm: new Date().toISOString(),
@@ -304,14 +499,52 @@ function CompraForm({ modo }: CompraFormProps) {
       return
     }
 
-    if (compra.itens.length === 0) {
+    if (compra.itens.filter((item) => item.incluidoNoSistema !== false).length === 0) {
       alert('Adicione pelo menos um item ao pedido de compra.')
       return
     }
 
+    const semVinculo = compra.itens.find(
+      (item) => item.incluidoNoSistema !== false && !item.produtoCodigo.trim(),
+    )
+    if (semVinculo) {
+      alert(`O item "${semVinculo.descricao}" ainda não está vinculado a um produto. Se precisar criar um novo, informe primeiro o nome desejado.`)
+      return
+    }
+
+    if (numero(compra.descontoFinanceiroNFe) > 0 && !compra.decisaoDescontoFinanceiro) {
+      alert('Escolha se o custo usará o valor fiscal integral ou o valor líquido após o desconto financeiro.')
+      return
+    }
+
+    compra.itens.forEach((item) => {
+      if (item.incluidoNoSistema === false || !item.novoProdutoPendente) return
+      salvarProdutoStorage({
+        codigo: item.produtoCodigo,
+        codigoBarras: item.eanTributavel || item.eanComercial,
+        descricao: item.novoProdutoNome || item.descricao,
+        nome: item.novoProdutoNome || item.descricao,
+        unidade: item.unidadeControle || 'UN',
+        ncm: item.ncm,
+        tipoItem: 'Produto',
+        tipoFiscal: 'Mercadoria para Revenda',
+        movimentarEstoque: true,
+      })
+    })
+
+    produtosDisponiveis.forEach((produto) => {
+      const item = compra.itens.find((atual) =>
+        atual.incluidoNoSistema !== false &&
+        atual.produtoCodigo === produto.codigo &&
+        atual.ncm && atual.ncm !== produto.ncm,
+      )
+      if (item) salvarProdutoStorage({ ...produto, ncm: item.ncm })
+    })
+
     const compraAtualizada = compraAtualizadaParaSalvar()
 
     salvarCompraStorage(compraAtualizada)
+    sincronizarContasPagarCompra(compraAtualizada)
     setCompra(compraAtualizada)
 
     if (voltar) {
@@ -379,7 +612,7 @@ function CompraForm({ modo }: CompraFormProps) {
     if (!confirmar) return
 
     const resultadoEntrada = confirmarEntradaCompraComCustoMedioStorage({
-      itens: itensNormalizados.map((item) => ({
+      itens: itensNormalizados.filter((item) => item.incluidoNoSistema !== false).map((item) => ({
         produtoCodigo: item.produtoCodigo,
         descricao: item.descricao,
         quantidade: numero(item.quantidadeConvertida),
@@ -635,6 +868,8 @@ function CompraForm({ modo }: CompraFormProps) {
                 <option>Aguardando Entrega</option>
                 <option>Recebido Parcial</option>
                 <option>Recebido</option>
+                <option>Faturado</option>
+                <option>Concluído</option>
                 <option>Cancelado</option>
               </select>
             </label>
@@ -646,6 +881,28 @@ function CompraForm({ modo }: CompraFormProps) {
               <span>Número: {compra.numeroNFe || '-'}</span>
               <span>Série: {compra.serieNFe || '-'}</span>
               <span>Chave: {compra.chaveAcessoNFe || '-'}</span>
+              <span>Protocolo: {compra.protocoloNFe || '-'}</span>
+            </div>
+          )}
+
+          {compra.origem === 'XML_NFE' && (
+            <div className="compras-xml-resumo">
+              <strong>Conferência fiscal antes de salvar</strong>
+              <span>Produtos: {dinheiro(numero(compra.valorProdutosNFe))}</span>
+              <span>Valor fiscal: {dinheiro(numero(compra.valorFiscalNFe))}</span>
+              <span>Desconto financeiro: {dinheiro(numero(compra.descontoFinanceiroNFe))}</span>
+              <span>Valor líquido cobrado: {dinheiro(numero(compra.valorLiquidoCobrancaNFe))}</span>
+              {numero(compra.descontoFinanceiroNFe) > 0 && (
+                <div className="compras-desconto-decisao">
+                  <p>Qual valor deve compor o custo do estoque?</p>
+                  <button type="button" className={compra.decisaoDescontoFinanceiro === 'FISCAL_INTEGRAL' ? 'ativo' : ''} onClick={() => definirDecisaoDesconto('FISCAL_INTEGRAL')}>
+                    Valor fiscal integral
+                  </button>
+                  <button type="button" className={compra.decisaoDescontoFinanceiro === 'LIQUIDO_COM_DESCONTO' ? 'ativo' : ''} onClick={() => definirDecisaoDesconto('LIQUIDO_COM_DESCONTO')}>
+                    Valor líquido com desconto
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -806,22 +1063,27 @@ function CompraForm({ modo }: CompraFormProps) {
                 const item = normalizarItem(itemOriginal)
 
                 return (
-                  <article className="compras-item-conversao" key={item.id}>
+                  <article className={`compras-item-conversao ${item.incluidoNoSistema === false ? 'descartado' : ''}`} key={item.id}>
                     <div className="compras-item-conversao-topo">
                       <strong>
                         Item {index + 1} — {item.descricao || 'Produto sem descrição'}
                       </strong>
 
-                      <button
-                        type="button"
-                        className="compras-acao excluir"
-                        onClick={() => removerItem(item.id)}
-                        title="Excluir item"
-                        disabled={compra.movimentouEstoque}
-                      >
-                        <Trash2 size={17} />
-                      </button>
+                      {compra.origem === 'XML_NFE' ? (
+                        <div className="compras-item-decisoes">
+                          <button type="button" className={item.incluidoNoSistema !== false ? 'incluir ativo' : 'incluir'} onClick={() => definirInclusaoItem(item.id, true)}>INSERIR NO SISTEMA</button>
+                          <button type="button" className={item.incluidoNoSistema === false ? 'descartar ativo' : 'descartar'} onClick={() => definirInclusaoItem(item.id, false)}>DESCARTAR ITEM</button>
+                        </div>
+                      ) : (
+                        <button type="button" className="compras-acao excluir" onClick={() => removerItem(item.id)} title="Excluir item" disabled={compra.movimentouEstoque}>
+                          <Trash2 size={17} />
+                        </button>
+                      )}
                     </div>
+
+                    {item.incluidoNoSistema === false && (
+                      <div className="compras-item-descartado-aviso">Não inserido no sistema — {item.motivoDescarte}</div>
+                    )}
 
                     <div className="compras-item-identificacao">
                       <label>
@@ -855,6 +1117,42 @@ function CompraForm({ modo }: CompraFormProps) {
                         />
                       </label>
                     </div>
+
+                    {compra.origem === 'XML_NFE' && item.incluidoNoSistema !== false && (
+                      <div className="compras-vinculo-produto">
+                        <label className="compras-produto-autocomplete">
+                          Buscar produto já cadastrado
+                          <input
+                            value={buscasProduto[item.id] ?? (item.produtoCodigo && !item.novoProdutoPendente ? item.produtoCodigo : '')}
+                            onChange={(event) => {
+                              setBuscasProduto((atual) => ({ ...atual, [item.id]: event.target.value }))
+                              setProdutoBuscaAberta(item.id)
+                            }}
+                            onFocus={() => setProdutoBuscaAberta(item.id)}
+                            onBlur={() => window.setTimeout(() => setProdutoBuscaAberta(null), 150)}
+                            disabled={compra.movimentouEstoque}
+                            placeholder="Digite o código, código de barras ou nome"
+                          />
+                          {produtoBuscaAberta === item.id && produtosSugeridos(buscasProduto[item.id] || '').length > 0 && (
+                            <div className="compras-produto-sugestoes">
+                              {produtosSugeridos(buscasProduto[item.id] || '').map((produto) => (
+                                <button key={produto.codigo} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => vincularProduto(item.id, produto.codigo)}>
+                                  <strong>{produto.descricao}</strong>
+                                  <span>Código: {produto.codigo} · EAN: {produto.codigoBarras || 'não informado'} · Estoque: {numero(produto.estoqueAtual)}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </label>
+                        <span>ou</span>
+                        <button type="button" onClick={() => prepararNovoProduto(item.id)} disabled={compra.movimentouEstoque}>
+                          Criar novo produto
+                        </button>
+                        {item.novoProdutoPendente && (
+                          <strong>Novo produto preparado: {item.novoProdutoNome}</strong>
+                        )}
+                      </div>
+                    )}
 
                     <div className="compras-conversao-duas-colunas">
                       <div className="compras-bloco-fiscal">
@@ -931,7 +1229,7 @@ function CompraForm({ modo }: CompraFormProps) {
                           </label>
 
                           <label>
-                            Quantidade convertida
+                            Quant. convertida
                             <input
                               value={numero(item.quantidadeConvertida)}
                               disabled
@@ -955,7 +1253,13 @@ function CompraForm({ modo }: CompraFormProps) {
                       <div className="compras-item-fiscal-extra">
                         <span>NCM: {item.ncm || '-'}</span>
                         <span>CFOP: {item.cfop || '-'}</span>
-                        <span>GTIN/EAN: {item.gtin || '-'}</span>
+                        <span>Cód. fornecedor: {item.codigoFornecedor || '-'}</span>
+                        <span>EAN comercial: {item.eanComercial || '-'}</span>
+                        <span>EAN tributável: {item.eanTributavel || '-'}</span>
+                        <span>ST: {dinheiro(numero(item.icmsSt))}</span>
+                        <span>IPI: {dinheiro(numero(item.ipi))}</span>
+                        <span>Custo final: {dinheiro(numero(item.custoFinalItem))}</span>
+                        <span>Situação: {item.correspondencia === 'NAO_VINCULADO' ? 'Produto não vinculado' : `Vinculado por ${item.correspondencia}`}</span>
                       </div>
                     )}
                   </article>
@@ -1046,6 +1350,7 @@ function CompraForm({ modo }: CompraFormProps) {
               >
                 <option value="">Selecione</option>
                 <option>BOLETO</option>
+                <option>DUPLICATA MERCANTIL</option>
                 <option>PIX</option>
                 <option>TRANSFERÊNCIA</option>
                 <option>DINHEIRO</option>

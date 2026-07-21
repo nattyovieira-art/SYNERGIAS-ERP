@@ -122,6 +122,54 @@ function vendaChave(array $v): string {
 }
 function vendaId(array $v): string { return trim((string)($v['id'] ?? '')); }
 
+function vendaOrcamento(array $v): string {
+    $tipo = mb_strtolower(trim((string)($v['tipo'] ?? '')), 'UTF-8');
+    if (str_contains($tipo, 'pedido')) return '';
+    foreach (['numeroOrcamento','orcamentoNumero','numero_orcamento'] as $k) {
+        $n = vendaDigitos($v[$k] ?? '');
+        if ($n !== '') return $n;
+    }
+    return vendaDigitos($v['numero'] ?? '');
+}
+
+function mesmoRegistroVendaCentral(array $a, array $b): bool {
+    $idA = vendaId($a); $idB = vendaId($b);
+    if ($idA !== '' && $idB !== '' && hash_equals($idA, $idB)) return true;
+    $pedidoA = vendaPedido($a); $pedidoB = vendaPedido($b);
+    if ($pedidoA !== '' && $pedidoB !== '' && $pedidoA === $pedidoB) return true;
+    $orcamentoA = vendaOrcamento($a); $orcamentoB = vendaOrcamento($b);
+    return $orcamentoA !== '' && $orcamentoB !== '' && $orcamentoA === $orcamentoB;
+}
+
+function vendaExisteNaLista(array $alvo, array $lista): bool {
+    foreach ($lista as $item) {
+        if (is_array($item) && mesmoRegistroVendaCentral($alvo, $item)) return true;
+    }
+    return false;
+}
+
+function vendasCentraisAusentes(array $central, array $recebida): array {
+    $ausentes = [];
+    foreach ($central as $item) {
+        if (!is_array($item)) continue;
+        if (!vendaExisteNaLista($item, $recebida)) {
+            $ausentes[] = vendaId($item) ?: (vendaPedido($item) !== '' ? 'pedido:' . vendaPedido($item) : 'orcamento:' . vendaOrcamento($item));
+        }
+    }
+    return $ausentes;
+}
+
+function mesclarVendasPreservandoCentral(array $central, array $recebida): array {
+    // Em conflito, o MySQL vence para registros já conhecidos. A sessão antiga
+    // pode acrescentar registros realmente novos, mas nunca apagar ou regredir os atuais.
+    $mesclada = array_values($central);
+    foreach ($recebida as $item) {
+        if (!is_array($item) || vendaExisteNaLista($item, $mesclada)) continue;
+        $mesclada[] = $item;
+    }
+    return $mesclada;
+}
+
 function validarIntegridadeVendas(array $atual, array $nova): void {
     $pedidoSeen = [];
     $nfeSeen = [];
@@ -178,6 +226,14 @@ function validarIntegridadeVendas(array $atual, array $nova): void {
 
         $novo = $id !== '' ? ($novaPorId[$id] ?? null) : ($nfe !== '' ? ($novaPorNfe[$nfe] ?? null) : null);
         if (!is_array($novo)) continue;
+
+        $statusAntigo = mb_strtolower(trim((string)($antigo['statusPedido'] ?? '')), 'UTF-8');
+        $statusNovo = mb_strtolower(trim((string)($novo['statusPedido'] ?? '')), 'UTF-8');
+        $estoqueAntigoBaixado = filter_var($antigo['estoqueBaixado'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $estoqueNovoBaixado = filter_var($novo['estoqueBaixado'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        if (($statusAntigo === 'entregue' || $estoqueAntigoBaixado) && ($statusNovo !== 'entregue' || !$estoqueNovoBaixado)) {
+            responder(409, ['ok'=>false,'error'=>"Gravação bloqueada: o Pedido {$id} já foi entregue e não pode voltar para um status anterior."]);
+        }
 
         if ($nfe !== '' && vendaNfe($novo) !== $nfe) {
             responder(409, ['ok'=>false,'error'=>"Gravação bloqueada: a NF-e {$nfe} seria removida ou trocada do registro {$id}."]);
@@ -257,20 +313,193 @@ if ($method === 'GET') {
     ]);
 }
 
+if ($method === 'PATCH') {
+    if ($collection !== 'vendas') responder(405, ['ok' => false, 'error' => 'Atualização unitária disponível somente para vendas.']);
+    $raw = file_get_contents('php://input') ?: '{}';
+    $body = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+    $record = $body['record'] ?? null;
+    $expectedHash = strtolower(trim((string)($body['expectedHash'] ?? '')));
+    $expectedUpdatedAt = trim((string)($body['expectedUpdatedAt'] ?? ''));
+    if (!is_array($record)) responder(422, ['ok' => false, 'error' => 'O campo record precisa ser um objeto de venda.']);
+    $recordId = vendaId($record);
+    if ($recordId === '') responder(422, ['ok' => false, 'error' => 'A venda precisa possuir ID.']);
+
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare('SELECT payload,item_count,payload_hash,updated_at FROM erp_storage WHERE collection=:collection FOR UPDATE');
+        $stmt->execute(['collection' => 'vendas']);
+        $central = $stmt->fetch();
+        if (!is_array($central)) throw new RuntimeException('Coleção vendas não encontrada.');
+        $hashCentral = strtolower((string)$central['payload_hash']);
+        $updatedAtCentral = (string)$central['updated_at'];
+        if (($expectedHash !== '' && !hash_equals($hashCentral, $expectedHash)) || ($expectedUpdatedAt !== '' && $expectedUpdatedAt !== $updatedAtCentral)) {
+            $pdo->rollBack();
+            responder(409, [
+                'ok' => false, 'conflict' => true, 'reloadRequired' => true,
+                'error' => 'Conflito de versão: vendas mudou no MySQL. Recarregue o orçamento antes de salvar novamente.',
+                'currentHash' => $hashCentral, 'currentUpdatedAt' => $updatedAtCentral,
+            ]);
+        }
+
+        $atual = decodificarLista((string)$central['payload']);
+        $indiceAlvo = null;
+        foreach ($atual as $indice => $item) {
+            if (!is_array($item)) continue;
+            if (mesmoRegistroVendaCentral($item, $record)) {
+                if ($indiceAlvo !== null) {
+                    $pdo->rollBack();
+                    responder(409, ['ok' => false, 'error' => 'O registro que está sendo editado possui duplicidade própria no MySQL.']);
+                }
+                $indiceAlvo = $indice;
+            }
+        }
+        if ($indiceAlvo === null) {
+            foreach ($atual as $item) {
+                if (is_array($item) && vendaId($item) === $recordId) {
+                    $pdo->rollBack();
+                    responder(409, ['ok' => false, 'error' => "ID {$recordId} já pertence a outra venda."]);
+                }
+            }
+            $atual[] = $record;
+            $indiceAlvo = array_key_last($atual);
+        } else {
+            foreach ($atual as $indice => $item) {
+                if ($indice !== $indiceAlvo && is_array($item) && vendaId($item) === $recordId) {
+                    $pdo->rollBack();
+                    responder(409, ['ok' => false, 'error' => "A atualização criaria ID duplicado ({$recordId})."]);
+                }
+            }
+            $atual[$indiceAlvo] = $record;
+        }
+
+        $payloadAnterior = (string)$central['payload'];
+        salvarHistorico($pdo, 'vendas', decodificarLista($payloadAnterior));
+        $payload = codificarLista($atual);
+        $hash = hashPayload($payload);
+        $up = $pdo->prepare("UPDATE erp_storage SET payload=:payload,item_count=:count,payload_hash=:hash,updated_at=CURRENT_TIMESTAMP WHERE collection='vendas'");
+        $up->execute(['payload' => $payload, 'count' => count($atual), 'hash' => $hash]);
+        $confirmacao = lerRegistro($pdo, 'vendas');
+        if (!$confirmacao || (int)$confirmacao['item_count'] !== count($atual) || !hash_equals($hash, (string)$confirmacao['payload_hash'])) {
+            throw new RuntimeException('O MySQL não confirmou a atualização unitária da venda.');
+        }
+        $releitura = decodificarLista((string)$confirmacao['payload']);
+        $gravada = $releitura[$indiceAlvo] ?? null;
+        if (!is_array($gravada) || vendaId($gravada) !== $recordId || hashPayload(codificarLista([$gravada])) !== hashPayload(codificarLista([$record]))) {
+            throw new RuntimeException('A releitura do MySQL divergiu do registro enviado.');
+        }
+        $pdo->commit();
+        responder(200, [
+            'ok' => true, 'verified' => true, 'collection' => 'vendas',
+            'count' => count($releitura), 'hash' => $hash,
+            'updatedAt' => $confirmacao['updated_at'] ?? null, 'record' => $gravada,
+        ]);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
+if ($method === 'DELETE') {
+    if ($collection !== 'vendas') responder(405, ['ok' => false, 'error' => 'Exclusão unitária disponível somente para vendas.']);
+    $raw = file_get_contents('php://input') ?: '{}';
+    $body = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+    $recordId = trim((string)($body['id'] ?? ''));
+    $expectedHash = strtolower(trim((string)($body['expectedHash'] ?? '')));
+    $expectedUpdatedAt = trim((string)($body['expectedUpdatedAt'] ?? ''));
+    if ($recordId === '') responder(422, ['ok' => false, 'error' => 'Informe o ID da venda que será excluída.']);
+
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare('SELECT payload,item_count,payload_hash,updated_at FROM erp_storage WHERE collection=:collection FOR UPDATE');
+        $stmt->execute(['collection' => 'vendas']);
+        $central = $stmt->fetch();
+        if (!is_array($central)) throw new RuntimeException('Coleção vendas não encontrada.');
+        $hashCentral = strtolower((string)$central['payload_hash']);
+        $updatedAtCentral = (string)$central['updated_at'];
+        if (($expectedHash !== '' && !hash_equals($hashCentral, $expectedHash)) || ($expectedUpdatedAt !== '' && $expectedUpdatedAt !== $updatedAtCentral)) {
+            $pdo->rollBack();
+            responder(409, ['ok' => false, 'conflict' => true, 'reloadRequired' => true, 'error' => 'Conflito de versão: vendas mudou no MySQL. Recarregue a tela antes de excluir.']);
+        }
+
+        $atual = decodificarLista((string)$central['payload']);
+        $encontrados = array_values(array_filter($atual, static fn($item): bool => is_array($item) && vendaId($item) === $recordId));
+        if (count($encontrados) !== 1) {
+            $pdo->rollBack();
+            responder(count($encontrados) === 0 ? 404 : 409, ['ok' => false, 'error' => count($encontrados) === 0 ? 'Venda não encontrada no MySQL.' : 'Existem registros duplicados com este ID; exclusão bloqueada.']);
+        }
+        $nova = array_values(array_filter($atual, static fn($item): bool => !is_array($item) || vendaId($item) !== $recordId));
+        salvarHistorico($pdo, 'vendas', $atual);
+        $payload = codificarLista($nova);
+        $hash = hashPayload($payload);
+        $up = $pdo->prepare("UPDATE erp_storage SET payload=:payload,item_count=:count,payload_hash=:hash,updated_at=CURRENT_TIMESTAMP WHERE collection='vendas'");
+        $up->execute(['payload' => $payload, 'count' => count($nova), 'hash' => $hash]);
+        $confirmacao = lerRegistro($pdo, 'vendas');
+        $releitura = $confirmacao ? decodificarLista((string)$confirmacao['payload']) : [];
+        foreach ($releitura as $item) {
+            if (is_array($item) && vendaId($item) === $recordId) throw new RuntimeException('O MySQL não confirmou a exclusão da venda.');
+        }
+        salvarHistorico($pdo, 'vendas', $nova);
+        $pdo->commit();
+        responder(200, ['ok' => true, 'verified' => true, 'collection' => 'vendas', 'deletedId' => $recordId, 'count' => count($nova), 'hash' => $hash, 'updatedAt' => $confirmacao['updated_at'] ?? null, 'storage' => 'mysql']);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
 if ($method === 'PUT') {
     $raw = file_get_contents('php://input') ?: '{}';
     $body = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
     $data = $body['data'] ?? null;
     $allowEmpty = (bool)($body['allowEmpty'] ?? false);
+    $expectedHash = strtolower(trim((string)($body['expectedHash'] ?? '')));
+    $expectedUpdatedAt = trim((string)($body['expectedUpdatedAt'] ?? ''));
     if (!is_array($data)) responder(422, ['ok' => false, 'error' => 'O campo data precisa ser uma lista.']);
     $data = array_values($data);
 
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare('SELECT payload FROM erp_storage WHERE collection=:collection FOR UPDATE');
+        $stmt = $pdo->prepare('SELECT payload,payload_hash,updated_at FROM erp_storage WHERE collection=:collection FOR UPDATE');
         $stmt->execute(['collection' => $collection]);
         $registroAtual = $stmt->fetch();
         $atual = $registroAtual ? decodificarLista((string)$registroAtual['payload']) : [];
+
+        if ($collection === 'vendas' && is_array($registroAtual)) {
+            $hashAtual = strtolower((string)($registroAtual['payload_hash'] ?? ''));
+            $updatedAtAtual = (string)($registroAtual['updated_at'] ?? '');
+            $versaoMudou = ($expectedHash !== '' && !hash_equals($hashAtual, $expectedHash))
+                || ($expectedUpdatedAt !== '' && $updatedAtAtual !== $expectedUpdatedAt);
+            $ausentes = vendasCentraisAusentes($atual, $data);
+            $payloadAntigo = count($ausentes) > 0;
+
+            if ($versaoMudou || $payloadAntigo) {
+                $mesclada = mesclarVendasPreservandoCentral($atual, $data);
+                validarIntegridadeVendas($atual, $mesclada);
+                salvarHistorico($pdo, $collection, $atual);
+                $payloadMesclado = codificarLista($mesclada);
+                $hashMesclado = hashPayload($payloadMesclado);
+                $up = $pdo->prepare('UPDATE erp_storage SET payload=:payload,item_count=:count,payload_hash=:hash,updated_at=CURRENT_TIMESTAMP WHERE collection=:collection');
+                $up->execute([
+                    'payload' => $payloadMesclado,
+                    'count' => count($mesclada),
+                    'hash' => $hashMesclado,
+                    'collection' => $collection,
+                ]);
+                salvarHistorico($pdo, $collection, $mesclada);
+                $pdo->commit();
+                responder(409, [
+                    'ok' => false,
+                    'error' => 'Conflito de versão: a coleção vendas mudou no MySQL. Os registros centrais foram preservados; recarregue o ERP antes de salvar novamente.',
+                    'conflict' => true,
+                    'reloadRequired' => true,
+                    'mergedSafely' => true,
+                    'currentCount' => count($atual),
+                    'mergedCount' => count($mesclada),
+                    'missingCentralRecords' => array_slice($ausentes, 0, 20),
+                    'hash' => $hashMesclado,
+                ]);
+            }
+        }
 
         validarReducaoAnormal($collection, $atual, $data);
         if ($collection === 'vendas') validarIntegridadeVendas($atual, $data);

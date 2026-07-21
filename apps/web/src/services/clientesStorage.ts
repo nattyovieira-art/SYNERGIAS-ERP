@@ -1,16 +1,19 @@
 import type { Cliente } from '../types/Cliente'
+import { migrarClienteEnderecosEntrega } from './enderecosEntrega'
 import { definirColecaoMemoria, obterColecaoMemoria, sincronizarColecaoCentral, sincronizarColecaoCentralAgora } from './erpApi'
 
 export function listarClientesStorage(): Cliente[] {
-  return obterColecaoMemoria<Cliente>('clientes')
+  return obterColecaoMemoria<Cliente>('clientes').map(migrarClienteEnderecosEntrega)
 }
 
 export function salvarClientesStorage(clientes: Cliente[]) {
+  clientes = clientes.map(migrarClienteEnderecosEntrega)
   definirColecaoMemoria('clientes', clientes)
   sincronizarColecaoCentral('clientes', clientes)
 }
 
 export async function salvarClientesStorageConfirmado(clientes: Cliente[]) {
+  clientes = clientes.map(migrarClienteEnderecosEntrega)
   definirColecaoMemoria('clientes', clientes)
   await sincronizarColecaoCentralAgora('clientes', clientes)
 }

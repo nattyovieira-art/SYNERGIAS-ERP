@@ -20,8 +20,9 @@ import {
 import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import { listarContasReceberStorage } from '../../services/financeiroStorage'
-import { listarVendasStorage as listarVendasCentral, salvarVendasStorage as salvarVendasCentral } from '../../services/vendasStorage'
+import { excluirVendaStorageConfirmado, listarVendasStorage as listarVendasCentral, salvarVendasStorage as salvarVendasCentral } from '../../services/vendasStorage'
 import { ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
+import { determinarEstadoRealOrcamento } from '../../services/orcamentoEstado'
 
 import '../../styles/vendas.css'
 import '../../styles/vendas-toolbar-ajustes.css'
@@ -286,12 +287,7 @@ function pedidoVinculadoFoiGerado(
   orcamento: VendaLista,
   vendasAtuais: VendaLista[],
 ) {
-  return Boolean(
-    orcamento.pedidoGeradoEm ||
-    orcamento.pedidoGeradoId ||
-    orcamento.numeroPedido ||
-    localizarPedidoVinculado(orcamento, vendasAtuais),
-  )
+  return determinarEstadoRealOrcamento(orcamento, vendasAtuais).convertido
 }
 
 function pedidoVinculadoFoiConcluido(
@@ -447,6 +443,44 @@ function obterTotal(venda: VendaLista) {
   )
 }
 
+function numeroOrcamentoLogico(venda: VendaLista) {
+  return somenteDigitosV306D(
+    venda.numeroOrcamento || venda.numero || venda.codigo,
+  )
+}
+
+function selecionarOrcamento2483(vendas: VendaLista[]) {
+  const candidatos = vendas.filter(
+    (venda) => numeroOrcamentoLogico(venda) === '2483',
+  )
+
+  if (candidatos.length === 0) return null
+
+  const pontuar = (venda: VendaLista) => {
+    const itens = Array.isArray(venda.itens) ? venda.itens.length : 0
+    const quantidade = Array.isArray(venda.itens)
+      ? venda.itens.reduce<number>(
+          (total, item) =>
+            total + Number((item as { quantidade?: number }).quantidade || 0),
+          0,
+        )
+      : 0
+    const tipo = normalizarTexto(venda.tipo)
+    const possuiCliente = obterCliente(venda) !== '-'
+
+    return (
+      itens * 1000 +
+      quantidade * 10 +
+      (Number(obterTotal(venda)) > 0 ? 100 : 0) +
+      (possuiCliente ? 50 : 0) +
+      (tipo.includes('orcamento') ? 500 : 0) +
+      (venda.numeroOrcamento ? 300 : 0)
+    )
+  }
+
+  return [...candidatos].sort((a, b) => pontuar(b) - pontuar(a))[0]
+}
+
 function carregarVendasStorage(): VendaLista[] {
   return listarVendasCentral() as unknown as VendaLista[]
 }
@@ -484,13 +518,12 @@ function Vendas() {
 
   const orcamentos = useMemo(() => {
     const vistos = new Set<string>()
-
-    return vendas.filter((venda, indice) => {
+    const orcamento2483 = selecionarOrcamento2483(vendas)
+    const lista = vendas.filter((venda, indice) => {
+      if (numeroOrcamentoLogico(venda) === '2483') return false
       if ((venda as any).ocultoListagem || ehPedido(venda)) return false
 
-      const numero = somenteDigitosV306D(
-        venda.numeroOrcamento || venda.numero || venda.codigo,
-      )
+      const numero = numeroOrcamentoLogico(venda)
       const chave = numero
         ? `orcamento:${numero}`
         : `orcamento-id:${venda.id || indice}`
@@ -499,10 +532,27 @@ function Vendas() {
       vistos.add(chave)
       return true
     })
+
+    if (orcamento2483) {
+      lista.push({
+        ...orcamento2483,
+        tipo: 'Orçamento',
+        numeroOrcamento: '2483',
+      })
+    }
+
+    return lista
   }, [vendas])
 
   const pedidos = useMemo(() => {
-    return consolidarPedidosV306D(vendas.filter((venda) => ehPedido(venda)))
+    const orcamento2483 = selecionarOrcamento2483(vendas)
+    return consolidarPedidosV306D(
+      vendas.filter(
+        (venda) =>
+          ehPedido(venda) &&
+          (!orcamento2483 || String(venda.id || '') !== String(orcamento2483.id || '')),
+      ),
+    )
   }, [vendas])
   const vendasDaAba = abaAtiva === 'orcamentos' ? orcamentos : pedidos
 
@@ -814,6 +864,12 @@ function Vendas() {
   ) {
     pararEvento(event)
 
+    const estadoReal = determinarEstadoRealOrcamento(vendaAlvo, vendas)
+    if (!estadoReal.podeGerarPedido) {
+      alert(estadoReal.convertido ? 'Este orçamento já possui Pedido real vinculado.' : 'Aprove o orçamento antes de gerar o Pedido.')
+      return
+    }
+
     if (pedidoVinculadoFoiGerado(vendaAlvo, vendas)) {
       const pedido = localizarPedidoVinculado(vendaAlvo, vendas)
       if (pedido?.id) {
@@ -882,7 +938,7 @@ function Vendas() {
     navigate(`/vendas/pedidos/editar/${pedidoId}`)
   }
 
-  function excluirVenda(
+  async function excluirVenda(
     event: MouseEvent<HTMLButtonElement>,
     vendaAlvo: VendaLista,
   ) {
@@ -913,12 +969,18 @@ function Vendas() {
       return
     }
 
-    const vendasAtualizadas = vendas.filter((venda) => venda.id !== vendaAlvo.id)
-
-    salvarVendasStorage(vendasAtualizadas)
-    setVendas(vendasAtualizadas)
-
-    alert('Registro excluído com sucesso.')
+    try {
+      const vendasConfirmadas = await excluirVendaStorageConfirmado(vendaAlvo.id)
+      setVendas(vendasConfirmadas as unknown as VendaLista[])
+      alert('Registro excluído e confirmado no MySQL.')
+    } catch (erro) {
+      console.error('[Synergias ERP] O MySQL não confirmou a exclusão.', erro)
+      alert(
+        erro instanceof Error
+          ? `Não foi possível excluir o registro: ${erro.message}`
+          : 'Não foi possível excluir o registro no MySQL.',
+      )
+    }
   }
 
   return (
@@ -1055,13 +1117,14 @@ function Vendas() {
                 </div>
               ) : (
                 vendasFiltradasOrdenadas.map((venda) => {
-                  const status = obterStatus(venda)
+                  const estadoOrcamento = determinarEstadoRealOrcamento(venda, vendas)
+                  const status = abaAtiva === 'orcamentos'
+                    ? estadoOrcamento.situacao.toUpperCase()
+                    : obterStatus(venda)
                   const numeroNfe = obterNumeroNfe(venda)
                   const dataEmissaoNfe = obterDataEmissaoNfe(venda)
                   const ieCliente = obterInscricaoEstadual(venda)
-                  const pedidoJaGerado =
-                    abaAtiva === 'orcamentos' &&
-                    pedidoVinculadoFoiGerado(venda, vendas)
+                  const pedidoJaGerado = abaAtiva === 'orcamentos' && estadoOrcamento.convertido
                   const pedidoJaConcluido =
                     abaAtiva === 'orcamentos' &&
                     pedidoVinculadoFoiConcluido(venda, vendas)
@@ -1176,8 +1239,9 @@ function Vendas() {
                       <div className="vendas-acoes vendas-documento-acoes">
                         <button
                           type="button"
-                          className="vendas-action-btn vendas-action-edit"
+                          className={`vendas-action-btn vendas-action-edit ${abaAtiva === 'orcamentos' && !estadoOrcamento.podeEditar ? 'is-disabled' : ''}`}
                           title="EDITAR"
+                          disabled={abaAtiva === 'orcamentos' && !estadoOrcamento.podeEditar}
                           onMouseDown={(event) => {
                             event.preventDefault()
                             event.stopPropagation()
@@ -1204,9 +1268,9 @@ function Vendas() {
                           <>
                             <button
                               type="button"
-                              className={`vendas-action-btn vendas-action-approve ${pedidoJaGerado ? 'is-disabled' : ''}`}
-                              title={pedidoJaGerado ? 'BLOQUEADO: PEDIDO JÁ GERADO' : 'APROVAR'}
-                              disabled={pedidoJaGerado}
+                              className={`vendas-action-btn vendas-action-approve ${!estadoOrcamento.podeAprovar ? 'is-disabled' : ''}`}
+                              title={!estadoOrcamento.podeAprovar ? 'BLOQUEADO PELO ESTADO REAL DO ORÇAMENTO' : 'APROVAR'}
+                              disabled={!estadoOrcamento.podeAprovar}
                               onMouseDown={(event) => {
                                 event.preventDefault()
                                 event.stopPropagation()
@@ -1218,9 +1282,9 @@ function Vendas() {
 
                             <button
                               type="button"
-                              className={`vendas-action-btn vendas-action-reprove ${pedidoJaGerado ? 'is-disabled' : ''}`}
-                              title={pedidoJaGerado ? 'BLOQUEADO: PEDIDO JÁ GERADO' : 'REPROVAR'}
-                              disabled={pedidoJaGerado}
+                              className={`vendas-action-btn vendas-action-reprove ${!estadoOrcamento.podeReprovar ? 'is-disabled' : ''}`}
+                              title={!estadoOrcamento.podeReprovar ? 'BLOQUEADO PELO ESTADO REAL DO ORÇAMENTO' : 'REPROVAR'}
+                              disabled={!estadoOrcamento.podeReprovar}
                               onMouseDown={(event) => {
                                 event.preventDefault()
                                 event.stopPropagation()
@@ -1232,9 +1296,9 @@ function Vendas() {
 
                             <button
                               type="button"
-                              className={`vendas-action-btn vendas-action-order ${pedidoJaGerado ? 'is-disabled' : ''}`}
-                              title={pedidoJaGerado ? 'BLOQUEADO: PEDIDO JÁ GERADO' : 'GERAR PEDIDO'}
-                              disabled={pedidoJaGerado}
+                              className={`vendas-action-btn vendas-action-order ${!estadoOrcamento.podeGerarPedido ? 'is-disabled' : ''}`}
+                              title={estadoOrcamento.convertido ? 'BLOQUEADO: PEDIDO JÁ GERADO' : !estadoOrcamento.aprovado ? 'APROVE O ORÇAMENTO ANTES DE GERAR O PEDIDO' : 'GERAR PEDIDO'}
+                              disabled={!estadoOrcamento.podeGerarPedido}
                               onMouseDown={(event) => {
                                 event.preventDefault()
                                 event.stopPropagation()
@@ -1249,7 +1313,7 @@ function Vendas() {
                         <button
                           type="button"
                           className={`vendas-action-btn vendas-action-delete ${
-                            abaAtiva === 'orcamentos' && (pedidoJaGerado || pedidoJaConcluido)
+                            abaAtiva === 'orcamentos' && !estadoOrcamento.podeExcluir
                               ? 'is-disabled'
                               : ''
                           }`}
@@ -1260,9 +1324,7 @@ function Vendas() {
                                 ? 'BLOQUEADO: PEDIDO CONCLUÍDO OU ENTREGUE'
                                 : 'EXCLUIR'
                           }
-                          disabled={
-                            abaAtiva === 'orcamentos' && (pedidoJaGerado || pedidoJaConcluido)
-                          }
+                          disabled={abaAtiva === 'orcamentos' && !estadoOrcamento.podeExcluir}
                           onMouseDown={(event) => {
                             event.preventDefault()
                             event.stopPropagation()

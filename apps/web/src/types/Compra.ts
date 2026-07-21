@@ -4,6 +4,8 @@ export type StatusCompra =
   | 'Aguardando Entrega'
   | 'Recebido Parcial'
   | 'Recebido'
+  | 'Faturado'
+  | 'Concluído'
   | 'Cancelado'
 
 export type ItemCompra = {
@@ -31,6 +33,23 @@ export type ItemCompra = {
   fatorConversao?: number
   quantidadeConvertida?: number
   custoUnitarioConvertido?: number
+
+  codigoFornecedor?: string
+  eanComercial?: string
+  eanTributavel?: string
+  unidadeTributavel?: string
+  quantidadeTributavel?: number
+  valorUnitarioTributavel?: number
+  icms?: number
+  icmsSt?: number
+  ipi?: number
+  difal?: number
+  custoFinalItem?: number
+  incluidoNoSistema?: boolean
+  motivoDescarte?: string
+  correspondencia?: 'EAN_TRIBUTAVEL' | 'EAN_COMERCIAL' | 'DESCRICAO' | 'NAO_VINCULADO'
+  novoProdutoNome?: string
+  novoProdutoPendente?: boolean
 }
 
 export type OrigemCompra = 'MANUAL' | 'SEFAZ_DFE' | 'XML_NFE'
@@ -78,4 +97,15 @@ export type Compra = {
   protocoloNFe?: string
   nsuDFe?: string
   xmlNFe?: string
+  valorFiscalNFe?: number
+  valorProdutosNFe?: number
+  descontoFinanceiroNFe?: number
+  valorLiquidoCobrancaNFe?: number
+  decisaoDescontoFinanceiro?: 'FISCAL_INTEGRAL' | 'LIQUIDO_COM_DESCONTO'
+  itensOriginaisNFe?: ItemCompra[]
+  parcelasPagamento?: Array<{
+    numero: string
+    vencimento: string
+    valor: number
+  }>
 }

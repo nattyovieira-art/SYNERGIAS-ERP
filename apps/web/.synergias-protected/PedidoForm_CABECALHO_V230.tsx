@@ -34,6 +34,7 @@ import {
 import Sidebar from '../../components/Sidebar/Sidebar'
 import logoSynergiasUrl from '../../assets/logo-synergias.png'
 import type { Cliente } from '../../types/Cliente'
+import { normalizarEnderecosEntrega } from '../../services/enderecosEntrega'
 import type { Produto } from '../../types/Produto'
 import type { BrindeVenda, ItemVenda, ParcelaVenda, Venda } from '../../types/Venda'
 import type { ContaReceber } from '../../types/Financeiro'
@@ -58,9 +59,9 @@ import {
   salvarVendaStorageConfirmado,
 } from '../../services/vendasStorage'
 import {
-  baixarEstoquePedidoIdempotenteStorage,
   movimentarEstoqueStorage,
 } from '../../services/estoqueStorage'
+import { entregarPedidoCentral, MENSAGEM_ESTOQUE_JA_BAIXADO } from '../../services/pedidoEntregaApi'
 import {
   listarContasReceberStorage,
   salvarContaReceberStorage,
@@ -74,7 +75,8 @@ import {
 } from '../../services/interCobrancaApi'
 import { carregarConfiguracaoFiscalServidor, obterConfiguracaoFiscalStorage } from '../../services/configuracaoFiscalStorage'
 import { ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
-import { assinarETransmitirNFeHomologacao, gerarRascunhoXmlNFe, registrarNumeracaoNFeAutorizada, validarPreEmissaoNFe } from '../../services/nfePreflightService'
+import { boletoEstaUtilizado, contarBoletosUtilizadosPorBanco } from '../../services/boletosCounter'
+import { assinarETransmitirNFeHomologacao, gerarRascunhoXmlNFe, manterNumeracaoNFeRejeitada, registrarNumeracaoNFeAutorizada, validarPreEmissaoNFe } from '../../services/nfePreflightService'
 
 import '../../styles/cliente-form.css'
 import '../../styles/clientes.css'
@@ -237,15 +239,6 @@ type ResumoBoletosGratuitos = {
   disponiveis: number
 }
 
-type ParcelaVendaComControleBoleto = ParcelaVenda & {
-  dataGeracaoBoleto?: string
-  mesGeracaoBoleto?: string
-}
-
-type VendaComControleBoleto = Venda & {
-  dataGeracaoBoleto?: string
-}
-
 
 type ResumoCreditoCliente = {
   limiteCredito: number
@@ -383,28 +376,7 @@ function identificarBancoBoletoDaParcela(
 }
 
 function boletoFoiGerado(parcela: ParcelaVenda) {
-  const status = String(parcela.statusBoleto || '').toUpperCase()
-
-  return Boolean(
-    parcela.numeroBoleto ||
-      status === 'GERADO' ||
-      status === 'ENVIADO' ||
-      status === 'PAGO' ||
-      status === 'VENCIDO',
-  )
-}
-
-function obterMesReferenciaBoleto(parcela: ParcelaVenda, vendaBase?: Venda) {
-  const parcelaControle = parcela as ParcelaVendaComControleBoleto
-  const vendaControle = vendaBase as VendaComControleBoleto | undefined
-  const dataReferencia =
-    parcelaControle.dataGeracaoBoleto ||
-    vendaControle?.dataGeracaoBoleto ||
-    vendaBase?.dataEmissao ||
-    parcela.vencimento ||
-    hoje()
-
-  return String(dataReferencia).slice(0, 7)
+  return boletoEstaUtilizado(parcela)
 }
 
 function contarBoletosGeradosNoMesPorBanco(
@@ -412,35 +384,9 @@ function contarBoletosGeradosNoMesPorBanco(
   mesReferencia = gerarMesAtualBoleto(),
   pedidoIgnoradoId?: string,
 ) {
-  const vendas = carregarVendasCreditoStorage()
-
-  return vendas.reduce((total, vendaSalva) => {
-    if (String(vendaSalva.id || '') === String(pedidoIgnoradoId || '')) {
-      return total
-    }
-
-    if (String(vendaSalva.tipo || '').toLowerCase() !== 'pedido') {
-      return total
-    }
-
-    if (String(vendaSalva.statusPedido || '').toLowerCase() === 'cancelado') {
-      return total
-    }
-
-    const parcelas = Array.isArray(vendaSalva.parcelas) ? vendaSalva.parcelas : []
-
-    return (
-      total +
-      parcelas.filter((parcela) => {
-        if (!boletoFoiGerado(parcela)) return false
-
-        const bancoParcela = identificarBancoBoletoDaParcela(parcela, vendaSalva)
-        const mesParcela = obterMesReferenciaBoleto(parcela, vendaSalva)
-
-        return bancoParcela === banco && mesParcela === mesReferencia
-      }).length
-    )
-  }, 0)
+  return contarBoletosUtilizadosPorBanco(
+    carregarVendasCreditoStorage(), banco, mesReferencia, pedidoIgnoradoId,
+  )
 }
 
 function montarResumoBoletosGratuitos(
@@ -1084,6 +1030,7 @@ function criarPedidoAPartirDoOrcamento(
       clienteBase?.indicadorIE ||
       (somenteNumerosCredito(orcamentoOrigem.clienteInscricaoEstadual || clienteBase?.inscricaoEstadual || '') ? '1' : ''),
     clienteEmail:
+      orcamentoOrigem.emailEnvio ||
       orcamentoOrigem.clienteEmailNotaFiscal ||
       orcamentoOrigem.clienteEmail ||
       clienteAny.emailNotaFiscal ||
@@ -1091,6 +1038,16 @@ function criarPedidoAPartirDoOrcamento(
       '',
     clienteTelefone: clienteBase?.telefone || clienteBase?.celular || '',
     clienteCreditoDisponivel: Number(clienteBase?.limiteCredito || 0),
+    clienteEmailNotaFiscal: orcamentoOrigem.emailEnvio || orcamentoOrigem.clienteEmailNotaFiscal || orcamentoOrigem.clienteEmail || clienteBase?.email || '',
+    emailEnvio: orcamentoOrigem.emailEnvio || orcamentoOrigem.clienteEmailNotaFiscal || orcamentoOrigem.clienteEmail || clienteBase?.email || '',
+    enderecoEntregaId: orcamentoOrigem.enderecoEntregaId || '',
+    enderecoEntregaNome: orcamentoOrigem.enderecoEntregaNome || '',
+    enderecoEntregaCompleto: orcamentoOrigem.enderecoEntregaCompleto || orcamentoOrigem.enderecoEntrega || '',
+    enderecoEntregaSnapshot: orcamentoOrigem.enderecoEntregaSnapshot,
+    responsavelEntrega: orcamentoOrigem.responsavelEntrega || '',
+    telefoneEntrega: orcamentoOrigem.telefoneEntrega || '',
+    celularEntrega: orcamentoOrigem.celularEntrega || '',
+    horarioEntrega: orcamentoOrigem.horarioEntrega || '',
 
     faturamentoCep: enderecoFaturamentoFinal.cep,
     faturamentoEndereco: enderecoFaturamentoFinal.endereco,
@@ -1196,6 +1153,7 @@ function PedidoForm() {
   ;(window as any).__SYNERGIAS_TOTAL_PEDIDO__ = 'V208_TOTAL_PEDIDO_RECALCULADO'
   const navigate = useNavigate()
   const impressaoAutomaticaExecutada = useRef(false)
+  const cancelamentosBoletoEmAndamento = useRef(new Set<string>())
   const { id } = useParams()
 
   const vendaEncontrada = id ? buscarVendaStorage(id) : undefined
@@ -1266,6 +1224,7 @@ function PedidoForm() {
   const [mostrarAjusteFiscal, setMostrarAjusteFiscal] = useState(false)
   const [mostrarEdicaoFiscal, setMostrarEdicaoFiscal] = useState(false)
   const [entregaEmProcessamento, setEntregaEmProcessamento] = useState(false)
+  const entregaEmProcessamentoRef = useRef(false)
   const [buscasNcm, setBuscasNcm] = useState<Record<number, string>>({})
   const [sugestoesNcm, setSugestoesNcm] = useState<Record<number, SugestaoNcm[]>>({})
   const [buscandoNcmPorLinha, setBuscandoNcmPorLinha] = useState<Record<number, boolean>>({})
@@ -1741,11 +1700,14 @@ function PedidoForm() {
       return null
     }
 
+    const locais = normalizarEnderecosEntrega(clienteAtual)
+    const enderecoId = String(vendaAtualizada.enderecoEntregaId || '')
     const clienteAtualizado: Cliente = {
       ...clienteAtual,
-      email: emailPrincipal,
+      enderecosEntrega: enderecoId ? locais.map((local) => local.id === enderecoId ? { ...local, emailEnvio: emailPrincipal } : local) : locais,
       emailsCopiaDocumentos: copias,
     }
+    vendaAtualizada.emailEnvio = emailPrincipal || clienteAtual.email || ''
 
     const clientesAtualizados = clientes.map((cliente) =>
       String(cliente.codigo) === String(clienteAtualizado.codigo)
@@ -2709,9 +2671,9 @@ function PedidoForm() {
     const vendaAtualizada = montarPedidoAtualizado()
 
     try {
-      await salvarVendaStorageConfirmado(vendaAtualizada)
-      setVenda(vendaAtualizada)
-      alert('Pedido salvo com sucesso.')
+      const vendaConfirmada = await salvarVendaStorageConfirmado(vendaAtualizada)
+      setVenda(vendaConfirmada)
+      alert(`Pedido ${vendaConfirmada.numeroPedido} salvo com sucesso.`)
     } catch (erro) {
       console.error('[Synergias ERP] O MySQL não confirmou o pedido.', erro)
       alert(
@@ -2726,9 +2688,9 @@ function PedidoForm() {
     const vendaAtualizada = montarPedidoAtualizado()
 
     try {
-      await salvarVendaStorageConfirmado(vendaAtualizada)
-      setVenda(vendaAtualizada)
-      alert('Pedido salvo com sucesso.')
+      const vendaConfirmada = await salvarVendaStorageConfirmado(vendaAtualizada)
+      setVenda(vendaConfirmada)
+      alert(`Pedido ${vendaConfirmada.numeroPedido} salvo com sucesso.`)
       navigate('/vendas')
     } catch (erro) {
       console.error('[Synergias ERP] O MySQL não confirmou o pedido.', erro)
@@ -2740,7 +2702,7 @@ function PedidoForm() {
     }
   }
 
-  function concluirPedido() {
+  async function concluirPedido() {
     const confirmar = window.confirm('Deseja concluir este pedido?')
 
     if (!confirmar) return
@@ -2756,14 +2718,17 @@ function PedidoForm() {
       statusPedido: 'Concluído',
     }
 
-    salvarVendaStorage(vendaAtualizada)
-    setVenda(vendaAtualizada)
-
-    alert('Pedido concluído com sucesso.')
+    try {
+      const vendaConfirmada = await salvarVendaStorageConfirmado(vendaAtualizada)
+      setVenda(vendaConfirmada)
+      alert('Pedido concluído e confirmado no MySQL.')
+    } catch (erro) {
+      alert(erro instanceof Error ? `Não foi possível concluir o pedido: ${erro.message}` : 'O MySQL não confirmou a conclusão do pedido.')
+    }
   }
 
-  function entregarPedido() {
-    if (entregaEmProcessamento) return
+  async function entregarPedido() {
+    if (entregaEmProcessamentoRef.current || entregaEmProcessamento) return
 
     const numeroPedido = String(venda.numeroPedido || venda.id || '').trim()
 
@@ -2773,7 +2738,7 @@ function PedidoForm() {
     }
 
     if (venda.estoqueBaixado || venda.statusPedido === 'Entregue') {
-      alert(`Pedido ${numeroPedido} já entregue. Nenhuma nova baixa foi realizada.`)
+      alert(MENSAGEM_ESTOQUE_JA_BAIXADO)
       return
     }
 
@@ -2789,42 +2754,23 @@ function PedidoForm() {
 
     const confirmar = window.confirm(
       `Confirmar a entrega do pedido ${numeroPedido}?\n\n` +
-        'O estoque será baixado uma única vez e poderá ficar negativo.',
+        'O estoque será validado e baixado uma única vez.',
     )
 
     if (!confirmar) return
 
+    entregaEmProcessamentoRef.current = true
     setEntregaEmProcessamento(true)
 
     try {
-      const resultado = baixarEstoquePedidoIdempotenteStorage({
-        documentoOrigem: numeroPedido,
-        itens: venda.itens,
-        usuario: 'Synergias',
-      })
-
-      if (!resultado.ok) {
-        alert(resultado.mensagens.join('\n'))
-        return
-      }
-
-      const agora = new Date()
-      const vendaAtualizada: Venda = {
-        ...montarPedidoAtualizado(),
-        statusPedido: 'Entregue',
-        estoqueBaixado: true,
-        dataEntregaRealizada: agora.toISOString().slice(0, 10),
-        horarioEntregaRealizada: agora.toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-      }
-
-      salvarVendaStorage(vendaAtualizada)
-      setVenda(vendaAtualizada)
-
+      const resultado = await entregarPedidoCentral(String(venda.id || ''), 'Synergias')
+      setVenda(resultado.pedido)
       alert('Produtos entregues')
+    } catch (erro) {
+      const mensagem = erro instanceof Error ? erro.message : 'Não foi possível confirmar a entrega.'
+      alert(mensagem === MENSAGEM_ESTOQUE_JA_BAIXADO ? MENSAGEM_ESTOQUE_JA_BAIXADO : mensagem)
     } finally {
+      entregaEmProcessamentoRef.current = false
       setEntregaEmProcessamento(false)
     }
   }
@@ -3246,11 +3192,18 @@ function PedidoForm() {
           },
         ],
       }
-      salvarVendaStorage(vendaAtualizada)
-      setVenda(vendaAtualizada)
+      const vendaConfirmada = await salvarVendaStorageConfirmado(vendaAtualizada)
+      setVenda(vendaConfirmada)
 
       if (homologacao.autorizada) {
-        await registrarNumeracaoNFeAutorizada(numeroNFe, serieNFe, 'PRODUCAO')
+        await registrarNumeracaoNFeAutorizada({
+          numero: numeroNFe,
+          serie: serieNFe,
+          ambiente: 'PRODUCAO',
+          cStat: homologacao.cStat,
+          chaveAcesso: homologacao.chaveAcesso,
+          protocolo: homologacao.protocolo,
+        })
         alert(
           `NF-e AUTORIZADA em PRODUÇÃO.\n\n` +
             `Número: ${numeroNFe}\n` +
@@ -3260,6 +3213,11 @@ function PedidoForm() {
             `XML autorizado e protocolo vinculados ao Pedido.`,
         )
       } else {
+        await manterNumeracaoNFeRejeitada(
+          String(pedidoAtual.id || pedidoAtual.numeroPedido || 'pedido-sem-id'),
+          numeroNFe,
+          serieNFe,
+        )
         alert(`NF-e rejeitada pela SEFAZ-RS em PRODUÇÃO.\n\ncStat ${homologacao.cStat}: ${homologacao.motivo}`)
       }
     } catch (erro) {
@@ -3471,10 +3429,13 @@ function PedidoForm() {
 
   async function cancelarBoleto(parcela: ParcelaVenda) {
     const codigo = String(parcela.idCobrancaApi || parcela.idCobrancaBanco || '')
+    if (parcela.statusBoleto === 'Cancelado') return alert('Esta cobrança já está cancelada.')
+    if (cancelamentosBoletoEmAndamento.current.has(codigo)) return
     if (!codigo) return alert('Esta parcela não possui uma cobrança bancária real para cancelar.')
     if (identificarBancoBoletoDaParcela(parcela, venda) !== 'Inter') return alert('O conector automático do Banco Cora ainda não está configurado.')
     if (!window.confirm(`Cancelar a cobrança da parcela ${parcela.numero}?`)) return
 
+    cancelamentosBoletoEmAndamento.current.add(codigo)
     try {
       const cobranca = await cancelarCobrancaInter(codigo)
       const parcelas = venda.parcelas.map((item) =>
@@ -3487,10 +3448,20 @@ function PedidoForm() {
             }
           : item,
       )
-      salvarParcelasBoleto(parcelas)
+      const vendaAtualizada = salvarParcelasBoleto(parcelas)
+      try {
+        await salvarVendaStorageConfirmado(vendaAtualizada)
+      } catch (error) {
+        alert(error instanceof Error
+          ? `O banco confirmou o cancelamento, mas a gravação central falhou: ${error.message}`
+          : 'O banco confirmou o cancelamento, mas a gravação central falhou.')
+        return
+      }
       alert('Cobrança cancelada.')
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Não foi possível cancelar a cobrança.')
+    } finally {
+      cancelamentosBoletoEmAndamento.current.delete(codigo)
     }
   }
 
@@ -3511,8 +3482,8 @@ function PedidoForm() {
 
     return {
       notaFiscal: `Nota_Fiscal_Pedido_${numeroPedido}_${nomeCliente}.pdf`,
-      boleto: (numeroParcela: number, totalParcelas: number) =>
-        `Boleto_Pedido_${numeroPedido}_${nomeCliente}_Parcela_${String(numeroParcela).padStart(2, '0')}_de_${String(totalParcelas).padStart(2, '0')}.pdf`,
+      boleto: (numeroParcela: number, totalParcelas: number, vencimento: string) =>
+        `Boleto_Pedido_${numeroPedido}_${nomeCliente}_Parcela_${String(numeroParcela).padStart(2, '0')}_de_${String(totalParcelas).padStart(2, '0')}_Vencimento_${limparNomeArquivoEmail(vencimento || 'nao_informado')}.pdf`,
     }
   }
 
@@ -3587,16 +3558,6 @@ function PedidoForm() {
       return DADOS_PAGAMENTO[chaveFallback]
     }
 
-    // SYNERGIAS_EMAIL_PIX_TRANSFERENCIA_INTER_PADRAO_V278A
-    // Sem banco especificado, PIX e transferÃªncia usam a conta padrÃ£o do Banco Inter.
-    if (pagamento.ehPix) {
-      return DADOS_PAGAMENTO['PIX BANCO INTER']
-    }
-
-    if (pagamento.ehTransferencia) {
-      return DADOS_PAGAMENTO['TRANSFERÃŠNCIA BANCO INTER']
-    }
-
     return undefined
   }
 
@@ -3614,18 +3575,10 @@ function PedidoForm() {
 
   function montarAssuntoEmailNotaBoleto(vendaBase: Venda) {
     const pagamento = identificarPagamentoEmail(vendaBase)
-    const numeroNfe = vendaBase.numeroNotaFiscal || ''
     const numeroPedido = vendaBase.numeroPedido || vendaBase.id || ''
-
-    if (pagamento.ehPix) {
-      return `SYNERGIAS - NF-e Nº ${numeroNfe} - PAGAMENTO VIA PIX - PEDIDO ${numeroPedido}`
-    }
-
-    if (pagamento.ehTransferencia) {
-      return `SYNERGIAS - NF-e Nº ${numeroNfe} - TRANSFERÊNCIA BANCÁRIA - PEDIDO ${numeroPedido}`
-    }
-
-    return `SYNERGIAS - NF-e Nº ${numeroNfe} [EMITIDA] - SYNERGIAS SL COMERCIO LTDA ME`
+    return pagamento.ehBoleto
+      ? `NF-e, XML e boletos — Pedido ${numeroPedido}`
+      : `NF-e, XML e dados para pagamento — Pedido ${numeroPedido}`
   }
 
   function montarTextoEmailNotaBoleto(vendaBase: Venda) {
@@ -3975,7 +3928,7 @@ Endereço: ${EMPRESA_ENDERECO}`
         tipo: 'boleto',
         identificador: `parcela-${parcela.numero || indice + 1}`,
         numeroParcela: Number(parcela.numero || indice + 1),
-        nomeArquivo: nomesAnexos.boleto(Number(parcela.numero || indice + 1), totalBoletos),
+        nomeArquivo: nomesAnexos.boleto(Number(parcela.numero || indice + 1), totalBoletos, String(parcela.vencimento || '')),
         conteudoBase64: origem.conteudoBase64,
         url: origem.url,
         gerarNoBackend: false,
@@ -6727,7 +6680,7 @@ Synergias Distribuidora`,
                 <div className="boleto-parcelas-lista">
                   {(venda.parcelas || []).map((parcela: ParcelaVenda, index: number) => {
                     const banco = identificarBancoBoletoDaParcela(parcela, venda) || identificarBancoBoleto(String(venda.tipoCobranca || ''))
-                    const status = boletoFoiGerado(parcela) ? (parcela.statusBoleto || 'Emitido') : 'Não emitido'
+                    const status = parcela.statusBoleto || (boletoFoiGerado(parcela) ? 'Emitido' : 'Não emitido')
                     const emitido = boletoFoiGerado(parcela)
                     return (
                       <article className="boleto-parcela-card" key={`boleto-${parcela.numero || index + 1}`}>
@@ -6953,5 +6906,3 @@ Synergias Distribuidora`,
 }
 
 export default PedidoForm
-
-

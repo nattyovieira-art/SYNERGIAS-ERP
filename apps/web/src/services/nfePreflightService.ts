@@ -120,20 +120,45 @@ async function obterProximaNumeracaoNFe(referencia: string): Promise<{ numero: n
   return { numero: Number(data.numero), serie: String(data.serie || '1') }
 }
 
-export async function registrarNumeracaoNFeAutorizada(numero: string | number, serie: string | number, ambiente: 'HOMOLOGACAO' | 'PRODUCAO' = 'PRODUCAO') {
+export async function registrarNumeracaoNFeAutorizada(params: {
+  numero: string | number
+  serie: string | number
+  ambiente?: 'HOMOLOGACAO' | 'PRODUCAO'
+  cStat: string
+  chaveAcesso: string
+  protocolo: string
+}) {
+  const { numero, serie, ambiente = 'PRODUCAO', cStat, chaveAcesso, protocolo } = params
   const numeroNormalizado = Math.max(0, Number(numero) || 0)
   const serieNormalizada = String(serie || '1').replace(/\D/g, '').slice(0, 3) || '1'
-  try {
-    const response = await fetch('/api/numeracao-fiscal.php', {
+  const response = await fetch('/api/numeracao-fiscal.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ acao: 'confirmar_autorizada', numero: numeroNormalizado, serie: serieNormalizada, ambiente }),
+      body: JSON.stringify({ acao: 'confirmar_autorizada', numero: numeroNormalizado, serie: serieNormalizada, ambiente, cStat, chaveAcesso, protocolo }),
     })
-    const data = await response.json()
-    if (response.ok && data?.ok === true && Array.isArray(data.numeracao)) {
-      localStorage.setItem('synergias_numeracao_fiscal', JSON.stringify(data.numeracao))
-    }
-  } catch {
-    // A autorização da SEFAZ não é desfeita por uma falha local de sincronização.
+  const data = await response.json()
+  if (!response.ok || data?.ok !== true || !Array.isArray(data.numeracao)) {
+    throw new Error(data?.error || 'A NF-e foi autorizada, mas o contador fiscal não pôde ser confirmado no servidor. Não inicie outra emissão até sincronizar a numeração.')
+  }
+  localStorage.setItem('synergias_numeracao_fiscal', JSON.stringify(data.numeracao))
+}
+
+export async function manterNumeracaoNFeRejeitada(referencia: string, numero: string | number, serie: string | number = '1') {
+  const response = await fetch('/api/numeracao-fiscal.php', {
+    method: 'POST',
+    credentials: 'same-origin',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      acao: 'manter_reserva_rejeitada',
+      ambiente: 'PRODUCAO',
+      serie: String(serie || '1'),
+      referencia,
+      numero: Number(numero),
+    }),
+  })
+  const data = await response.json()
+  if (!response.ok || data?.ok !== true) {
+    throw new Error(data?.error || 'A rejeição não pôde preservar a reserva da numeração fiscal.')
   }
 }
 
@@ -242,4 +267,3 @@ export async function cancelarNFeSefaz(params: {
   }
   return data as ResultadoCancelamentoNFe
 }
-

@@ -23,6 +23,8 @@ import {
   obterUltNSUDFeStorage,
   salvarUltNSUDFeStorage,
 } from '../../services/comprasStorage'
+import { listarProdutosStorage } from '../../services/produtosStorage'
+import { parseNFeCompraXml } from '../../services/nfeCompraXml'
 
 import '../../styles/compras.css'
 
@@ -35,6 +37,8 @@ const STATUS_COMPRAS: Array<'Todos' | StatusCompra> = [
   'Aguardando Entrega',
   'Recebido Parcial',
   'Recebido',
+  'Faturado',
+  'Concluído',
   'Cancelado',
 ]
 
@@ -145,13 +149,38 @@ function Compras() {
     input.type = 'file'
     input.accept = '.xml,text/xml,application/xml'
 
-    input.onchange = () => {
+    input.onchange = async () => {
       const arquivo = input.files?.[0]
 
       if (!arquivo) return
 
+      try {
+        const xml = await arquivo.text()
+        const numeroCompra = String(
+          Math.max(
+            0,
+            ...listarComprasStorage().map((item) =>
+              Number(String(item.numeroCompra || '').replace(/\D/g, '')) || 0,
+            ),
+          ) + 1,
+        ).padStart(6, '0')
+        const previa = parseNFeCompraXml(xml, listarProdutosStorage(), numeroCompra)
+        const duplicada = listarComprasStorage().find(
+          (item) => item.chaveAcessoNFe === previa.chaveAcessoNFe,
+        )
+        if (duplicada) {
+          alert(`Esta NF-e já foi importada na compra ${duplicada.numeroCompra}.`)
+          return
+        }
+        navigate('/compras/novo', { state: { xmlCompra: xml } })
+        return
+      } catch (error) {
+        alert(error instanceof Error ? error.message : 'Não foi possível ler o XML.')
+        return
+      }
+
       alert(
-        `Arquivo XML selecionado: ${arquivo.name}\n\n` +
+        `Arquivo XML selecionado: ${arquivo!.name}\n\n` +
           'A importação automática do XML será conectada ao fluxo fiscal. ' +
           'Nenhum pedido ou estoque foi alterado.',
       )

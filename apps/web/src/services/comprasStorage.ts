@@ -47,7 +47,7 @@ export function gerarNumeroCompraStorage(): string {
     const numero = Number(String(compra.numeroCompra || '').replace(/\D/g, ''))
 
     return Number.isFinite(numero) && numero > maior ? numero : maior
-  }, 0)
+  }, 1446)
 
   return String(maiorNumero + 1).padStart(6, '0')
 }

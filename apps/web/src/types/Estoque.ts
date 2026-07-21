@@ -12,6 +12,8 @@ export type OrigemMovimentacaoEstoque =
 
 export type EstoqueMovimentacao = {
   id: string
+  pedidoId?: string
+  numeroPedido?: string
   data: string
   hora: string
   produtoId?: string
@@ -26,6 +28,7 @@ export type EstoqueMovimentacao = {
   observacao?: string
   usuario?: string
   documentoOrigem?: string
+  movimentoOriginalId?: string | null
   criadoEm: string
 }
 

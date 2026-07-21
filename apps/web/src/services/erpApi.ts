@@ -26,6 +26,7 @@ type RespostaColecao<T> = {
   exists: boolean
   data: T[]
   count?: number
+  hash?: string
   updatedAt?: string | null
   recovered?: boolean
   storage?: string
@@ -33,6 +34,7 @@ type RespostaColecao<T> = {
 
 const memoria: Record<ColecaoCentral, unknown[]> = { clientes: [], produtos: [], vendas: [] }
 const filas = new Map<ColecaoCentral, Promise<void>>()
+const versoesCentrais = new Map<ColecaoCentral, { hash: string; updatedAt: string }>()
 export const ERP_STORAGE_UPDATED_EVENT = 'synergias:storage-updated'
 
 function clonar<T>(dados: T[]): T[] {
@@ -96,19 +98,99 @@ export async function carregarColecaoCentral<T>(collection: ColecaoCentral): Pro
   const response = await fetch(`${API_STORAGE_URL}?collection=${encodeURIComponent(collection)}&_=${Date.now()}`, {
     method: 'GET', headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin',
   })
-  return lerResposta<RespostaColecao<T>>(response)
+  const resposta = await lerResposta<RespostaColecao<T>>(response)
+  versoesCentrais.set(collection, {
+    hash: String(resposta.hash || ''),
+    updatedAt: String(resposta.updatedAt || ''),
+  })
+  return resposta
 }
 
 export async function substituirColecaoCentral<T>(collection: ColecaoCentral, data: T[], allowEmpty = false): Promise<void> {
   const snapshot = clonar(data)
+  const versaoEsperada = versoesCentrais.get(collection)
   const response = await fetch(`${API_STORAGE_URL}?collection=${encodeURIComponent(collection)}`, {
     method: 'PUT', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, credentials: 'same-origin',
-    body: JSON.stringify({ data: snapshot, allowEmpty }),
+    body: JSON.stringify({
+      data: snapshot,
+      allowEmpty,
+      expectedHash: versaoEsperada?.hash || '',
+      expectedUpdatedAt: versaoEsperada?.updatedAt || '',
+    }),
   })
-  const confirmacao = await lerResposta<{ ok: boolean; verified?: boolean; count?: number }>(response)
+  const confirmacao = await lerResposta<{ ok: boolean; verified?: boolean; count?: number; hash?: string; updatedAt?: string }>(response)
   if (confirmacao.verified !== true || Number(confirmacao.count ?? -1) !== snapshot.length) {
     throw new Error(`O servidor não confirmou integralmente a gravação de ${collection}.`)
   }
+  versoesCentrais.set(collection, {
+    hash: String(confirmacao.hash || ''),
+    updatedAt: String(confirmacao.updatedAt || ''),
+  })
+}
+
+export async function atualizarRegistroColecaoCentral<T extends { id?: unknown }>(
+  collection: ColecaoCentral,
+  record: T,
+): Promise<{ record: T; count: number }> {
+  const versaoEsperada = versoesCentrais.get(collection)
+  const response = await fetch(`${API_STORAGE_URL}?collection=${encodeURIComponent(collection)}`, {
+    method: 'PATCH',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      record,
+      expectedHash: versaoEsperada?.hash || '',
+      expectedUpdatedAt: versaoEsperada?.updatedAt || '',
+    }),
+  })
+  const confirmacao = await lerResposta<{
+    ok: boolean
+    verified?: boolean
+    record?: T
+    count?: number
+    hash?: string
+    updatedAt?: string
+  }>(response)
+  if (confirmacao.verified !== true || !confirmacao.record) {
+    throw new Error(`O servidor não confirmou a atualização unitária de ${collection}.`)
+  }
+  versoesCentrais.set(collection, {
+    hash: String(confirmacao.hash || ''),
+    updatedAt: String(confirmacao.updatedAt || ''),
+  })
+  return { record: confirmacao.record, count: Number(confirmacao.count || 0) }
+}
+
+export async function excluirRegistroColecaoCentral(
+  collection: ColecaoCentral,
+  id: string,
+): Promise<{ count: number }> {
+  const versaoEsperada = versoesCentrais.get(collection)
+  const response = await fetch(`${API_STORAGE_URL}?collection=${encodeURIComponent(collection)}`, {
+    method: 'DELETE',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      id,
+      expectedHash: versaoEsperada?.hash || '',
+      expectedUpdatedAt: versaoEsperada?.updatedAt || '',
+    }),
+  })
+  const confirmacao = await lerResposta<{
+    ok: boolean
+    verified?: boolean
+    count?: number
+    hash?: string
+    updatedAt?: string
+  }>(response)
+  if (confirmacao.verified !== true) {
+    throw new Error(`O servidor não confirmou a exclusão em ${collection}.`)
+  }
+  versoesCentrais.set(collection, {
+    hash: String(confirmacao.hash || ''),
+    updatedAt: String(confirmacao.updatedAt || ''),
+  })
+  return { count: Number(confirmacao.count || 0) }
 }
 
 export function sincronizarColecaoCentral<T>(collection: ColecaoCentral, data: T[]): void {

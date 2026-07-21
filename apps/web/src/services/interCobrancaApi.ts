@@ -116,5 +116,9 @@ export async function cancelarCobrancaInter(
     motivo: 'ACERTOS',
   })
 
+  if (resposta.ok !== true) {
+    throw new Error('O Banco Inter não confirmou o cancelamento da cobrança.')
+  }
+
   return resposta.cobranca || ({ codigoSolicitacao } as CobrancaInterApi)
 }

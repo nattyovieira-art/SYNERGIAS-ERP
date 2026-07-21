@@ -9,7 +9,7 @@ header('X-Content-Type-Options: nosniff');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Referrer-Policy: no-referrer');
 
-const NFE_XML_PREVIEW_VERSION = 'V152';
+const NFE_XML_PREVIEW_VERSION = 'V154';
 const NFE_VERPROC = 'SYNERGIAS-ERP-140';
 const NFE_NS = 'http://www.portalfiscal.inf.br/nfe';
 
@@ -51,7 +51,8 @@ function sxV62FormatarAliquota(float $v): string { return number_format($v, 4, '
 function sxV62DataIso(mixed $v): string { $s=sxV62Texto($v); if($s==='') return ''; try{$d=new DateTimeImmutable($s); return $d->format('Y-m-d');}catch(Throwable){return preg_match('/^\d{4}-\d{2}-\d{2}$/',$s)?$s:'';} }
 function sxV62NormalizarTexto(string $v, int $max): string {
     $v = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $v) ?? '';
-    return mb_substr(trim($v), 0, $max);
+    $v = preg_replace('/\s+/u', ' ', trim($v)) ?? '';
+    return trim(mb_substr($v, 0, $max));
 }
 function sxV62DvChave(string $base43): int {
     $peso = 2; $soma = 0;
@@ -110,6 +111,7 @@ try {
     if ($serie > 999) $erros[] = 'Série da NF-e fora do limite.';
 
     $destDoc = sxV62Digitos($venda['clienteDocumento'] ?? '');
+    $destNome = sxV62NormalizarTexto(sxV62Texto($venda['clienteNome'] ?? ''), 60);
     $cepDest = sxV62Digitos($venda['faturamentoCep'] ?? '');
     $ufDest = strtoupper(sxV62Texto($venda['faturamentoEstado'] ?? ''));
     $cidadeDest = mb_strtoupper(sxV62Texto($venda['faturamentoCidade'] ?? ''), 'UTF-8');
@@ -120,6 +122,7 @@ try {
     if ($cMunDest === '' && $ufDest === 'RS' && $cidadeDestNormalizada === 'PORTO ALEGRE') $cMunDest = '4314902';
     if ($cMunDest === '' && $ufDest === 'RS' && $cidadeDest !== '' && $cidadeDest === $cidadeEmit) $cMunDest = $cMunEmit;
     if (!in_array(strlen($destDoc), [11,14], true)) $erros[] = 'CPF/CNPJ do destinatário inválido.';
+    if (mb_strlen($destNome) < 2) $erros[] = 'Nome/Razão Social do destinatário deve ter entre 2 e 60 caracteres.';
     if (strlen($cepDest) !== 8) $erros[] = 'CEP do destinatário inválido.';
     if (strlen($cMunDest) !== 7) $erros[] = 'Código IBGE do destinatário ausente para '.$cidadeDest.'-'.$ufDest.'. Abra o cadastro do cliente, informe o Código IBGE do Município com 7 dígitos, salve e tente emitir novamente.';
 
@@ -166,7 +169,7 @@ try {
     $emit=$doc->createElement('emit'); $inf->appendChild($emit); sxV62Add($doc,$emit,'CNPJ',$cnpj); sxV62Add($doc,$emit,'xNome',sxV62NormalizarTexto(sxV62Texto($fiscal['razaoSocial'] ?? ''),60)); if(sxV62Texto($fiscal['nomeFantasia'] ?? '')!=='') sxV62Add($doc,$emit,'xFant',sxV62NormalizarTexto(sxV62Texto($fiscal['nomeFantasia']),60));
     $ender=$doc->createElement('enderEmit'); $emit->appendChild($ender); sxV62Add($doc,$ender,'xLgr',sxV62NormalizarTexto(sxV62Texto($fiscal['logradouro'] ?? ''),60)); sxV62Add($doc,$ender,'nro',sxV62NormalizarTexto(sxV62Texto($fiscal['sxV62Numero'] ?? 'S/N'),60)); if(sxV62Texto($fiscal['complemento'] ?? '')!=='') sxV62Add($doc,$ender,'xCpl',sxV62NormalizarTexto(sxV62Texto($fiscal['complemento']),60)); sxV62Add($doc,$ender,'xBairro',sxV62NormalizarTexto(sxV62Texto($fiscal['bairro'] ?? ''),60)); sxV62Add($doc,$ender,'cMun',$cMunEmit); sxV62Add($doc,$ender,'xMun',sxV62NormalizarTexto(sxV62Texto($fiscal['municipio'] ?? ''),60)); sxV62Add($doc,$ender,'UF','RS'); sxV62Add($doc,$ender,'CEP',$cepEmit); sxV62Add($doc,$ender,'cPais','1058'); sxV62Add($doc,$ender,'xPais','BRASIL'); if(sxV62Digitos($fiscal['telefone'] ?? '')!=='') sxV62Add($doc,$ender,'fone',sxV62Digitos($fiscal['telefone'])); sxV62Add($doc,$emit,'IE',$ie); sxV62Add($doc,$emit,'CRT','1');
 
-    $dest=$doc->createElement('dest'); $inf->appendChild($dest); sxV62Add($doc,$dest,strlen($destDoc)===14?'CNPJ':'CPF',$destDoc); sxV62Add($doc,$dest,'xNome',sxV62NormalizarTexto(sxV62Texto($venda['clienteNome'] ?? ''),60));
+    $dest=$doc->createElement('dest'); $inf->appendChild($dest); sxV62Add($doc,$dest,strlen($destDoc)===14?'CNPJ':'CPF',$destDoc); sxV62Add($doc,$dest,'xNome',$destNome);
     $enderD=$doc->createElement('enderDest'); $dest->appendChild($enderD); sxV62Add($doc,$enderD,'xLgr',sxV62NormalizarTexto(sxV62Texto($venda['faturamentoEndereco'] ?? ''),60)); sxV62Add($doc,$enderD,'nro',sxV62NormalizarTexto(sxV62Texto($venda['faturamentoNumero'] ?? 'S/N'),60)); if(sxV62Texto($venda['faturamentoComplemento'] ?? '')!=='') sxV62Add($doc,$enderD,'xCpl',sxV62NormalizarTexto(sxV62Texto($venda['faturamentoComplemento']),60)); sxV62Add($doc,$enderD,'xBairro',sxV62NormalizarTexto(sxV62Texto($venda['faturamentoBairro'] ?? ''),60)); sxV62Add($doc,$enderD,'cMun',$cMunDest); sxV62Add($doc,$enderD,'xMun',sxV62NormalizarTexto(sxV62Texto($venda['faturamentoCidade'] ?? ''),60)); sxV62Add($doc,$enderD,'UF',$ufDest); sxV62Add($doc,$enderD,'CEP',$cepDest); sxV62Add($doc,$enderD,'cPais','1058'); sxV62Add($doc,$enderD,'xPais','BRASIL'); if(sxV62Digitos($venda['clienteTelefone'] ?? '')!=='') sxV62Add($doc,$enderD,'fone',sxV62Digitos($venda['clienteTelefone'])); $indIEDest=sxV62Digitos($venda['clienteIndicadorIE'] ?? ''); if(!in_array($indIEDest,['1','2','9'],true)) $indIEDest=sxV62Digitos($venda['clienteIeRg'] ?? '')!==''?'1':'9'; sxV62Add($doc,$dest,'indIEDest',$indIEDest); if($indIEDest!=='9' && sxV62Digitos($venda['clienteIeRg'] ?? '')!=='') sxV62Add($doc,$dest,'IE',sxV62Digitos($venda['clienteIeRg'])); if(filter_var(sxV62Texto($venda['clienteEmailNotaFiscal'] ?? $venda['clienteEmail'] ?? ''),FILTER_VALIDATE_EMAIL)) sxV62Add($doc,$dest,'email',sxV62Texto($venda['clienteEmailNotaFiscal'] ?? $venda['clienteEmail']));
 
     foreach($itens as $i=>$item){

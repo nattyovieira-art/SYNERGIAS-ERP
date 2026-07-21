@@ -213,6 +213,11 @@ export type Venda = {
   clienteEmailNotaFiscal?: string
   clienteTelefone?: string
   clienteCreditoDisponivel?: number
+  enderecoEntregaId?: string
+  enderecoEntregaNome?: string
+  enderecoEntregaCompleto?: string
+  emailEnvio?: string
+  enderecoEntregaSnapshot?: import('./Cliente').EnderecoEntregaCliente
 
   faturamentoCep?: string
   faturamentoEndereco?: string
@@ -255,6 +260,8 @@ export type Venda = {
   observacoesNotaFiscal?: string
   emailsCopiaDocumentos?: string[]
   responsavelEntrega?: string
+  telefoneEntrega?: string
+  celularEntrega?: string
   horarioEntrega?: string
 
   statusNotaFiscal?: StatusNotaFiscal

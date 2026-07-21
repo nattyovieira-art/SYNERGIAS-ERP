@@ -6,6 +6,29 @@ export type PedidoCliente = {
   valorTotal?: number
 }
 
+export type TipoLocalEntrega = 'Residencial' | 'Comercial' | 'Outro'
+
+export type EnderecoEntregaCliente = {
+  id: string
+  nomeLocal: string
+  tipoLocal: TipoLocalEntrega
+  cep: string
+  logradouro: string
+  numero: string
+  complemento: string
+  bairro: string
+  cidade: string
+  uf: string
+  codigoIbgeMunicipio?: string
+  responsavel: string
+  telefone: string
+  celular: string
+  horarioEntrega: string
+  emailEnvio: string
+  observacoes: string
+  ativo: boolean
+}
+
 export type Cliente = {
   codigo: string
 
@@ -51,7 +74,7 @@ export type Cliente = {
   estadoEntrega?: string
   codigoIbgeMunicipioEntrega?: string
   paisEntrega?: string
-  enderecosEntrega?: string[]
+  enderecosEntrega?: EnderecoEntregaCliente[]
 
   // Dados fiscais
   inscricaoEstadual?: string

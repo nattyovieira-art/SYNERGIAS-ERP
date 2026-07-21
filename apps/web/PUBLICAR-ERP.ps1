@@ -165,6 +165,30 @@ try {
     $assetsLocal = Join-Path $stage 'assets\*'
     $indexStage = Join-Path $stage 'index.html'
     $apiFiscalStage = Join-Path $stage 'api\configuracao-fiscal.php'
+    $apiNumeracaoLocal = Join-Path $dist 'api\numeracao-fiscal.php'
+    $apiNumeracaoStage = Join-Path $stage 'api\numeracao-fiscal.php'
+    $apiEntregaLocal = Join-Path $dist 'api\pedido-entrega.php'
+    $apiEntregaStage = Join-Path $stage 'api\pedido-entrega.php'
+    $apiMovimentosLocal = Join-Path $dist 'api\estoque-movimentacoes.php'
+    $apiMovimentosStage = Join-Path $stage 'api\estoque-movimentacoes.php'
+    $apiStorageLocal = Join-Path $dist 'api\storage.php'
+    $apiStorageStage = Join-Path $stage 'api\storage.php'
+    if (-not (Test-Path -LiteralPath $apiNumeracaoLocal -PathType Leaf)) {
+        throw 'A API api\numeracao-fiscal.php não foi encontrada no dist.'
+    }
+    Copy-Item -LiteralPath $apiNumeracaoLocal -Destination $apiNumeracaoStage -Force
+    if (-not (Test-Path -LiteralPath $apiEntregaLocal -PathType Leaf)) {
+        throw 'A API api\pedido-entrega.php não foi encontrada no dist.'
+    }
+    Copy-Item -LiteralPath $apiEntregaLocal -Destination $apiEntregaStage -Force
+    if (-not (Test-Path -LiteralPath $apiMovimentosLocal -PathType Leaf)) {
+        throw 'A API api\estoque-movimentacoes.php não foi encontrada no dist.'
+    }
+    Copy-Item -LiteralPath $apiMovimentosLocal -Destination $apiMovimentosStage -Force
+    if (-not (Test-Path -LiteralPath $apiStorageLocal -PathType Leaf)) {
+        throw 'A API api\storage.php não foi encontrada no dist.'
+    }
+    Copy-Item -LiteralPath $apiStorageLocal -Destination $apiStorageStage -Force
 
     $lines = @(
         'option batch abort',
@@ -174,6 +198,10 @@ try {
         ('cd "{0}"' -f ($(if ($remoteBase) { $remoteBase } else { '/' }))),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/assets/"' -f $assetsLocal, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/configuracao-fiscal.php"' -f $apiFiscalStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/numeracao-fiscal.php"' -f $apiNumeracaoStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/pedido-entrega.php"' -f $apiEntregaStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/estoque-movimentacoes.php"' -f $apiMovimentosStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/storage.php"' -f $apiStorageStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/index.html"' -f $indexStage, $remoteBase),
         'exit'
     )

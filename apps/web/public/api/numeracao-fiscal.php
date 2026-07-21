@@ -89,6 +89,7 @@ if($acao==='reservar'){
     responder(409,['ok'=>false,'error'=>'Existe outra emissão de NF-e em andamento. Conclua ou aguarde 15 minutos antes de iniciar outra.','numero'=>(int)$r['numero'],'referencia'=>$r['referencia']]);
    }
    $numero=(int)$r['numero'];
+   $pdo->prepare("UPDATE nfe_reservas SET expira_em=GREATEST(expira_em,DATE_ADD(NOW(),INTERVAL 15 MINUTE)) WHERE ambiente=? AND serie=? AND referencia=?")->execute([$amb,$serie,$ref]);
   }else{
    $ins=$pdo->prepare("INSERT INTO nfe_reservas(ambiente,serie,numero,referencia,expira_em) VALUES(?,?,?,?,DATE_ADD(NOW(),INTERVAL 15 MINUTE))");
    $ins->execute([$amb,$serie,$numero,$ref]);
@@ -107,6 +108,12 @@ if($acao==='confirmar_autorizada'){
  $amb=strtoupper((string)($body['ambiente']??'PRODUCAO'));
  $numero=max(0,(int)($body['numero']??0));
  $serie=preg_replace('/\D+/','',(string)($body['serie']??'1'))?:'1';
+ $cStat=preg_replace('/\D+/','',(string)($body['cStat']??''))?:'';
+ $chave=preg_replace('/\D+/','',(string)($body['chaveAcesso']??''))?:'';
+ $protocolo=trim((string)($body['protocolo']??''));
+ if(!in_array($cStat,['100','150'],true)||strlen($chave)!==44||$protocolo===''||$numero<=0){
+  responder(422,['ok'=>false,'error'=>'A numeração só pode avançar com autorização válida da SEFAZ, chave de acesso e protocolo.']);
+ }
  try{
   $pdo->beginTransaction();
   $lista=lerNumeracao($pdo,true);
@@ -124,6 +131,16 @@ if($acao==='confirmar_autorizada'){
   responder(500,['ok'=>false,'error'=>'Não foi possível confirmar a numeração autorizada.']);
  }
 }
+if($acao==='manter_reserva_rejeitada'){
+ $amb=strtoupper((string)($body['ambiente']??'PRODUCAO'));
+ $serie=preg_replace('/\D+/','',(string)($body['serie']??'1'))?:'1';
+ $ref=referenciaFiscal($body);
+ $numero=max(0,(int)($body['numero']??0));
+ $st=$pdo->prepare("UPDATE nfe_reservas SET expira_em=DATE_ADD(NOW(),INTERVAL 10 YEAR) WHERE ambiente=? AND serie=? AND referencia=? AND numero=?");
+ $st->execute([$amb,$serie,$ref,$numero]);
+ if($st->rowCount()!==1) responder(409,['ok'=>false,'error'=>'A reserva rejeitada não corresponde ao número fiscal informado. Recarregue o pedido antes de retransmitir.']);
+ responder(200,['ok'=>true,'numero'=>$numero,'serie'=>$serie,'referencia'=>$ref]);
+}
 if($acao==='liberar_reserva'){
  $amb=strtoupper((string)($body['ambiente']??'PRODUCAO'));
  $serie=preg_replace('/\D+/','',(string)($body['serie']??'1'))?:'1';
@@ -134,4 +151,17 @@ if($acao==='liberar_reserva'){
 
 $recebida=$body['numeracao']??null;
 if(!is_array($recebida))responder(422,['ok'=>false,'error'=>'Numeração fiscal inválida.']);
+$atual=lerNumeracao($pdo);
+foreach($recebida as &$itemRecebido){
+ if(!is_array($itemRecebido)||($itemRecebido['documento']??'')!=='NF-e')continue;
+ $ambiente=strtoupper(trim((string)($itemRecebido['ambiente']??'')));
+ $serieRecebida=preg_replace('/\D+/','',(string)($itemRecebido['serie']??'1'))?:'1';
+ foreach($atual as $itemAtual){
+  if(($itemAtual['documento']??'')==='NF-e'&&($itemAtual['ambiente']??'')===$ambiente&&(string)($itemAtual['serie']??'')===$serieRecebida){
+   // A configuração administrativa não consome número; somente confirmar_autorizada pode avançar.
+   $itemRecebido['ultimo']=(int)$itemAtual['ultimo'];
+   break;
+  }
+ }
+}unset($itemRecebido);
 responder(200,['ok'=>true,'numeracao'=>salvarNumeracao($pdo,$recebida)]);

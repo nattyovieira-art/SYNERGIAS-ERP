@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test:entrega": "node scripts/test-pedido-entrega-central.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

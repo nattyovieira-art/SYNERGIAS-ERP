@@ -45,6 +45,9 @@ $emitEnd=trim(implode(', ',array_filter([$q('.//*[local-name()="xLgr"]',$ee),$q(
 $destNome=$q('.//*[local-name()="xNome"]',$dest); $destDoc=$docFmt($q('.//*[local-name()="CNPJ"]',$dest)?:$q('.//*[local-name()="CPF"]',$dest)); $destEnd=trim(implode(', ',array_filter([$q('.//*[local-name()="xLgr"]',$ed),$q('.//*[local-name()="nro"]',$ed),$q('.//*[local-name()="xCpl"]',$ed)]))); $destBairro=$q('.//*[local-name()="xBairro"]',$ed); $destMun=$q('.//*[local-name()="xMun"]',$ed); $destUF=$q('.//*[local-name()="UF"]',$ed); $destCep=$cepFmt($q('.//*[local-name()="CEP"]',$ed)); $destFone=$q('.//*[local-name()="fone"]',$ed);
 $protocolo=$q('.//*[local-name()="nProt"]',$prot); $dhRec=$q('.//*[local-name()="dhRecbto"]',$prot); $infCpl=$q('//*[local-name()="infAdic"]/*[local-name()="infCpl"]');
 
+$codigosProdutosDanfe=[];
+try{$pdoProdutos=obterPdo();$stProdutos=$pdoProdutos->prepare('SELECT payload FROM erp_storage WHERE collection=:c LIMIT 1');$stProdutos->execute(['c'=>'produtos']);$rProdutos=$stProdutos->fetch();$listaProdutos=$rProdutos?json_decode((string)$rProdutos['payload'],true):[];foreach(is_array($listaProdutos)?$listaProdutos:[] as $produtoCadastro){if(!is_array($produtoCadastro))continue;$barrasCadastro=trim((string)($produtoCadastro['codigoBarras']??$produtoCadastro['ean']??$produtoCadastro['gtin']??''));if($barrasCadastro==='')continue;foreach(['id','codigo','codigoInterno','codigoProduto','codigoBarras'] as $campoCadastro){$refCadastro=trim((string)($produtoCadastro[$campoCadastro]??''));if($refCadastro!=='')$codigosProdutosDanfe[$refCadastro]=$barrasCadastro;}}}catch(Throwable $erroProdutos){error_log('[DANFE PDF CODIGO PRODUTO] '.$erroProdutos->getMessage());}
+
 $duplicatas=[]; foreach($xp->query('//*[local-name()="dup"]')?:[] as $dup){$duplicatas[]=['n'=>$q('.//*[local-name()="nDup"]',$dup),'v'=>$dateBr($q('.//*[local-name()="dVenc"]',$dup)),'valor'=>$money($q('.//*[local-name()="vDup"]',$dup))];}
 if(!$duplicatas && preg_match('/Pedido\s*:\s*(\d+)/i',$infCpl,$m)){
   try{$pdo=obterPdo();$st=$pdo->prepare('SELECT payload FROM erp_storage WHERE collection=:c LIMIT 1');$st->execute(['c'=>'vendas']);$r=$st->fetch();$vs=$r?json_decode((string)$r['payload'],true):[];foreach(is_array($vs)?$vs:[] as $v){$np=preg_replace('/\D+/','',(string)($v['numeroPedido']??$v['numero']??''));if($np!==$m[1])continue;foreach((array)($v['parcelas']??[]) as $i=>$p){$val=(float)($p['valor']??0);$ven=(string)($p['vencimento']??$p['dataVencimento']??'');if($val>0&&$ven!=='')$duplicatas[]=['n'=>str_pad((string)($p['numero']??$i+1),3,'0',STR_PAD_LEFT),'v'=>$dateBr($ven),'valor'=>$money($val)];}break;}}catch(Throwable){}
@@ -59,6 +62,12 @@ final class PdfLite {
   function text(float $x,float $y,string $s,int $size=8,string $align='L',float $w=0):void{ if($align!=='L'&&$w>0){$est=strlen(iconv('UTF-8','ASCII//TRANSLIT',$s)?:$s)*$size*.48*25.4/72;$x+=$align==='C'?($w-$est)/2:($w-$est);} $this->content.="BT /F1 {$size} Tf ".$this->mm($x).' '.(841.89-$this->mm($y))." Td (".$this->enc($s).") Tj ET\n"; }
   function line(float $x1,float $y1,float $x2,float $y2,float $lw=.2):void{$this->content.=$this->mm($lw)." w ".$this->mm($x1).' '.(841.89-$this->mm($y1)).' m '.$this->mm($x2).' '.(841.89-$this->mm($y2))." l S\n";}
   function rect(float $x,float $y,float $w,float $h,float $lw=.2):void{$this->content.=$this->mm($lw)." w ".$this->mm($x).' '.(841.89-$this->mm($y+$h)).' '.$this->mm($w).' '.$this->mm($h)." re S\n";}
+  function fillRect(float $x,float $y,float $w,float $h):void{$this->content.=$this->mm($x).' '.(841.89-$this->mm($y+$h)).' '.$this->mm($w).' '.$this->mm($h)." re f\n";}
+  function barcode128(float $x,float $y,float $w,float $h,string $digits):void{
+    if(!preg_match('/^\d{44}$/',$digits))return;
+    $patterns=['212222','222122','222221','121223','121322','131222','122213','122312','132212','221213','221312','231212','112232','122132','122231','113222','123122','123221','223211','221132','221231','213212','223112','312131','311222','321122','321221','312212','322112','322211','212123','212321','232121','111323','131123','131321','112313','132113','132311','211313','231113','231311','112133','112331','132131','113123','113321','133121','313121','211331','231131','213113','213311','213131','311123','311321','331121','312113','312311','332111','314111','221411','431111','111224','111422','121124','121421','141122','141221','112214','112412','122114','122411','142112','142211','241211','221114','413111','241112','134111','111242','121142','121241','114212','124112','124211','411212','421112','421211','212141','214121','412121','111143','111341','131141','114113','114311','411113','411311','113141','114131','311141','411131','211412','211214','211232','2331112'];
+    $codes=[105];for($i=0;$i<44;$i+=2)$codes[]=(int)substr($digits,$i,2);$sum=105;for($i=1;$i<count($codes);$i++)$sum+=$codes[$i]*$i;$codes[]=$sum%103;$codes[]=106;$modules=0;foreach($codes as $code)$modules+=array_sum(array_map('intval',str_split($patterns[$code])));$scale=$w/$modules;$cursor=$x;foreach($codes as $code){foreach(str_split($patterns[$code]) as $i=>$module){$bar=(int)$module*$scale;if($i%2===0)$this->fillRect($cursor,$y,$bar,$h);$cursor+=$bar;}}
+  }
   function cell(float $x,float $y,float $w,float $h,string $label,string $value='',int $vs=8,string $align='L'):void{
     $this->rect($x,$y,$w,$h);
     $labelY=$h<8?$y+1.9:$y+2.7;
@@ -88,8 +97,9 @@ $drawHeader=function(bool $compact=false) use($pdf,$emitNome,$emitEnd,$emitCid,$
     $pdf->cell(70,18,48,24,'DANFE','DOCUMENTO AUXILIAR',8,'C');
     $pdf->text(71,30,'DA NOTA FISCAL ELETRÔNICA',7,'C',46);
     $pdf->text(71,36,'Nº '.$nNF.'   SÉRIE '.$serie,9,'C',46);
-    $pdf->cell(118,18,84,24,'Chave de acesso',$chave,8,'C');
-    $pdf->text(120,34,'www.nfe.fazenda.gov.br/portal',6,'C',80);
+    $pdf->cell(118,18,84,24,'Controle do Fisco','',8,'C');
+    $pdf->barcode128(121,21.5,78,8,$chave);
+    $pdf->text(120,34,$chave,7,'C',80);
     $pdf->cell(8,42,100,10,'Natureza da operação',$natOp,8);
     $pdf->cell(108,42,94,10,'Protocolo de autorização',$protocolo.' - '.$dhRec,7);
     return 54.0;
@@ -110,8 +120,9 @@ $drawHeader=function(bool $compact=false) use($pdf,$emitNome,$emitEnd,$emitCid,$
   $pdf->text(64,40,'0 - ENTRADA   1 - SAÍDA   '.$tpNF,7,'C',45);
   $pdf->text(64,47,'Nº '.$nNF.'   SÉRIE '.$serie,9,'C',45);
 
-  $pdf->cell(110,22,92,31,'Chave de acesso',$chave,8,'C');
-  $pdf->text(112,40,'Consulta de autenticidade no portal nacional da NF-e',6,'C',88);
+  $pdf->cell(110,22,92,31,'Controle do Fisco','',8,'C');
+  $pdf->barcode128(114,26,84,9,$chave);
+  $pdf->text(112,40,$chave,7,'C',88);
   $pdf->text(112,46,'www.nfe.fazenda.gov.br/portal',6,'C',88);
 
   $pdf->cell(8,54,105,11,'Natureza da operação',$natOp,9);
@@ -171,6 +182,7 @@ foreach($xp->query('//*[local-name()="det"]')?:[] as $det){
   $desc=$q('.//*[local-name()="xProd"]',$prod);
   $codigoBarras=$q('.//*[local-name()="cEAN"]',$prod);
   if($codigoBarras==='' || strtoupper($codigoBarras)==='SEM GTIN') $codigoBarras=$q('.//*[local-name()="cEANTrib"]',$prod);
+  if($codigoBarras==='' || strtoupper($codigoBarras)==='SEM GTIN'){$codigoProduto=$q('.//*[local-name()="cProd"]',$prod);$codigoBarras=$codigosProdutosDanfe[$codigoProduto]??$codigoProduto;}
   if($codigoBarras==='' || strtoupper($codigoBarras)==='SEM GTIN') $codigoBarras='-';
   $lines=$pdf->wrap($desc,68,6);
   $h=max(8.5,count($lines)*3.4+2.4);
