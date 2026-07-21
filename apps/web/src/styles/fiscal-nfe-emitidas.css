@@ -1,0 +1,550 @@
+.fiscal-nfe-emitidas-card {
+  margin-top: 24px;
+  margin-bottom: 42px;
+  padding: 24px;
+  border: 1px solid #d8c4c8;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(77, 18, 31, 0.08);
+}
+
+.fiscal-nfe-emitidas-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.fiscal-nfe-emitidas-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 280px;
+  flex: 1;
+}
+
+.fiscal-nfe-emitidas-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f6ecef;
+  color: #741f36;
+  flex: 0 0 auto;
+}
+
+.fiscal-nfe-emitidas-title h2,
+.fiscal-nfe-map-header h3 {
+  margin: 0;
+  color: #111827;
+}
+
+.fiscal-nfe-emitidas-title h2 {
+  font-size: 20px;
+}
+
+.fiscal-nfe-emitidas-title p,
+.fiscal-nfe-map-header p {
+  margin: 6px 0 0;
+  color: #667085;
+  line-height: 1.5;
+}
+
+.fiscal-nfe-emitidas-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fiscal-nfe-button,
+.fiscal-nfe-link-button {
+  border: 0;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.fiscal-nfe-button {
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.fiscal-nfe-button:hover:not(:disabled),
+.fiscal-nfe-link-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.fiscal-nfe-button:disabled,
+.fiscal-nfe-link-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.fiscal-nfe-button-sefaz {
+  background: #741f36;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(116, 31, 54, 0.2);
+}
+
+.fiscal-nfe-button-xml {
+  background: #f2e7ea;
+  color: #5f172c;
+  border: 1px solid #dcc4ca;
+}
+
+.fiscal-nfe-warning,
+.fiscal-nfe-message {
+  margin-top: 18px;
+  border-radius: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px 16px;
+}
+
+.fiscal-nfe-warning {
+  background: #fff8e8;
+  border: 1px solid #eed69e;
+  color: #6e4f08;
+}
+
+.fiscal-nfe-warning div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fiscal-nfe-warning span {
+  line-height: 1.45;
+}
+
+.fiscal-nfe-message {
+  background: #edf8f1;
+  border: 1px solid #b9dfc6;
+  color: #21663a;
+}
+
+.fiscal-nfe-summary-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.fiscal-nfe-summary-grid > div {
+  min-height: 92px;
+  padding: 16px;
+  border: 1px solid #eadde0;
+  border-radius: 14px;
+  background: #fcfafb;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+
+.fiscal-nfe-summary-grid strong {
+  color: #741f36;
+  font-size: 24px;
+}
+
+.fiscal-nfe-summary-grid span {
+  color: #667085;
+  font-size: 13px;
+}
+
+.fiscal-nfe-map-header {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid #eadde0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.fiscal-nfe-map-header h3 {
+  font-size: 18px;
+}
+
+.fiscal-nfe-map-badges {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.fiscal-nfe-map-badges span {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f2e7ea;
+  color: #5f172c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.fiscal-nfe-map-badges .fiscal-nfe-pending {
+  background: #fff5df;
+  color: #865d00;
+}
+
+.fiscal-nfe-map-badges .fiscal-nfe-ok {
+  background: #eaf7ee;
+  color: #23663a;
+}
+
+.fiscal-nfe-empty {
+  margin-top: 18px;
+  min-height: 130px;
+  border: 1px dashed #ccb9be;
+  border-radius: 16px;
+  background: #fcfafb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  text-align: center;
+  color: #667085;
+  padding: 20px;
+}
+
+.fiscal-nfe-empty svg,
+.fiscal-nfe-empty strong {
+  color: #2f7d48;
+}
+
+.fiscal-nfe-table-wrapper {
+  margin-top: 18px;
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e4d7da;
+  border-radius: 14px;
+}
+
+.fiscal-nfe-table {
+  width: 100%;
+  min-width: 940px;
+  border-collapse: collapse;
+}
+
+.fiscal-nfe-table th,
+.fiscal-nfe-table td {
+  padding: 13px 14px;
+  text-align: left;
+  border-bottom: 1px solid #eee4e6;
+  vertical-align: middle;
+}
+
+.fiscal-nfe-table th {
+  background: #f8f2f4;
+  color: #5f172c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.fiscal-nfe-table td {
+  color: #344054;
+  font-size: 14px;
+}
+
+.fiscal-nfe-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.fiscal-nfe-table select {
+  width: 100%;
+  min-width: 280px;
+  height: 42px;
+  border: 1px solid #cfbec2;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #111827;
+  padding: 0 11px;
+  outline: none;
+}
+
+.fiscal-nfe-table select:focus {
+  border-color: #741f36;
+  box-shadow: 0 0 0 3px rgba(116, 31, 54, 0.1);
+}
+
+.fiscal-nfe-link-button {
+  min-height: 38px;
+  padding: 0 13px;
+  background: #741f36;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .fiscal-nfe-summary-grid {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .fiscal-nfe-emitidas-card {
+    padding: 18px;
+  }
+
+  .fiscal-nfe-emitidas-actions,
+  .fiscal-nfe-button {
+    width: 100%;
+  }
+
+  .fiscal-nfe-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   NF-e EMITIDAS - BUSCA, FILTROS E IMPRESSÃO
+========================================================= */
+
+.fiscal-nfe-toolbar {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fiscal-nfe-toolbar-left {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fiscal-nfe-toolbar-search {
+  width: min(440px, 100%);
+  min-width: 280px;
+  height: 58px;
+  border: 1px solid #d7dee8;
+  border-radius: 16px;
+  padding: 0 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+}
+
+.fiscal-nfe-toolbar-search svg {
+  color: #f97316;
+  flex: 0 0 auto;
+}
+
+.fiscal-nfe-toolbar-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #152033;
+  font: inherit;
+  font-size: 13px;
+}
+
+.fiscal-nfe-filter-panel {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid #eadde0;
+  border-radius: 14px;
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #fcfafb;
+}
+
+.fiscal-nfe-filter-panel label {
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #39465a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.fiscal-nfe-filter-panel input {
+  height: 44px;
+  border: 1px solid #dfe6ef;
+  border-radius: 11px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #152033;
+  font: inherit;
+  outline: 0;
+}
+
+.fiscal-nfe-clear-filters {
+  min-height: 44px;
+  border: 1px solid #d7dee8;
+  border-radius: 11px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #475569;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.fiscal-nfe-clear-filters:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fiscal-nfe-map-header small {
+  display: block;
+  margin-top: 7px;
+  color: #7a263a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 780px) {
+  .fiscal-nfe-toolbar-left {
+    width: 100%;
+  }
+
+  .fiscal-nfe-toolbar-search {
+    min-width: 100%;
+    order: 5;
+  }
+}
+
+/* Barra única das NF-e emitidas: impressão, busca SEFAZ e XML na mesma linha. */
+.fiscal-nfe-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+
+@media (min-width: 1181px) {
+  .fiscal-nfe-toolbar {
+    flex-wrap: nowrap;
+  }
+
+  .fiscal-nfe-toolbar-left {
+    flex-wrap: nowrap;
+  }
+
+  .fiscal-nfe-toolbar-search {
+    width: min(390px, 32vw);
+    min-width: 220px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .fiscal-nfe-toolbar-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+
+.fiscal-sefaz-diagnostico {
+  margin: 16px 0;
+  padding: 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.fiscal-sefaz-diagnostico-titulo {
+  display: block;
+  margin-bottom: 14px;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.fiscal-sefaz-diagnostico-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.fiscal-sefaz-diagnostico-grid > div {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fiscal-sefaz-diagnostico-grid b {
+  color: #475569;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
+}
+
+.fiscal-sefaz-diagnostico-grid span {
+  color: #0f172a;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.fiscal-sefaz-campo-largo {
+  grid-column: span 2;
+}
+
+.fiscal-sefaz-bloqueio.ativo {
+  border-color: #f3c86a !important;
+  background: #fff8e8 !important;
+}
+
+.fiscal-sefaz-aviso-bloqueio,
+.fiscal-sefaz-aviso-documentos {
+  margin: 12px 0 0;
+  padding: 11px 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.fiscal-sefaz-aviso-bloqueio {
+  color: #7c5200;
+  background: #fff4d6;
+  border: 1px solid #efd18b;
+}
+
+.fiscal-sefaz-aviso-documentos {
+  color: #92400e;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+@media (max-width: 720px) {
+  .fiscal-sefaz-campo-largo { grid-column: span 1; }
+}

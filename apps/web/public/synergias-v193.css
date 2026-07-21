@@ -1,0 +1,45 @@
+/* SYNERGIAS ERP V193 */
+
+/* Lista de pedidos: CONCLUÍDO menor */
+.synergias-v193-concluido {
+  width: 92px !important;
+  min-width: 92px !important;
+  max-width: 92px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  padding: 0 8px !important;
+  border-radius: 14px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  flex: 0 0 92px !important;
+}
+
+/* Pedido: número Origem Orçamento maior, laranja e retangular */
+.synergias-v193-origem {
+  width: 190px !important;
+  min-width: 190px !important;
+  max-width: 190px !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  padding: 0 18px !important;
+  border-radius: 16px !important;
+  background: #f97316 !important;
+  border: 2px solid #ea580c !important;
+  color: #ffffff !important;
+  font-size: 23px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 7px 16px rgba(249, 115, 22, 0.22) !important;
+}

@@ -1,0 +1,699 @@
+/* =========================================================
+   SYNERGIAS ERP - PADRÃO GLOBAL OFICIAL DE ÍCONES
+   Referência visual: Clientes / Produtos
+========================================================= */
+
+:root {
+  --erp-icon-lista: #2454df;
+  --erp-icon-buscar: #f04b00;
+  --erp-icon-importar: #056a97;
+  --erp-icon-imprimir: #6b1fa2;
+  --erp-icon-pdf: #39339a;
+  --erp-icon-exportar: #056345;
+  --erp-icon-atualizar: #0f8b8d;
+  --erp-icon-salvar: #059669;
+  --erp-icon-novo: #f04b00;
+  --erp-icon-email: #7c3aed;
+  --erp-icon-voltar: #64748b;
+  --erp-icon-excluir: #dc2626;
+}
+
+/* Botões de ícone das barras superiores do ERP */
+.clientes-action-btn,
+.clientes-add-btn,
+.clientes-delete-all-btn,
+.produtos-action-btn,
+.produtos-add-btn,
+.produtos-delete-all-btn,
+.compras-action-btn,
+.compras-voltar-button,
+.estoque-action-btn,
+.financeiro-icon-button,
+.erp-botao-icone,
+.relatorios-action-btn,
+.orcamento-voltar-icon,
+.orcamento-acao,
+.pedido-voltar-btn,
+.pedido-acao {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  min-height: 58px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease !important;
+}
+
+.clientes-action-btn svg,
+.clientes-add-btn svg,
+.clientes-delete-all-btn svg,
+.produtos-action-btn svg,
+.produtos-add-btn svg,
+.produtos-delete-all-btn svg,
+.compras-action-btn svg,
+.compras-voltar-button svg,
+.estoque-action-btn svg,
+.financeiro-icon-button svg,
+.erp-botao-icone svg,
+.relatorios-action-btn svg,
+.orcamento-voltar-icon svg,
+.orcamento-acao svg,
+.pedido-voltar-btn svg,
+.pedido-acao svg {
+  width: 25px !important;
+  height: 25px !important;
+  stroke-width: 2.4 !important;
+}
+
+.clientes-action-btn:hover,
+.clientes-add-btn:hover,
+.clientes-delete-all-btn:hover,
+.produtos-action-btn:hover,
+.produtos-add-btn:hover,
+.produtos-delete-all-btn:hover,
+.compras-action-btn:hover,
+.compras-voltar-button:hover,
+.estoque-action-btn:hover,
+.financeiro-icon-button:hover,
+.erp-botao-icone:hover,
+.relatorios-action-btn:hover,
+.orcamento-voltar-icon:hover,
+.orcamento-acao:hover,
+.pedido-voltar-btn:hover,
+.pedido-acao:hover {
+  filter: brightness(0.94) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* LISTA - azul */
+.clientes-action-list,
+.produtos-action-list,
+.compras-action-list,
+.estoque-action-list,
+.orcamento-acao-lista {
+  background: var(--erp-icon-lista) !important;
+}
+
+/* BUSCAR - laranja */
+.clientes-action-search,
+.produtos-action-search,
+.compras-action-search,
+.estoque-action-search {
+  background: var(--erp-icon-buscar) !important;
+}
+
+/* IMPORTAR - azul petróleo */
+.clientes-action-import,
+.produtos-action-import,
+.compras-action-import,
+.erp-botao-importar {
+  background: var(--erp-icon-importar) !important;
+}
+
+/* IMPRIMIR - roxo */
+.clientes-action-print,
+.produtos-action-print,
+.estoque-action-print,
+.relatorios-action-print,
+.orcamento-acao-imprimir,
+.pedido-acao-imprimir {
+  background: var(--erp-icon-imprimir) !important;
+}
+
+/* PDF - índigo */
+.clientes-action-pdf {
+  background: var(--erp-icon-pdf) !important;
+}
+
+/* EXPORTAR - verde */
+.clientes-action-export,
+.produtos-action-export,
+.erp-botao-exportar {
+  background: var(--erp-icon-exportar) !important;
+}
+
+/* ATUALIZAR - teal */
+.compras-action-refresh,
+.estoque-action-refresh,
+.financeiro-icon-refresh,
+.relatorios-action-refresh {
+  background: var(--erp-icon-atualizar) !important;
+}
+
+/* SALVAR - verde */
+.compras-action-save,
+.pedido-acao-salvar {
+  background: var(--erp-icon-salvar) !important;
+}
+
+/* NOVO / ADICIONAR - laranja */
+.clientes-add-btn,
+.produtos-add-btn,
+.compras-action-new,
+.erp-botao-novo,
+.orcamento-acao-novo {
+  background: var(--erp-icon-novo) !important;
+}
+
+/* E-MAIL - violeta */
+.produtos-action-email,
+.erp-botao-email,
+.orcamento-acao-email,
+.pedido-acao-email {
+  background: var(--erp-icon-email) !important;
+}
+
+/* VOLTAR - cinza azulado */
+.compras-voltar-button,
+.financeiro-icon-back,
+.relatorios-action-back,
+.orcamento-voltar-icon,
+.pedido-voltar-btn {
+  background: var(--erp-icon-voltar) !important;
+}
+
+/* EXCLUIR TUDO - vermelho e somente ícone */
+.clientes-delete-all-btn,
+.produtos-delete-all-btn {
+  background: var(--erp-icon-excluir) !important;
+  font-size: 0 !important;
+  gap: 0 !important;
+}
+
+/* Duplicar orçamento mantém ação própria, mas segue o mesmo modelo */
+.orcamento-acao-duplicar {
+  background: #0f766e !important;
+}
+
+/* =========================================================
+   FILTRO - ícone + texto, mesmo tamanho vertical do padrão
+========================================================= */
+.clientes-filter-btn,
+.produtos-filter-btn,
+.compras-filter-btn,
+.estoque-filter-btn {
+  min-height: 58px !important;
+  height: 58px !important;
+  padding: 0 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  border-radius: 16px !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+
+.clientes-filter-btn svg,
+.produtos-filter-btn svg,
+.compras-filter-btn svg,
+.estoque-filter-btn svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+/* =========================================================
+   AÇÕES DESCRITIVAS COM TEXTO
+========================================================= */
+.compras-sefaz-button,
+.compras-sefaz-button-padrao {
+  min-height: 58px !important;
+  height: 58px !important;
+  border-radius: 16px !important;
+}
+
+/* =========================================================
+   FORMULÁRIO DE PRODUTOS - BOTÕES SUPERIORES INLINE
+========================================================= */
+.cliente-form-page.produtos-page button[title="Lista de produtos"],
+.cliente-form-page.produtos-page button[title="Buscar produtos"],
+.cliente-form-page.produtos-page button[title="Adicionar novo produto"],
+.cliente-form-page.produtos-page button[title="Imprimir cadastro do produto"],
+.cliente-form-page.produtos-page button[title="Salvar produto"] {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  min-height: 58px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  color: #ffffff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.cliente-form-page.produtos-page button[title="Lista de produtos"] { background: var(--erp-icon-lista) !important; }
+.cliente-form-page.produtos-page button[title="Buscar produtos"] { background: var(--erp-icon-buscar) !important; }
+.cliente-form-page.produtos-page button[title="Adicionar novo produto"] { background: var(--erp-icon-novo) !important; }
+.cliente-form-page.produtos-page button[title="Imprimir cadastro do produto"] { background: var(--erp-icon-imprimir) !important; }
+.cliente-form-page.produtos-page button[title="Salvar produto"] { background: var(--erp-icon-salvar) !important; }
+
+.cliente-form-page.produtos-page button[title="Lista de produtos"] svg,
+.cliente-form-page.produtos-page button[title="Buscar produtos"] svg,
+.cliente-form-page.produtos-page button[title="Adicionar novo produto"] svg,
+.cliente-form-page.produtos-page button[title="Imprimir cadastro do produto"] svg,
+.cliente-form-page.produtos-page button[title="Salvar produto"] svg {
+  width: 25px !important;
+  height: 25px !important;
+  stroke-width: 2.4 !important;
+}
+
+@media (max-width: 560px) {
+  .clientes-action-btn,
+  .clientes-add-btn,
+  .clientes-delete-all-btn,
+  .produtos-action-btn,
+  .produtos-add-btn,
+  .produtos-delete-all-btn,
+  .compras-action-btn,
+  .compras-voltar-button,
+  .estoque-action-btn,
+  .financeiro-icon-button,
+  .erp-botao-icone,
+  .relatorios-action-btn,
+  .orcamento-voltar-icon,
+  .orcamento-acao,
+  .pedido-voltar-btn,
+  .pedido-acao {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+  }
+}
+
+/* =========================================================
+   PRODUTOS - BARRA SUPERIOR EM UMA ÚNICA LINHA
+   Reduz apenas a largura da busca para preservar as ações.
+========================================================= */
+.produtos-toolbar,
+.produtos-actions-bar,
+.produtos-top-actions,
+.produtos-list-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 14px !important;
+}
+
+.produtos-toolbar-left,
+.produtos-search-area,
+.produtos-list-left {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 14px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.produtos-search,
+.produtos-search-box,
+.produtos-search-wrapper,
+.produtos-search-field {
+  width: 420px !important;
+  max-width: 420px !important;
+  min-width: 280px !important;
+  flex: 0 1 420px !important;
+}
+
+.produtos-search input,
+.produtos-search-box input,
+.produtos-search-wrapper input,
+.produtos-search-field input {
+  width: 100% !important;
+}
+
+.produtos-toolbar-right,
+.produtos-actions,
+.produtos-action-group,
+.produtos-list-actions {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 14px !important;
+  margin-left: auto !important;
+  flex: 0 0 auto !important;
+}
+
+@media (max-width: 1250px) {
+  .produtos-search,
+  .produtos-search-box,
+  .produtos-search-wrapper,
+  .produtos-search-field {
+    width: 320px !important;
+    max-width: 320px !important;
+    min-width: 220px !important;
+    flex-basis: 320px !important;
+  }
+}
+
+/* =========================================================
+   PADRÃO GLOBAL 2026-07 - FUNÇÃO = MESMO ÍCONE / COR / ORDEM
+   Este bloco prevalece sobre estilos antigos de cada módulo.
+========================================================= */
+:root {
+  --erp-icon-lista: #2563eb;
+  --erp-icon-buscar: #f97316;
+  --erp-icon-filtro: #475569;
+  --erp-icon-imprimir: #7e22ce;
+  --erp-icon-atualizar: #0f8b8d;
+  --erp-icon-novo: #16a34a;
+  --erp-icon-salvar: #059669;
+  --erp-icon-voltar: #64748b;
+  --erp-icon-excluir: #dc2626;
+}
+
+/* Barras principais: mesma altura, alinhamento e espaçamento. */
+:is(
+  .clientes-actions,
+  .produtos-actions,
+  .compras-toolbar,
+  .compras-form-actions-bar,
+  .estoque-actions-bar,
+  .financeiro-toolbar,
+  .fiscal-nfe-toolbar,
+  .nfe-recebidas-toolbar,
+  .analise-fiscal-toolbar,
+  .relatorio-brindes-toolbar,
+  .orcamento-top-actions,
+  .pedido-top-actions,
+  .novo-modulo-actions,
+  .config-form-actions
+) {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+/* Tamanho oficial para ações principais identificadas pela função. */
+:is(
+  .clientes-actions,
+  .produtos-actions,
+  .compras-toolbar,
+  .compras-form-actions-bar,
+  .estoque-actions-bar,
+  .financeiro-toolbar,
+  .fiscal-nfe-toolbar,
+  .nfe-recebidas-toolbar,
+  .analise-fiscal-toolbar,
+  .relatorio-brindes-toolbar,
+  .orcamento-top-actions,
+  .pedido-top-actions,
+  .novo-modulo-actions,
+  .config-form-actions
+) button:is(
+  [title^="Voltar"],
+  [title^="Lista"],
+  [title^="Buscar"],
+  [title^="Adicionar filtro"],
+  [title^="Filtro"],
+  [title^="Imprimir"],
+  [title^="Atualizar"],
+  [title^="Novo"],
+  [title^="Adicionar novo"],
+  [title^="Salvar"],
+  [title^="Excluir"]
+),
+.clientes-filter-btn,
+.produtos-filter-btn,
+.compras-filter-btn,
+.estoque-filter-btn,
+.financeiro-filter-button,
+.fiscal-filter-button,
+.relatorios-filter-btn,
+.brindes-filter-button {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  min-height: 58px !important;
+  max-width: 58px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  position: relative !important;
+  flex: 0 0 58px !important;
+}
+
+:is(
+  .clientes-actions,
+  .produtos-actions,
+  .compras-toolbar,
+  .compras-form-actions-bar,
+  .estoque-actions-bar,
+  .financeiro-toolbar,
+  .fiscal-nfe-toolbar,
+  .nfe-recebidas-toolbar,
+  .analise-fiscal-toolbar,
+  .relatorio-brindes-toolbar,
+  .orcamento-top-actions,
+  .pedido-top-actions,
+  .novo-modulo-actions,
+  .config-form-actions
+) button:is(
+  [title^="Voltar"],
+  [title^="Lista"],
+  [title^="Buscar"],
+  [title^="Adicionar filtro"],
+  [title^="Filtro"],
+  [title^="Imprimir"],
+  [title^="Atualizar"],
+  [title^="Novo"],
+  [title^="Adicionar novo"],
+  [title^="Salvar"],
+  [title^="Excluir"]
+) > svg,
+.clientes-filter-btn > svg,
+.produtos-filter-btn > svg,
+.compras-filter-btn > svg,
+.estoque-filter-btn > svg,
+.financeiro-filter-button > svg,
+.fiscal-filter-button > svg,
+.relatorios-filter-btn > svg,
+.brindes-filter-button > svg {
+  width: 25px !important;
+  height: 25px !important;
+  stroke-width: 2.4 !important;
+}
+
+/* Mesma função = mesma cor em todo o ERP. */
+button[title^="Voltar"],
+.financeiro-icon-back,
+.novo-back,
+.config-icon-button-back,
+.orcamento-voltar-icon,
+.pedido-voltar-btn { background: var(--erp-icon-voltar) !important; color:#fff !important; }
+
+button[title^="Lista"],
+.clientes-action-list,
+.produtos-action-list,
+.compras-action-list,
+.estoque-action-list,
+.financeiro-icon-list,
+.fiscal-icon-list,
+.orcamento-acao-lista { background: var(--erp-icon-lista) !important; color:#fff !important; }
+
+button[title^="Buscar"]:not([title*="SEFAZ"]):not([title*="NF-e"]),
+.clientes-action-search,
+.produtos-action-search,
+.compras-action-search,
+.estoque-action-search,
+.financeiro-icon-search,
+.fiscal-icon-search { background: var(--erp-icon-buscar) !important; color:#fff !important; }
+
+button[title^="Adicionar filtro"],
+button[title^="Filtro"],
+.clientes-filter-btn,
+.produtos-filter-btn,
+.compras-filter-btn,
+.estoque-filter-btn,
+.financeiro-filter-button,
+.fiscal-filter-button,
+.relatorios-filter-btn,
+.brindes-filter-button { background: var(--erp-icon-filtro) !important; color:#fff !important; }
+
+button[title^="Imprimir"],
+.clientes-action-print,
+.produtos-action-print,
+.estoque-action-print,
+.financeiro-icon-print,
+.fiscal-icon-print,
+.relatorios-action-print,
+.novo-print,
+.config-icon-button-print,
+.orcamento-acao-imprimir,
+.pedido-acao-imprimir { background: var(--erp-icon-imprimir) !important; color:#fff !important; }
+
+button[title^="Atualizar"],
+.compras-action-refresh,
+.estoque-action-refresh,
+.financeiro-icon-refresh,
+.fiscal-icon-refresh,
+.relatorios-action-refresh,
+.novo-refresh { background: var(--erp-icon-atualizar) !important; color:#fff !important; }
+
+button[title^="Novo"],
+button[title^="Adicionar novo"],
+.clientes-add-btn,
+.produtos-add-btn,
+.compras-action-new,
+.erp-botao-novo,
+.orcamento-acao-novo,
+.novo-add { background: var(--erp-icon-novo) !important; color:#fff !important; }
+
+button[title^="Salvar"],
+.compras-action-save,
+.financeiro-icon-save,
+.config-icon-button-save,
+.pedido-acao-salvar,
+.novo-save { background: var(--erp-icon-salvar) !important; color:#fff !important; }
+
+button[title^="Excluir"],
+.clientes-delete-all-btn,
+.produtos-delete-all-btn { background: var(--erp-icon-excluir) !important; color:#fff !important; }
+
+/* Contador do filtro permanece como selo no canto, sem transformar o filtro em botão horizontal. */
+:is(
+  .clientes-filter-btn,
+  .produtos-filter-btn,
+  .compras-filter-btn,
+  .estoque-filter-btn,
+  .financeiro-filter-button,
+  .fiscal-filter-button,
+  .relatorios-filter-btn,
+  .brindes-filter-button
+) > span {
+  position: absolute !important;
+  top: -6px !important;
+  right: -6px !important;
+  min-width: 22px !important;
+  height: 22px !important;
+  padding: 0 6px !important;
+  border-radius: 999px !important;
+  background: #dc2626 !important;
+  color: #fff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 0 2px #fff !important;
+}
+
+/* Ordem oficial dentro das barras que não possuem grupos esquerdo/direito próprios. */
+:is(.clientes-actions,.produtos-actions,.novo-modulo-actions,.config-form-actions) > button[title^="Voltar"] { order: 10 !important; }
+:is(.clientes-actions,.produtos-actions,.novo-modulo-actions,.config-form-actions) > button[title^="Lista"] { order: 20 !important; }
+:is(.clientes-actions,.produtos-actions,.novo-modulo-actions,.config-form-actions) > button[title^="Buscar"] { order: 30 !important; }
+:is(.clientes-actions,.produtos-actions,.novo-modulo-actions,.config-form-actions) > button:is([title^="Adicionar filtro"],[title^="Filtro"]) { order: 50 !important; }
+:is(.clientes-actions,.produtos-actions,.novo-modulo-actions,.config-form-actions) > button[title^="Imprimir"] { order: 100 !important; margin-left:auto !important; }
+:is(.clientes-actions,.produtos-actions,.novo-modulo-actions,.config-form-actions) > button[title^="Atualizar"] { order: 110 !important; }
+:is(.clientes-actions,.produtos-actions,.novo-modulo-actions,.config-form-actions) > button:is([title^="Novo"],[title^="Adicionar novo"]) { order: 120 !important; }
+:is(.clientes-actions,.produtos-actions,.novo-modulo-actions,.config-form-actions) > button[title^="Salvar"] { order: 130 !important; }
+
+/* Impressão: não imprimir navegação nem a própria barra de ações. */
+@media print {
+  .sidebar,
+  [class*="actions-bar"],
+  [class*="toolbar-actions"],
+  .clientes-actions,
+  .produtos-actions,
+  .novo-modulo-actions,
+  .config-form-actions,
+  .orcamento-top-actions,
+  .pedido-top-actions {
+    display: none !important;
+  }
+}
+
+/* Complemento de localização: barras planas e formulário de produto. */
+.produtos-form-actions {display:flex!important;align-items:center!important;gap:14px!important;width:100%!important;justify-content:flex-start!important}
+.produtos-form-actions>button[title^="Voltar"]{order:10!important}
+.produtos-form-actions>button[title^="Lista"]{order:20!important}
+.produtos-form-actions>button[title^="Imprimir"]{order:100!important;margin-left:auto!important}
+.produtos-form-actions>button[title^="Salvar"]{order:130!important}
+.produtos-form-actions>button:is([title^="Voltar"],[title^="Lista"],[title^="Imprimir"],[title^="Salvar"]){width:58px!important;height:58px!important;min-width:58px!important;min-height:58px!important;max-width:58px!important;padding:0!important;border:0!important;border-radius:16px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
+.produtos-form-actions>button:is([title^="Voltar"],[title^="Lista"],[title^="Imprimir"],[title^="Salvar"])>svg{width:25px!important;height:25px!important;stroke-width:2.4!important}
+.orcamento-top-actions{width:100%!important}
+.orcamento-top-actions>button[title^="Voltar"]{order:10!important}
+.orcamento-top-actions>button[title^="Lista"]{order:20!important}
+.orcamento-top-actions>.orcamento-iconbar.topo{order:100!important;margin-left:auto!important}
+.orcamento-iconbar.topo{display:flex!important;align-items:center!important;gap:14px!important}
+.orcamento-iconbar.topo>button[title^="Imprimir"]{order:100!important}
+.orcamento-iconbar.topo>button[title^="Atualizar"]{order:110!important}
+.orcamento-iconbar.topo>button:is([title^="Novo"],[title^="Adicionar novo"]){order:120!important}
+.orcamento-iconbar.topo>button[title^="Salvar"]{order:130!important}
+.pedido-top-actions{width:100%!important}
+.pedido-top-actions>button[title^="Voltar"]{order:10!important}
+.pedido-top-actions>.orcamento-iconbar.topo{order:100!important;margin-left:auto!important}
+.pedido-top-actions .orcamento-iconbar.topo>button[title^="Imprimir"]{order:100!important}
+.pedido-top-actions .orcamento-iconbar.topo>button[title^="Atualizar"]{order:110!important}
+.pedido-top-actions .orcamento-iconbar.topo>button:is([title^="Novo"],[title^="Adicionar novo"]){order:120!important}
+.pedido-top-actions .orcamento-iconbar.topo>button[title^="Salvar"]{order:130!important}
+
+
+/* =========================================================
+   AÇÕES DESCRITIVAS OFICIAIS - NF-e / XML
+   Sempre horizontais, com ícone + texto
+========================================================= */
+.erp-action-descriptive {
+  width: auto !important;
+  min-width: max-content !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  padding: 0 20px !important;
+  border-radius: 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  white-space: nowrap !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+
+.erp-action-descriptive svg {
+  width: 22px !important;
+  height: 22px !important;
+  flex: 0 0 auto !important;
+  stroke-width: 2.4 !important;
+}
+
+.erp-action-nfe-search {
+  border: 0 !important;
+  background: #861a38 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(134, 26, 56, 0.16) !important;
+}
+
+.erp-action-import-xml {
+  border: 1px solid #dec2ca !important;
+  background: #f7eaee !important;
+  color: #6f1731 !important;
+  box-shadow: none !important;
+}
+
+.erp-action-descriptive:hover:not(:disabled) {
+  filter: brightness(0.96) !important;
+  transform: translateY(-2px) !important;
+}
+
+.erp-action-descriptive:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.62 !important;
+}

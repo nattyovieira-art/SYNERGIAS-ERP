@@ -1,0 +1,107 @@
+.page-header {
+  width: 100%;
+  margin-bottom: 24px;
+  padding: 0;
+  background: transparent;
+}
+
+.page-header-topline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.page-header-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.page-header-icon.verde {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.page-header-icon.azul {
+  background: #dbeafe;
+  color: #0284c7;
+}
+
+.page-header-icon.roxo {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.page-header-icon.laranja {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+.page-header-icon.amarelo {
+  background: #fef3c7;
+  color: #ca8a04;
+}
+
+.page-header-category {
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.page-header-category.verde {
+  color: #16a34a;
+}
+
+.page-header-category.azul {
+  color: #0284c7;
+}
+
+.page-header-category.roxo {
+  color: #7c3aed;
+}
+
+.page-header-category.laranja {
+  color: #ea580c;
+}
+
+.page-header-category.amarelo {
+  color: #ca8a04;
+}
+
+.page-header-title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 38px;
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.page-header-subtitle {
+  margin: 9px 0 0;
+  color: #64748b;
+  font-size: 17px;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+@media (max-width: 900px) {
+  .page-header-title {
+    font-size: 31px;
+  }
+
+  .page-header-subtitle {
+    font-size: 15px;
+  }
+
+  .page-header-icon {
+    width: 34px;
+    height: 34px;
+  }
+}

@@ -1,0 +1,10 @@
+.fiscal-cnpj-field { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 46px; gap: 8px; align-items: center; }
+.fiscal-cnpj-field input { width: 100%; min-width: 0; }
+.fiscal-cnpj-search-button { width: 46px; height: 46px; min-width: 46px; padding: 0; border: 1px solid #881337; border-radius: 12px; background: #881337; color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.fiscal-cnpj-search-button:disabled { cursor: wait; opacity: .75; }
+.fiscal-cnpj-search-button svg { width: 19px; height: 19px; stroke-width: 2.4; }
+.fiscal-cnpj-spinner { animation: fiscal-cnpj-spin .8s linear infinite; }
+.fiscal-cnpj-status { display: block; margin-top: 7px; color: #64748b; font-size: 13px; line-height: 1.3; font-weight: 600; }
+.fiscal-grid-full { grid-column: 1 / -1; }
+@keyframes fiscal-cnpj-spin { to { transform: rotate(360deg); } }
+@media (max-width: 760px) { .fiscal-cnpj-field { grid-template-columns: minmax(0, 1fr) 44px; } .fiscal-cnpj-search-button { width: 44px; height: 44px; min-width: 44px; } }

@@ -1,0 +1,796 @@
+.vendas-page {
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  display: flex;
+  background: #f1f5f9;
+  color: #0f172a;
+  overflow: hidden;
+}
+
+.vendas-page .dashboard-sidebar {
+  flex-shrink: 0;
+}
+
+.vendas-main {
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  min-height: 0;
+  padding: 34px 38px 90px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #f1f5f9;
+  box-sizing: border-box;
+}
+
+.vendas-main::-webkit-scrollbar {
+  width: 12px;
+}
+
+.vendas-main::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.vendas-main::-webkit-scrollbar-thumb {
+  background: #8b5cf6;
+  border-radius: 999px;
+  border: 3px solid #f1f5f9;
+}
+
+.vendas-main::-webkit-scrollbar-thumb:hover {
+  background: #7c3aed;
+}
+
+.vendas-content {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+  box-sizing: border-box;
+}
+
+/* CABEÇALHO ANTIGO - MANTIDO CASO ALGUMA TELA AINDA USE */
+.vendas-header {
+  margin-bottom: 24px;
+  padding: 0;
+  background: transparent;
+}
+
+.vendas-header span {
+  display: block;
+  color: #7c3aed;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 10px;
+}
+
+.vendas-header h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 38px;
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.vendas-header p {
+  margin: 9px 0 0;
+  color: #64748b;
+  font-size: 17px;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+/* BOTÕES ORÇAMENTOS / PEDIDOS - SEPARADOS E DO MESMO TAMANHO */
+.vendas-tabs {
+  width: 100%;
+  max-width: 460px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0 0 24px;
+  box-shadow: none;
+}
+
+.vendas-tabs button {
+  width: 100%;
+  height: 52px;
+  border: 1px solid #dbe3ef;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #64748b;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-weight: 900;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: 0.2s ease;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  box-sizing: border-box;
+}
+
+.vendas-tabs button:hover {
+  color: #7c3aed;
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+  transform: translateY(-2px);
+}
+
+.vendas-tabs button.active {
+  background: #7c3aed;
+  color: #ffffff;
+  border-color: #7c3aed;
+  box-shadow: 0 12px 28px rgba(124, 58, 237, 0.24);
+}
+
+.vendas-toolbar {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.vendas-toolbar-left {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) 230px;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.vendas-search {
+  height: 52px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #dbe3ef;
+  border-radius: 14px;
+  padding: 0 18px;
+  color: #64748b;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  box-sizing: border-box;
+}
+
+.vendas-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.vendas-search input::placeholder {
+  color: #94a3b8;
+}
+
+.vendas-status-filter {
+  height: 52px;
+  width: 100%;
+  border: 1px solid #dbe3ef;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 0 14px;
+  outline: none;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  box-sizing: border-box;
+}
+
+.vendas-btn {
+  height: 52px;
+  border: 0;
+  border-radius: 14px;
+  padding: 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+  text-transform: uppercase;
+  transition: 0.2s ease;
+  box-sizing: border-box;
+}
+
+.vendas-btn-primary {
+  background: #16a34a;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(22, 163, 74, 0.22);
+}
+
+.vendas-btn-primary:hover {
+  background: #15803d;
+  transform: translateY(-2px);
+}
+
+.vendas-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.vendas-card {
+  min-height: 118px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  box-sizing: border-box;
+}
+
+.vendas-card-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: #f5f3ff;
+  color: #7c3aed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vendas-card-icon.green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.vendas-card-icon.blue {
+  background: #dbeafe;
+  color: #0284c7;
+}
+
+.vendas-card span {
+  display: block;
+  color: #64748b;
+  font-size: 13px;
+  margin-bottom: 6px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.vendas-card strong {
+  display: block;
+  color: #0f172a;
+  font-size: 25px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.vendas-table-card {
+  width: 100%;
+  max-width: 100%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
+}
+
+.vendas-table-header {
+  min-height: 86px;
+  padding: 20px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.vendas-table-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #0f172a;
+  text-transform: uppercase;
+  font-weight: 900;
+}
+
+.vendas-table-header p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.vendas-table-header span {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: #0f172a;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.vendas-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 12px;
+}
+
+.vendas-table-scroll::-webkit-scrollbar {
+  height: 12px;
+}
+
+.vendas-table-scroll::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 999px;
+}
+
+.vendas-table-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+  border: 3px solid #f8fafc;
+}
+
+.vendas-table {
+  width: 100%;
+  min-width: 1180px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.vendas-table th,
+.vendas-table td {
+  height: 76px;
+  padding: 10px 10px;
+  border-bottom: 1px solid #edf2f7;
+  text-align: left;
+  vertical-align: middle;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.vendas-table th {
+  height: 58px;
+  color: #334155;
+  background: #f8fafc;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vendas-table th:nth-child(1),
+.vendas-table td:nth-child(1) {
+  width: 85px;
+}
+
+.vendas-table th:nth-child(2),
+.vendas-table td:nth-child(2) {
+  width: 260px;
+}
+
+.vendas-table th:nth-child(3),
+.vendas-table td:nth-child(3) {
+  width: 130px;
+}
+
+.vendas-table th:nth-child(4),
+.vendas-table td:nth-child(4) {
+  width: 105px;
+}
+
+.vendas-table th:nth-child(5),
+.vendas-table td:nth-child(5) {
+  width: 105px;
+}
+
+.vendas-table th:nth-child(6),
+.vendas-table td:nth-child(6) {
+  width: 105px;
+}
+
+.vendas-table th:nth-child(7),
+.vendas-table td:nth-child(7) {
+  width: 130px;
+}
+
+.vendas-table th:nth-child(8),
+.vendas-table td:nth-child(8) {
+  width: 300px;
+}
+
+.vendas-row {
+  cursor: default;
+}
+
+.vendas-row:hover {
+  background: #f8fafc;
+}
+
+.vendas-numero {
+  font-weight: 900;
+}
+
+.vendas-cliente span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: #0f172a;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.vendas-total {
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.vendas-status {
+  min-width: 98px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.vendas-status-aberto {
+  color: #1d4ed8;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+}
+
+.vendas-status-aprovado {
+  color: #15803d;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+.vendas-status-reprovado {
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+.vendas-status-pedido {
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.vendas-acoes-coluna {
+  overflow: visible;
+}
+
+.vendas-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.vendas-action-btn {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 12px;
+  border: 1px solid #dbe3ef;
+  background: #ffffff;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  line-height: 1;
+  position: relative;
+  z-index: 20;
+  pointer-events: auto;
+  transition: 0.2s ease;
+  box-sizing: border-box;
+}
+
+.vendas-action-btn svg {
+  width: 21px;
+  height: 21px;
+  pointer-events: none;
+}
+
+.vendas-action-edit {
+  color: #0284c7;
+  border-color: #bae6fd;
+  background: #f0f9ff;
+}
+
+.vendas-action-approve {
+  color: #16a34a;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.vendas-action-reprove {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.vendas-action-order {
+  color: #ca8a04;
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.vendas-action-print {
+  color: #7c3aed;
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+}
+
+.vendas-action-delete {
+  color: #e11d48;
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.vendas-action-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(0.98);
+}
+
+.vendas-empty {
+  height: 120px;
+  text-align: center !important;
+  color: #64748b !important;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1200px) {
+  .vendas-main {
+    padding: 28px 28px 90px;
+  }
+
+  .vendas-content {
+    max-width: 100%;
+  }
+
+  .vendas-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .vendas-main {
+    padding: 24px 18px 90px;
+  }
+
+  .vendas-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .vendas-toolbar-left {
+    grid-template-columns: 1fr;
+  }
+
+  .vendas-search {
+    min-width: 0;
+  }
+
+  .vendas-status-filter {
+    width: 100%;
+  }
+
+  .vendas-btn {
+    width: 100%;
+  }
+
+  .vendas-table-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .vendas-tabs {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: 1fr;
+  }
+
+  .vendas-tabs button {
+    width: 100%;
+  }
+
+  .vendas-header h1 {
+    font-size: 31px;
+  }
+
+  .vendas-header p {
+    font-size: 15px;
+  }
+}
+/* AJUSTES CONSOLIDADOS 2026-07-05 */
+.produto-toolbar-icon{width:58px;height:58px;border-radius:16px;border:1px solid #1e3a5f;background:#071426;display:flex;align-items:center;justify-content:center;cursor:pointer}.produto-toolbar-back{color:#e2e8f0}
+.compras-form-filtros-card,.financeiro-filtros-panel{display:flex;gap:12px;align-items:end;padding:16px 18px;margin:0 0 16px;background:#0b1b30;border:1px solid #1e3a5f;border-radius:14px}.compras-form-filtros-card label,.financeiro-filtros-panel label{display:grid;gap:6px;color:#9fb3c8}.compras-form-filtros-card select,.financeiro-filtros-panel select{min-width:220px;padding:10px;border-radius:9px}.compras-form-filtros-card button,.financeiro-filtros-panel button{padding:10px 14px;border-radius:9px;border:0;cursor:pointer}.compras-filter-count{min-width:20px;height:20px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#f59e0b;color:#08111f;font-weight:800}
+.vendas-icon-new{width:58px;height:58px;border-radius:16px;border:1px solid #14532d;background:#052e16;color:#22c55e;display:flex;align-items:center;justify-content:center;cursor:pointer}.vendas-filter-toggle{min-height:46px;display:inline-flex;align-items:center;gap:8px;padding:0 14px;border-radius:12px;border:1px solid #32445e;background:#0b1b30;color:#d7e4f2;cursor:pointer}.vendas-filter-toggle.ativo{border-color:#f59e0b}.vendas-filter-toggle span{background:#f59e0b;color:#111827;border-radius:999px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-weight:800}.vendas-filtros-recolhiveis{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;padding:12px;background:#0b1b30;border:1px solid #1e3a5f;border-radius:14px}.vendas-clear-filters{padding:10px 13px;border-radius:9px;border:1px solid #465c78;background:transparent;color:#d7e4f2;cursor:pointer}
+.estoque-primary-page-action{display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:0 16px;border-radius:14px;border:1px solid #155e75;background:#083344;color:#67e8f9;font-weight:700;cursor:pointer}.estoque-history-filter{display:flex;align-items:center;gap:7px}.estoque-history-filter select{min-height:42px;border-radius:10px;padding:0 10px}
+.pedido-brindes-card{padding:18px;border:1px solid #28466d;border-radius:16px;background:#071426;margin-bottom:22px}.pedido-brindes-card>p{color:#91a7bd}.pedido-brindes-grid{display:grid;grid-template-columns:2fr .7fr 1.3fr 1.4fr 1.3fr 1.5fr;gap:12px}.pedido-brindes-grid label{display:grid;gap:6px;color:#9fb3c8}.pedido-brindes-grid input,.pedido-brindes-grid select{min-height:42px;border-radius:9px}.pedido-brindes-lista{margin-top:16px;display:grid;gap:8px}.pedido-brinde-linha{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;padding:12px;border:1px solid #233f62;border-radius:12px;background:#0b1b30}.pedido-brinde-linha div:first-child{display:grid;gap:3px}.pedido-brinde-linha span,.pedido-brinde-linha small{color:#9fb3c8}.brinde-status{padding:6px 9px;border-radius:999px;font-size:12px;font-weight:800}.brinde-status.baixado{background:#064e3b;color:#6ee7b7}.brinde-status.pendente{background:#78350f;color:#fcd34d}
+.financeiro-fluxo-detalhado{margin:22px 0;padding:20px;border:1px solid #24415f;border-radius:18px;background:#071426}.financeiro-fluxo-header{display:flex;justify-content:space-between;align-items:end;gap:16px}.financeiro-fluxo-header h2{margin:0;color:#f8fafc}.financeiro-fluxo-header p{margin:5px 0 0;color:#8fa6bc}.financeiro-fluxo-periodo{display:flex;gap:10px}.financeiro-fluxo-periodo label{display:grid;gap:4px;color:#9fb3c8}.financeiro-fluxo-periodo input{padding:9px;border-radius:8px}.financeiro-fluxo-resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.financeiro-fluxo-resumo article{padding:14px;border-radius:12px;background:#0b1b30;border:1px solid #1e3a5f;display:grid;gap:5px}.financeiro-fluxo-resumo span{color:#8fa6bc}.financeiro-fluxo-resumo strong{font-size:20px}.financeiro-fluxo-linhas{display:grid;gap:4px}.financeiro-fluxo-grupo,.financeiro-fluxo-total{display:flex;justify-content:space-between;padding:14px;border:0;border-radius:9px;background:#10243d;color:#e2e8f0;font-weight:800}.financeiro-fluxo-grupo{cursor:pointer}.financeiro-fluxo-detalhes{display:grid;gap:2px;padding:0 10px 10px}.financeiro-fluxo-detalhes>div{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #18334f;color:#bdcce0}.financeiro-fluxo-item{font-size:13px}.financeiro-fluxo-total{margin-top:8px;background:#064e3b;color:#a7f3d0}
+.financeiro-conciliacao-filtros{display:grid;grid-template-columns:minmax(280px,1fr) auto auto auto;gap:10px;margin:18px 0}.financeiro-busca-conciliacao,.financeiro-modal-filtros>div{display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid #294764;border-radius:10px;background:#08182a}.financeiro-busca-conciliacao input,.financeiro-modal-filtros input{width:100%;min-height:42px;border:0;background:transparent;color:#e2e8f0;outline:0}.financeiro-conciliacao-filtros select,.financeiro-modal-filtros select{min-height:44px;border-radius:10px;padding:0 10px}.financeiro-conciliacao-acoes{display:flex;gap:6px}.financeiro-conciliacao-acoes button{padding:7px 9px;border-radius:8px;border:1px solid #31506f;background:#0b1b30;color:#dce7f2;cursor:pointer}.financeiro-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}.financeiro-modal-conciliacao{width:min(1100px,95vw);max-height:88vh;overflow:auto;background:#071426;border:1px solid #31506f;border-radius:18px;padding:20px}.financeiro-modal-header{display:flex;justify-content:space-between;align-items:start}.financeiro-modal-header h2{margin:0}.financeiro-modal-header button{font-size:28px;border:0;background:transparent;color:#e2e8f0;cursor:pointer}.financeiro-modal-filtros{display:grid;grid-template-columns:1fr auto;gap:10px;margin:18px 0}.financeiro-modal-lista{display:grid;gap:8px}.financeiro-conta-candidata{display:flex;justify-content:space-between;align-items:center;text-align:left;padding:14px;border-radius:12px;border:1px solid #24415f;background:#0b1b30;color:#e5edf7;cursor:pointer}.financeiro-conta-candidata:hover{border-color:#22c55e}.financeiro-conta-candidata div{display:grid;gap:4px}.financeiro-conta-candidata span{color:#93a8bd}
+@media(max-width:1100px){.pedido-brindes-grid{grid-template-columns:1fr 1fr}.financeiro-conciliacao-filtros{grid-template-columns:1fr 1fr}.financeiro-fluxo-resumo{grid-template-columns:1fr 1fr}}
+
+/* BARRA E FILTROS VENDAS 2026-07-06 */
+.vendas-toolbar-filtros{display:flex!important;align-items:center!important;gap:14px!important;flex-wrap:wrap!important}
+.vendas-search{flex:1 1 480px!important;min-width:280px!important}
+.vendas-toolbar-acoes-direita{margin-left:auto!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:12px!important}
+.vendas-filter-toggle,.vendas-btn-devolucoes,.vendas-icon-new{width:58px!important;height:58px!important;min-width:58px!important;min-height:58px!important;border-radius:16px!important;padding:0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
+.vendas-filter-toggle{background:#c026d3!important;border:1px solid #c026d3!important;color:white!important}
+.vendas-icon-new.orcamento{background:#ff4b00!important;border-color:#ff4b00!important;color:#fff!important}
+.vendas-icon-new.pedido{background:#6d28d9!important;border-color:#6d28d9!important;color:#fff!important}
+.vendas-filtros-recolhiveis{flex:1 0 100%!important;order:20!important;display:grid!important;grid-template-columns:repeat(6,minmax(150px,1fr)) auto!important;align-items:end!important;gap:12px!important;width:100%!important;margin-top:2px!important;padding:16px 18px!important;background:#ffffff!important;border:1px solid #dbe3ef!important;border-radius:16px!important;box-sizing:border-box!important}
+.vendas-filtros-recolhiveis label{display:grid!important;gap:6px!important;color:#53657f!important;font-size:12px!important;font-weight:800!important;text-transform:uppercase!important}
+.vendas-filtros-recolhiveis select,.vendas-filtros-recolhiveis input{width:100%!important;min-height:44px!important;border:1px solid #cbd8e8!important;border-radius:10px!important;background:#fff!important;color:#20314c!important;padding:0 11px!important;box-sizing:border-box!important}
+.vendas-clear-filters{min-height:44px!important;color:#53657f!important;border-color:#cbd8e8!important;background:#f8fafc!important}
+@media(max-width:1350px){.vendas-filtros-recolhiveis{grid-template-columns:repeat(3,minmax(180px,1fr))!important}}
+@media(max-width:820px){.vendas-toolbar-acoes-direita{width:100%!important}.vendas-filtros-recolhiveis{grid-template-columns:1fr!important}}
+
+
+/* AJUSTE FINO VENDAS FILTRO E ÍCONES 2026-07-06 B */
+.vendas-toolbar{margin-bottom:18px!important}
+.vendas-toolbar-filtros{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;flex-wrap:nowrap!important}
+.vendas-toolbar-acoes-direita{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:12px!important;flex:0 0 auto!important}
+.vendas-search{flex:1 1 auto!important;max-width:none!important;min-width:280px!important}
+.vendas-filter-toggle,.vendas-btn-devolucoes,.vendas-icon-new{width:58px!important;height:58px!important;min-width:58px!important;min-height:58px!important}
+.vendas-devolucao-svg{width:25px!important;height:25px!important;stroke-width:2.35!important}
+.vendas-filtros-recolhiveis{display:grid!important;grid-template-columns:repeat(6,minmax(150px,1fr)) auto!important;align-items:end!important;gap:12px!important;width:100%!important;margin:0 0 22px 0!important;padding:16px 18px!important;background:#ffffff!important;border:1px solid #dbe3ef!important;border-radius:16px!important;box-sizing:border-box!important}
+@media (max-width: 1100px){
+  .vendas-toolbar-filtros{flex-wrap:wrap!important}
+  .vendas-toolbar-acoes-direita{width:100%!important;margin-left:0!important}
+}
+@media (max-width: 1350px){
+  .vendas-filtros-recolhiveis{grid-template-columns:repeat(3,minmax(180px,1fr)) auto!important}
+}
+@media (max-width: 820px){
+  .vendas-filtros-recolhiveis{grid-template-columns:1fr!important}
+}
+
+
+/* DEVOLUÇÃO: CAIXA EXTERNA NO PADRÃO DO FILTRO, DESENHO ORIGINAL PRESERVADO */
+.vendas-btn-devolucoes{
+  width:58px!important;
+  height:58px!important;
+  min-width:58px!important;
+  min-height:58px!important;
+  padding:0!important;
+}
+.vendas-btn-devolucoes .vendas-devolucao-svg{
+  width:35px!important;
+  height:35px!important;
+  min-width:35px!important;
+  min-height:35px!important;
+  stroke-width:3.2!important;
+}
+
+/* SYA 2026-07-09 — situação financeira na listagem de pedidos */
+.vendas-lista-cabecalho,
+.vendas-documento-row {
+  grid-template-columns: minmax(150px,.85fr) minmax(250px,1.25fr) minmax(260px,1.65fr) minmax(130px,.8fr) minmax(125px,.75fr) minmax(110px,.7fr) minmax(145px,.9fr) minmax(110px,.65fr) !important;
+}
+.vendas-pagamento-status { justify-self:start; padding:7px 10px; border-radius:999px; font-size:12px; font-weight:900; }
+.vendas-pagamento-status.pago { background:#dcfce7; color:#166534; }
+.vendas-pagamento-status.pendente { background:#ffedd5; color:#c2410c; }
+.vendas-conciliar-btn,.vendas-conciliado { min-height:36px; border-radius:10px; padding:0 10px; display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:900; white-space:nowrap; }
+.vendas-conciliar-btn { border:1px solid #0ea5e9; background:#eff6ff; color:#0369a1; cursor:pointer; }
+.vendas-conciliado { background:#dcfce7; color:#166534; }
+@media(max-width:1250px){.vendas-lista-documentos{overflow-x:auto}.vendas-lista-cabecalho,.vendas-documento-row{min-width:1350px}}
+
+/* SYNERGIAS STATUS PEDIDOS V191A - INICIO */
+
+/* =========================================================
+   LISTA DE PEDIDOS
+   Status menor e compacto, sem alterar sua funcao.
+   ========================================================= */
+.vendas-page .pedido-status,
+.vendas-page .status-pedido,
+.vendas-page .pedido-status-badge,
+.vendas-page .venda-status,
+.vendas-page .venda-status-badge,
+.vendas-page .status-badge,
+.vendas-lista .pedido-status,
+.vendas-lista .status-pedido,
+.vendas-lista .pedido-status-badge,
+.vendas-lista .venda-status,
+.vendas-lista .venda-status-badge,
+.pedidos-page .pedido-status,
+.pedidos-page .status-pedido,
+.pedidos-page .pedido-status-badge,
+.pedidos-lista .pedido-status,
+.pedidos-lista .status-pedido,
+.pedidos-lista .pedido-status-badge,
+.pedido-lista-card [class*="status"],
+.venda-lista-card [class*="status"],
+.pedido-card-lista [class*="status"] {
+  width: auto !important;
+  min-width: 96px !important;
+  max-width: 108px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 2px 10px !important;
+  border-radius: 14px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: flex-start !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+/* =========================================================
+   PEDIDO ABERTO
+   Status maior, azul e retangular com cantos arredondados.
+   ========================================================= */
+.orcamento-page .orcamento-status-card,
+.cliente-form-page .orcamento-status-card {
+  width: 170px !important;
+  min-width: 170px !important;
+  max-width: 170px !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  padding: 8px 14px !important;
+  border-radius: 14px !important;
+  background: #2563eb !important;
+  border: 2px solid #1d4ed8 !important;
+  color: #ffffff !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18) !important;
+}
+
+/* Cores especificas por situacao dentro do pedido aberto */
+.orcamento-page .orcamento-status-card[data-status="Cancelado"],
+.cliente-form-page .orcamento-status-card[data-status="Cancelado"] {
+  background: #dc2626 !important;
+  border-color: #b91c1c !important;
+}
+
+.orcamento-page .orcamento-status-card[data-status="Entregue"],
+.cliente-form-page .orcamento-status-card[data-status="Entregue"] {
+  background: #7c3aed !important;
+  border-color: #6d28d9 !important;
+}
+
+/* SYNERGIAS STATUS PEDIDOS V191A - FIM */

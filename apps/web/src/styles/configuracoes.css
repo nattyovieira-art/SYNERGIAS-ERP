@@ -1,0 +1,375 @@
+/* =========================================================
+   SYNERGIAS ERP - CENTRAL DE CONFIGURAÇÕES
+   PADRÃO VISUAL DA CENTRAL DE RELATÓRIOS
+========================================================= */
+
+:root {
+  --config-primary: #475569;
+  --config-dark: #334155;
+  --config-soft: #f1f5f9;
+  --config-border: #cbd5e1;
+  --config-text: #152033;
+  --config-muted: #718096;
+  --config-bg: #f5f7fb;
+  --config-white: #ffffff;
+}
+
+.configuracoes-layout {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  background: var(--config-bg);
+  overflow: hidden;
+}
+
+.configuracoes-layout > .dashboard-sidebar {
+  flex: 0 0 auto;
+}
+
+.configuracoes-page {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  height: 100vh;
+  min-height: 100vh;
+  padding: 32px 36px 80px;
+  box-sizing: border-box;
+  background: var(--config-bg);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.configuracoes-page::-webkit-scrollbar {
+  width: 10px;
+}
+
+.configuracoes-page::-webkit-scrollbar-track {
+  background: var(--config-soft);
+  border-radius: 999px;
+}
+
+.configuracoes-page::-webkit-scrollbar-thumb {
+  background: var(--config-primary);
+  border-radius: 999px;
+}
+
+.configuracoes-central-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.configuracoes-central-card {
+  --area-color: var(--config-primary);
+  --area-soft: var(--config-soft);
+  --area-border: var(--config-border);
+  min-height: 190px;
+  border: 1px solid var(--area-border);
+  border-radius: 22px;
+  background: var(--config-white);
+  padding: 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  transition: 0.2s ease;
+}
+
+.configuracoes-central-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+}
+
+.configuracoes-central-card-icon,
+.configuracoes-detalhe-icone,
+.configuracoes-opcao-icone {
+  background: var(--area-soft);
+  color: var(--area-color);
+}
+
+.configuracoes-central-card-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 58px;
+}
+
+.configuracoes-central-card-texto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.configuracoes-central-card-texto strong {
+  color: var(--config-text);
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.configuracoes-central-card-texto small {
+  color: var(--config-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.configuracoes-central-card-count {
+  width: fit-content;
+  margin-top: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--area-soft);
+  color: var(--area-color);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.configuracoes-area-empresa {
+  --area-color: #2563eb;
+  --area-soft: #eaf3ff;
+  --area-border: #bfdbfe;
+}
+
+.configuracoes-area-vendas {
+  --area-color: #7e22ce;
+  --area-soft: #f3e8ff;
+  --area-border: #dfc5f8;
+}
+
+.configuracoes-area-financeiro {
+  --area-color: #118348;
+  --area-soft: #e8f7ee;
+  --area-border: #b9e4ca;
+}
+
+.configuracoes-area-estoque {
+  --area-color: #0f766e;
+  --area-soft: #e6fffb;
+  --area-border: #b8ece5;
+}
+
+.configuracoes-area-fiscal {
+  --area-color: #7a263a;
+  --area-soft: #fff3f6;
+  --area-border: #e8bcc8;
+}
+
+.configuracoes-area-acesso {
+  --area-color: #475569;
+  --area-soft: #f1f5f9;
+  --area-border: #cbd5e1;
+}
+
+.configuracoes-area-integracoes {
+  --area-color: #0369a1;
+  --area-soft: #f0f9ff;
+  --area-border: #bae6fd;
+}
+
+.configuracoes-area-sistema {
+  --area-color: #334155;
+  --area-soft: #f8fafc;
+  --area-border: #cbd5e1;
+}
+
+.configuracoes-detalhe {
+  --area-color: var(--config-primary);
+  --area-soft: var(--config-soft);
+  --area-border: var(--config-border);
+}
+
+.configuracoes-detalhe-toolbar {
+  width: 100%;
+  min-height: 76px;
+  margin-bottom: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.configuracoes-voltar {
+  width: 58px;
+  height: 58px;
+  min-width: 58px;
+  flex: 0 0 58px;
+  border: 0;
+  border-radius: 16px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #64748b;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+  transition: 0.2s ease;
+}
+
+.configuracoes-voltar:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.configuracoes-detalhe-identidade {
+  min-height: 76px;
+  border: 1px solid var(--area-border);
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 9px 18px 9px 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-sizing: border-box;
+}
+
+.configuracoes-detalhe-icone {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 58px;
+}
+
+.configuracoes-detalhe-identidade > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.configuracoes-detalhe-identidade strong {
+  color: var(--config-text);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.configuracoes-detalhe-identidade span {
+  color: var(--config-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.configuracoes-aviso-administrativo {
+  min-height: 58px;
+  margin-bottom: 20px;
+  border: 1px solid var(--area-border);
+  border-radius: 16px;
+  background: var(--area-soft);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--area-color);
+  box-sizing: border-box;
+}
+
+.configuracoes-aviso-administrativo span {
+  color: var(--config-text);
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 650;
+}
+
+.configuracoes-opcoes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.configuracoes-opcao-card {
+  min-height: 168px;
+  border: 1px solid var(--area-border);
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  transition: 0.2s ease;
+}
+
+.configuracoes-opcao-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+}
+
+.configuracoes-opcao-icone {
+  width: 54px;
+  height: 54px;
+  border-radius: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 54px;
+}
+
+.configuracoes-opcao-texto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.configuracoes-opcao-texto strong {
+  color: var(--config-text);
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+.configuracoes-opcao-texto small {
+  color: var(--config-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.configuracoes-opcao-texto > span {
+  width: fit-content;
+  margin-top: 3px;
+  color: var(--area-color);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 1180px) {
+  .configuracoes-central-grid,
+  .configuracoes-opcoes-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .configuracoes-page {
+    padding: 24px 20px 44px;
+  }
+
+  .configuracoes-central-grid,
+  .configuracoes-opcoes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .configuracoes-central-card {
+    min-height: 160px;
+  }
+
+  .configuracoes-detalhe-identidade {
+    flex: 1;
+    min-width: 0;
+  }
+}

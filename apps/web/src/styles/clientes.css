@@ -1,0 +1,1113 @@
+.clientes-page {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 270px 1fr;
+  background: #f1f5f9;
+  color: #0f172a;
+  overflow: hidden;
+}
+
+.clientes-main {
+  height: 100vh;
+  padding: 28px 32px 40px;
+  overflow-y: auto;
+  background: #f1f5f9;
+}
+
+.clientes-main::-webkit-scrollbar {
+  width: 12px;
+}
+
+.clientes-main::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.clientes-main::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+  border: 3px solid #f1f5f9;
+}
+
+.clientes-toolbar {
+  margin-bottom: 22px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid #bae6fd;
+  border-radius: 18px;
+  background: #f0f9ff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.search-clientes {
+  width: 420px;
+  height: 46px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #bae6fd;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #64748b;
+  box-sizing: border-box;
+}
+
+.search-clientes input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.search-clientes input::placeholder {
+  color: #94a3b8;
+}
+
+.search-clientes:focus-within {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14);
+}
+
+.clientes-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.clientes-actions button {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0284c7;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.clientes-actions button:hover {
+  color: #0369a1;
+  border-color: #7dd3fc;
+  background: #e0f2fe;
+  transform: translateY(-2px);
+}
+
+.clientes-actions .primary-action {
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 12px 28px rgba(2, 132, 199, 0.22);
+}
+
+.clientes-actions .primary-action:hover {
+  background: #0369a1;
+  color: #ffffff;
+}
+
+/* =========================================================
+   TABELA / LISTAGEM DE CLIENTES
+   Compatível com vários nomes de classes usados no projeto
+========================================================= */
+
+.clientes-table-card,
+.clientes-list-card,
+.clientes-table-container,
+.clientes-card,
+.clientes-lista,
+.clientes-tabela-card,
+.clientes-main .table-card,
+.clientes-main .list-card,
+.clientes-main .data-table-card {
+  width: 100%;
+  background: #ffffff !important;
+  border: 1px solid #bae6fd !important;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
+}
+
+.clientes-table-wrapper,
+.clientes-main .table-wrapper,
+.clientes-main .table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  background: #ffffff;
+}
+
+.clientes-table,
+.clientes-list-table,
+.clientes-main table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.clientes-table thead,
+.clientes-list-table thead,
+.clientes-main table thead {
+  background: #e0f2fe !important;
+}
+
+.clientes-table thead tr,
+.clientes-list-table thead tr,
+.clientes-main table thead tr {
+  background: #e0f2fe !important;
+}
+
+.clientes-table th,
+.clientes-list-table th,
+.clientes-main table th {
+  padding: 16px 18px !important;
+  color: #0369a1 !important;
+  background: #e0f2fe !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid #bae6fd !important;
+}
+
+.clientes-table td,
+.clientes-list-table td,
+.clientes-main table td {
+  padding: 16px 18px !important;
+  color: #334155 !important;
+  background: #ffffff !important;
+  font-size: 14px;
+  border-bottom: 1px solid #e2e8f0 !important;
+  vertical-align: middle;
+}
+
+.clientes-table tbody,
+.clientes-list-table tbody,
+.clientes-main table tbody {
+  background: #ffffff !important;
+}
+
+.clientes-table tbody tr,
+.clientes-list-table tbody tr,
+.clientes-main table tbody tr {
+  background: #ffffff !important;
+  transition: 0.2s ease;
+}
+
+.clientes-table tbody tr:hover,
+.clientes-list-table tbody tr:hover,
+.clientes-main table tbody tr:hover {
+  background: #f0f9ff !important;
+}
+
+.clientes-table tbody tr:hover td,
+.clientes-list-table tbody tr:hover td,
+.clientes-main table tbody tr:hover td {
+  background: #f0f9ff !important;
+}
+
+.clientes-table td strong,
+.clientes-list-table td strong,
+.clientes-main table td strong {
+  display: block;
+  color: #0f172a !important;
+  font-weight: 900;
+}
+
+.clientes-table td small,
+.clientes-list-table td small,
+.clientes-main table td small {
+  display: block;
+  color: #64748b !important;
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+.clientes-empty,
+.clientes-vazio,
+.empty-clientes,
+.clientes-main table td[colspan] {
+  height: 96px;
+  text-align: center !important;
+  color: #64748b !important;
+  font-weight: 700;
+  background: #ffffff !important;
+}
+
+/* =========================================================
+   STATUS / TAGS
+========================================================= */
+
+.cliente-status,
+.clientes-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cliente-status.ativo,
+.clientes-status.ativo,
+.cliente-status.active,
+.clientes-status.active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.cliente-status.inativo,
+.clientes-status.inativo,
+.cliente-status.inactive,
+.clientes-status.inactive {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.cliente-status.pendente,
+.clientes-status.pendente {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+/* =========================================================
+   AÇÕES DA TABELA
+========================================================= */
+
+.clientes-row-actions,
+.clientes-acoes,
+.cliente-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clientes-row-actions button,
+.clientes-acoes button,
+.cliente-acoes button,
+.clientes-main table button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0284c7;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.clientes-row-actions button:hover,
+.clientes-acoes button:hover,
+.cliente-acoes button:hover,
+.clientes-main table button:hover {
+  background: #e0f2fe;
+  color: #0369a1;
+  transform: translateY(-2px);
+}
+
+.clientes-row-actions .delete,
+.clientes-acoes .delete,
+.cliente-acoes .delete,
+.clientes-row-actions .excluir,
+.clientes-acoes .excluir,
+.cliente-acoes .excluir {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.clientes-row-actions .delete:hover,
+.clientes-acoes .delete:hover,
+.cliente-acoes .delete:hover,
+.clientes-row-actions .excluir:hover,
+.clientes-acoes .excluir:hover,
+.cliente-acoes .excluir:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* =========================================================
+   BOTÕES GENÉRICOS
+========================================================= */
+
+.clientes-btn,
+.clientes-button {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid #bae6fd;
+  background: #ffffff;
+  color: #0284c7;
+  padding: 0 16px;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: 0.2s ease;
+}
+
+.clientes-btn:hover,
+.clientes-button:hover {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.clientes-btn.primary,
+.clientes-button.primary {
+  border: none;
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.clientes-btn.primary:hover,
+.clientes-button.primary:hover {
+  background: #0369a1;
+}
+
+/* =========================================================
+   COMPATIBILIDADE COM CLASSES ANTIGAS / GENÉRICAS
+========================================================= */
+
+.clientes-table-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.clientes-table-card thead {
+  background: #e0f2fe !important;
+}
+
+.clientes-table-card th {
+  padding: 16px 18px !important;
+  color: #0369a1 !important;
+  background: #e0f2fe !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid #bae6fd !important;
+}
+
+.clientes-table-card td {
+  padding: 16px 18px !important;
+  color: #334155 !important;
+  background: #ffffff !important;
+  font-size: 14px;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.clientes-table-card tbody tr:hover,
+.clientes-table-card tbody tr:hover td {
+  background: #f0f9ff !important;
+}
+
+.clientes-table-card tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Caso o componente use divs em vez de table */
+
+.clientes-list-header,
+.clientes-list-row,
+.clientes-row,
+.clientes-cabecalho {
+  background: #ffffff;
+}
+
+.clientes-list-header,
+.clientes-cabecalho {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  border-bottom: 1px solid #bae6fd;
+}
+
+.clientes-list-header > *,
+.clientes-cabecalho > * {
+  color: #0369a1 !important;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.clientes-list-row,
+.clientes-row {
+  color: #334155 !important;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.clientes-list-row:hover,
+.clientes-row:hover {
+  background: #f0f9ff !important;
+}
+
+/* =========================================================
+   RESPONSIVO
+========================================================= */
+
+@media (max-width: 1200px) {
+  .clientes-page {
+    grid-template-columns: 240px 1fr;
+  }
+
+  .clientes-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search-clientes {
+    width: 100%;
+  }
+
+  .clientes-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 900px) {
+  .clientes-page {
+    display: flex;
+  }
+
+  .clientes-main {
+    padding: 22px 18px 34px;
+  }
+
+  .clientes-toolbar {
+    padding: 14px;
+  }
+
+  .clientes-actions {
+    justify-content: flex-start;
+  }
+
+  .clientes-actions button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .clientes-table,
+  .clientes-list-table,
+  .clientes-table-card table,
+  .clientes-main table {
+    min-width: 900px;
+  }
+}
+
+
+/* =========================================================
+   PADRÃO VISUAL CLIENTES - LISTA / BUSCA / FILTROS / AÇÕES
+========================================================= */
+
+.clientes-page .page-header-category.clientes,
+.clientes-page .page-header-category.cliente,
+.cliente-form-page .page-header-category.clientes,
+.cliente-form-page .page-header-category.cliente {
+  color: #0284c7 !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  letter-spacing: 4.5px !important;
+}
+
+.clientes-page .page-header-title,
+.cliente-form-page .page-header-title {
+  color: #111827 !important;
+}
+
+.clientes-page .page-header-subtitle,
+.cliente-form-page .page-header-subtitle {
+  color: #64748b !important;
+}
+
+.clientes-toolbar {
+  min-height: 82px;
+  flex-wrap: wrap;
+}
+
+.clientes-toolbar-left {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.clientes-action-btn,
+.clientes-add-btn {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px;
+  border: 0 !important;
+  border-radius: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+  transition: 0.2s ease;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.clientes-action-btn svg,
+.clientes-add-btn svg,
+.clientes-delete-all-btn svg {
+  width: 21px !important;
+  height: 21px !important;
+}
+
+.clientes-action-btn:hover,
+.clientes-add-btn:hover {
+  transform: translateY(-2px);
+}
+
+.clientes-action-list {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+}
+
+.clientes-action-search {
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+}
+
+.clientes-action-import {
+  background: #ecfdf5 !important;
+  color: #15803d !important;
+}
+
+.clientes-action-print {
+  background: #f3e8ff !important;
+  color: #7e22ce !important;
+}
+
+.clientes-action-pdf {
+  background: #fff1f2 !important;
+  color: #be123c !important;
+}
+
+.clientes-action-export {
+  background: #fff7ed !important;
+  color: #c2410c !important;
+}
+
+.clientes-add-btn {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border: 0 !important;
+}
+
+.clientes-filter-btn,
+.clientes-delete-all-btn,
+.clientes-clear-filters-btn {
+  min-height: 46px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.clientes-filter-btn {
+  padding: 0 16px;
+  border: 1px solid #bae6fd;
+  background: #ffffff;
+  color: #0369a1;
+}
+
+.clientes-filter-btn:hover,
+.clientes-filter-btn.ativo {
+  border-color: #7dd3fc;
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.clientes-filter-btn span {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 11px;
+}
+
+.clientes-delete-all-btn {
+  width: auto !important;
+  min-width: 132px;
+  padding: 0 15px;
+  border: 1px solid #fecaca !important;
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+}
+
+.clientes-delete-all-btn:hover {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+.clientes-filter-panel {
+  margin: -4px 0 22px;
+  padding: 18px 20px;
+  border: 1px solid #bae6fd;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.clientes-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.clientes-filter-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.clientes-filter-grid select {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 11px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.clientes-filter-grid select:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+}
+
+.clientes-filter-footer {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.clientes-filter-footer > span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.clientes-clear-filters-btn {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #bae6fd;
+  background: #f0f9ff;
+  color: #0369a1;
+}
+
+.clientes-clear-filters-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cliente-form-page .form-footer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+@media (max-width: 1300px) {
+  .clientes-filter-grid {
+    grid-template-columns: repeat(3, minmax(170px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .clientes-toolbar-left {
+    width: 100%;
+  }
+
+  .clientes-filter-grid {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+
+  .clientes-filter-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 560px) {
+  .clientes-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .clientes-filter-btn,
+  .clientes-delete-all-btn {
+    width: 100% !important;
+  }
+}
+
+
+/* =========================================================
+   PADRÃO OFICIAL DE ÍCONES DO ERP - REFERÊNCIA PRODUTOS
+========================================================= */
+
+.clientes-toolbar {
+  padding: 22px 24px !important;
+  border-color: #fed7aa !important;
+  background: #fffaf4 !important;
+  border-radius: 22px !important;
+}
+
+.clientes-toolbar-left,
+.clientes-actions {
+  gap: 14px !important;
+}
+
+.clientes-action-btn,
+.clientes-add-btn,
+.clientes-delete-all-btn {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.clientes-action-btn svg,
+.clientes-add-btn svg,
+.clientes-delete-all-btn svg {
+  width: 25px !important;
+  height: 25px !important;
+}
+
+.clientes-action-list {
+  background: #2454df !important;
+}
+
+.clientes-action-search {
+  background: #f04b00 !important;
+}
+
+.clientes-action-import {
+  background: #056a97 !important;
+}
+
+.clientes-action-print {
+  background: #6b1fa2 !important;
+}
+
+.clientes-action-pdf {
+  background: #39339a !important;
+}
+
+.clientes-action-export {
+  background: #056345 !important;
+}
+
+.clientes-add-btn {
+  background: #f04b00 !important;
+}
+
+.clientes-delete-all-btn {
+  min-width: 58px !important;
+  padding: 0 !important;
+  background: #dc2626 !important;
+}
+
+.clientes-action-btn:hover,
+.clientes-add-btn:hover,
+.clientes-delete-all-btn:hover {
+  filter: brightness(0.94);
+  transform: translateY(-2px);
+}
+
+.search-clientes {
+  width: min(650px, 42vw) !important;
+  height: 58px !important;
+  border: 1px solid #fed7aa !important;
+  border-radius: 16px !important;
+}
+
+.clientes-filter-btn {
+  min-height: 58px !important;
+  padding: 0 20px !important;
+  border: 1px dashed #f04b00 !important;
+  border-radius: 16px !important;
+  color: #f04b00 !important;
+  background: #fffdfb !important;
+  font-size: 15px !important;
+}
+
+.clientes-filter-btn:hover,
+.clientes-filter-btn.ativo {
+  background: #fff7ed !important;
+  color: #ea580c !important;
+}
+
+.clientes-filter-btn span {
+  background: #f04b00 !important;
+}
+
+@media (max-width: 1200px) {
+  .search-clientes {
+    width: 100% !important;
+    flex: 1 1 360px;
+  }
+}
+
+@media (max-width: 560px) {
+  .clientes-action-btn,
+  .clientes-add-btn,
+  .clientes-delete-all-btn {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+  }
+}
+
+
+/* =========================================================
+   AJUSTE V2 - ÍCONES NA MESMA LINHA DO BUSCADOR
+========================================================= */
+
+.clientes-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
+  gap: 16px !important;
+}
+
+.clientes-toolbar-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  flex-wrap: nowrap !important;
+}
+
+.clientes-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  flex: 0 0 auto !important;
+  flex-wrap: nowrap !important;
+  margin-left: auto !important;
+}
+
+.search-clientes {
+  flex: 1 1 420px !important;
+  width: auto !important;
+  min-width: 280px !important;
+  max-width: 520px !important;
+}
+
+.clientes-filter-btn {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 1450px) {
+  .search-clientes {
+    max-width: 420px !important;
+  }
+}
+
+@media (max-width: 1320px) {
+  .search-clientes {
+    max-width: 360px !important;
+    min-width: 240px !important;
+  }
+
+  .clientes-toolbar {
+    gap: 12px !important;
+  }
+
+  .clientes-toolbar-left,
+  .clientes-actions {
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .clientes-toolbar {
+    align-items: stretch !important;
+    flex-wrap: wrap !important;
+  }
+
+  .clientes-toolbar-left,
+  .clientes-actions {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+
+  .clientes-actions {
+    margin-left: 0 !important;
+  }
+
+  .search-clientes {
+    max-width: 100% !important;
+    min-width: 260px !important;
+  }
+}
+
+
+/* =========================================================
+   NOVO / EDITAR CLIENTE - LISTA, BUSCA E FILTROS
+========================================================= */
+
+.cliente-form-toolbar {
+  margin-bottom: 18px !important;
+}
+
+.cliente-form-toolbar .clientes-toolbar-left {
+  width: 100%;
+}
+
+.cliente-form-toolbar .cliente-form-search {
+  flex: 1 1 420px !important;
+  width: auto !important;
+  min-width: 280px !important;
+  max-width: 620px !important;
+}
+
+.cliente-form-filter-panel {
+  margin-top: -2px !important;
+  margin-bottom: 18px !important;
+}
+
+.cliente-form-filter-grid {
+  grid-template-columns: repeat(3, minmax(180px, 1fr)) !important;
+}
+
+.cliente-form-search-results {
+  margin: -2px 0 18px;
+  border: 1px solid #bae6fd;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.cliente-form-search-results-header {
+  padding: 15px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f0f9ff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.cliente-form-search-results-header strong {
+  color: #075985;
+  font-size: 13px;
+}
+
+.cliente-form-search-results-header span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.cliente-form-search-results-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: #e2e8f0;
+}
+
+.cliente-form-search-results-list button {
+  min-height: 68px;
+  padding: 12px 16px;
+  border: 0;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.cliente-form-search-results-list button:hover {
+  background: #f0f9ff;
+}
+
+.cliente-form-search-results-list button > span {
+  min-width: 0;
+}
+
+.cliente-form-search-results-list strong,
+.cliente-form-search-results-list small {
+  display: block;
+}
+
+.cliente-form-search-results-list strong {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.cliente-form-search-results-list small {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.cliente-form-search-results-list em {
+  color: #0284c7;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+@media (max-width: 1000px) {
+  .cliente-form-filter-grid,
+  .cliente-form-search-results-list {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .cliente-form-toolbar .cliente-form-search {
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .cliente-form-search-results-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

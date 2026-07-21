@@ -1,0 +1,2522 @@
+/* =========================================================
+   PEDIDO - CSS SEPARADO
+   Usado somente por src/pages/Vendas/PedidoForm.tsx
+========================================================= */
+
+.cliente-form-page {
+  display: flex;
+  min-height: 100vh;
+  background: #f1f5f9;
+}
+
+.cliente-form-main {
+  flex: 1;
+  height: 100vh;
+  min-height: 100vh;
+  padding: 28px 32px 40px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  background: #f1f5f9;
+}
+
+.orcamento-header-linha {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 28px;
+}
+
+.pedido-header {
+  min-width: 0;
+}
+
+.pedido-module-row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 15px;
+}
+
+.pedido-page-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ede9fe;
+  color: #7c3aed;
+  box-shadow: 0 10px 22px rgba(124, 58, 237, 0.12);
+}
+
+.pedido-eyebrow {
+  color: #7c3aed;
+  font-size: 17px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  line-height: 1;
+}
+
+.pedido-header h1 {
+  margin: 0;
+  color: #111827;
+  font-size: clamp(34px, 3.2vw, 48px);
+  line-height: 1.06;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.pedido-header p {
+  margin: 14px 0 0;
+  color: #64748b;
+  font-size: 21px;
+  line-height: 1.35;
+}
+
+.pedido-top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  margin-bottom: 28px;
+}
+
+.pedido-voltar-btn {
+  width: 58px;
+  height: 58px;
+  min-width: 58px;
+  min-height: 58px;
+  flex: 0 0 58px;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: #c026d3;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10);
+  transition: 0.2s ease;
+}
+
+.pedido-voltar-btn:hover {
+  background: #a21caf;
+  transform: translateY(-2px);
+}
+
+.orcamento-iconbar.topo {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-left: auto;
+  background: transparent;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.orcamento-iconbar.topo .pedido-acao {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  flex: 0 0 58px;
+  border: 0 !important;
+  border-radius: 16px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+  transition: 0.2s ease;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10);
+}
+
+.orcamento-iconbar.topo .pedido-acao:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.orcamento-iconbar.topo .pedido-acao svg {
+  width: 25px !important;
+  height: 25px !important;
+}
+
+.orcamento-iconbar.topo .pedido-acao-imprimir {
+  background: #581c87 !important;
+  color: #e9d5ff !important;
+}
+
+.orcamento-iconbar.topo .pedido-acao-email {
+  background: #312e81 !important;
+  color: #c4b5fd !important;
+}
+
+.orcamento-iconbar.topo .pedido-acao-salvar {
+  background: #15803d !important;
+  color: #ffffff !important;
+}
+
+.orcamento-page {
+  width: 100%;
+}
+
+.orcamento-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.orcamento-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #334155 !important;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.orcamento-card input,
+.orcamento-card select,
+.orcamento-card textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  padding: 10px 14px;
+  font-size: 15px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.orcamento-card input[readonly] {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  cursor: not-allowed;
+}
+
+.orcamento-card textarea {
+  min-height: 115px;
+  resize: vertical;
+}
+
+.orcamento-card input:focus,
+.orcamento-card select:focus,
+.orcamento-card textarea:focus {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14);
+}
+
+.orcamento-topo-card {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 28px;
+  background: #ffffff;
+}
+
+.orcamento-status-card {
+  background: #7c3aed;
+  color: #ffffff;
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 30px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.orcamento-dados-principais {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 18px;
+  padding: 24px;
+  background: #ffffff;
+}
+
+.orcamento-numero-input {
+  font-size: 26px !important;
+  font-weight: 900 !important;
+}
+
+.select-plus {
+  display: grid;
+  grid-template-columns: 1fr 48px;
+  gap: 8px;
+}
+
+.select-plus button {
+  border: 0;
+  border-radius: 12px;
+  background: #22c55e;
+  color: #052e16;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.select-plus button:hover {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.form-section-title {
+  margin: 28px 0 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.form-section-title h2 {
+  margin: 0;
+  padding-bottom: 8px;
+  color: #334155;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.form-grid .span-2 {
+  grid-column: span 2;
+}
+
+.orcamento-cliente-selecao {
+  display: grid;
+  grid-template-columns: 1fr 250px 58px;
+  gap: 18px;
+  align-items: center;
+  background: #f8fafc;
+  border-left: 5px solid #22c55e;
+  padding: 18px;
+  border-radius: 14px;
+  margin-bottom: 14px;
+}
+
+.orcamento-cliente-selecao input {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+}
+
+.orcamento-cliente-selecao small {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.orcamento-cliente-selecao strong {
+  display: block;
+  color: #16a34a;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.orcamento-cliente-selecao > button {
+  height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: #7c3aed;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.orcamento-cliente-selecao > button:hover {
+  background: #6d28d9;
+}
+
+.campo-busca-sugestoes {
+  position: relative;
+  width: 100%;
+}
+
+.lista-sugestoes {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 18px 35px rgba(15, 23, 42, 0.18);
+  max-height: 330px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.lista-sugestoes button {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #0f172a;
+  text-align: left;
+  padding: 10px 12px;
+  cursor: pointer;
+  display: block;
+}
+
+.lista-sugestoes button:hover {
+  background: #f5f3ff;
+}
+
+.lista-sugestoes button strong {
+  display: block;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.lista-sugestoes button small {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lista-sugestoes-produto {
+  top: calc(100% + 8px);
+}
+
+.cliente-cadastro-acoes {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 20px;
+}
+
+.cliente-cadastro-acoes button,
+.btn-cadastrar-cliente {
+  min-height: 46px;
+  padding: 0 22px;
+  border: 1px solid #22c55e;
+  border-radius: 12px;
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.cliente-cadastro-acoes button:hover,
+.btn-cadastrar-cliente:hover {
+  background: #dcfce7;
+}
+
+.cliente-rapido-card {
+  background: #f8fafc;
+  border: 1px solid #86efac;
+  border-left: 5px solid #22c55e;
+  border-radius: 16px;
+  padding: 24px;
+  margin: 18px 0 26px;
+}
+
+.cliente-rapido-card h2,
+.cliente-rapido-card h3 {
+  margin: 0 0 18px;
+  color: #334155;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.cliente-rapido-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.orcamento-produto-barra {
+  display: grid;
+  grid-template-columns: 1fr 140px 190px 180px;
+  gap: 0;
+  align-items: stretch;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 14px;
+  overflow: visible;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.orcamento-produto-barra > div {
+  padding: 18px;
+  border-right: 1px solid #ddd6fe;
+}
+
+.orcamento-produto-barra label {
+  color: #6d28d9 !important;
+}
+
+.orcamento-produto-barra input,
+.orcamento-produto-barra select {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #c4b5fd !important;
+}
+
+.orcamento-produto-barra small {
+  display: block;
+  color: #6d28d9;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.orcamento-produto-barra strong {
+  display: block;
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 900;
+  margin-top: 8px;
+}
+
+.orcamento-produto-barra > button {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #7c3aed;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 14px 14px 0;
+}
+
+.orcamento-produto-barra > button:hover {
+  background: #6d28d9;
+}
+
+.history-area {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.history-table thead th,
+.history-table th {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 14px 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.history-table tbody td,
+.history-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.orcamento-total-area {
+  display: grid;
+  grid-template-columns: 1fr 430px;
+  gap: 28px;
+  margin-top: 26px;
+  align-items: start;
+}
+
+.orcamento-total-card {
+  background: #f8fafc;
+  border-top: 5px solid #22c55e;
+  border-bottom: 5px solid #22c55e;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.total-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: #334155;
+}
+
+.total-linha strong {
+  font-size: 17px;
+  color: #0f172a;
+}
+
+.desconto-tipo {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.desconto-tipo button {
+  width: 46px;
+  height: 38px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.desconto-tipo button.ativo {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #052e16;
+}
+
+.total-final-box {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #cbd5e1;
+  text-align: right;
+}
+
+.total-final-box small {
+  display: block;
+  color: #64748b;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.total-final-box strong {
+  display: block;
+  color: #16a34a;
+  font-size: 36px;
+  font-weight: 900;
+}
+
+/* =========================================================
+   PAGAMENTO DO PEDIDO
+   Mantém 7 colunas e cabe dentro do bloco
+========================================================= */
+
+.orcamento-pagamento-area {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  background: #f1f5f9;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 28px;
+  border: 1px solid #e2e8f0;
+}
+
+.orcamento-pagamento-lateral {
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 24px;
+  border-right: 1px solid #e2e8f0;
+}
+
+.orcamento-pagamento-lateral label {
+  color: #334155 !important;
+  margin-bottom: 12px;
+}
+
+.orcamento-pagamento-lateral input,
+.orcamento-pagamento-lateral select {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.orcamento-pagamento-lateral input:focus,
+.orcamento-pagamento-lateral select:focus {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14);
+}
+
+.pagamento-total {
+  text-align: right;
+  margin-bottom: 20px;
+  background: #ecfdf5;
+  border-left: 5px solid #22c55e;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.pagamento-total small {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.pagamento-total strong {
+  display: block;
+  color: #16a34a;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.dados-pagamento-box {
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #bbf7d0;
+  border-left: 5px solid #22c55e;
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 14px;
+  display: grid;
+  gap: 7px;
+}
+
+.dados-pagamento-box strong {
+  color: #15803d;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.dados-pagamento-box span {
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.dados-pagamento-box b {
+  color: #0f172a;
+  text-transform: capitalize;
+}
+
+.orcamento-pagamento-lateral > button {
+  width: 100%;
+  min-height: 54px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 12px;
+  background: #22c55e;
+  color: #052e16;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.orcamento-pagamento-lateral > button:hover {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.orcamento-pagamento-lista {
+  padding: 24px 16px;
+  background: #ffffff;
+  overflow-x: hidden;
+  min-width: 0;
+}
+
+.pagamento-lista-header,
+.pagamento-lista-linha,
+.pagamento-lista-header-boleto,
+.pagamento-lista-linha-boleto {
+  display: grid;
+  grid-template-columns:
+    minmax(118px, 0.95fr)
+    minmax(82px, 0.7fr)
+    minmax(170px, 1.25fr)
+    minmax(210px, 1.65fr)
+    minmax(78px, 0.62fr)
+    minmax(88px, 0.72fr)
+    46px;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.pagamento-lista-header,
+.pagamento-lista-header-boleto {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 12px;
+}
+
+.pagamento-lista-header > *,
+.pagamento-lista-header-boleto > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pagamento-lista-linha,
+.pagamento-lista-linha-boleto {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.pagamento-lista-linha input,
+.pagamento-lista-linha select,
+.pagamento-lista-linha textarea,
+.pagamento-lista-linha-boleto input,
+.pagamento-lista-linha-boleto select,
+.pagamento-lista-linha-boleto textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  font-size: 12px;
+  padding: 8px 8px;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-sizing: border-box;
+}
+
+.pagamento-lista-linha input[type='number'],
+.pagamento-lista-linha-boleto input[type='number'] {
+  text-align: right;
+}
+
+.pagamento-lista-linha small,
+.pagamento-lista-linha-boleto small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.pagamento-vazio {
+  padding: 30px;
+  text-align: center;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.observacao-pagamento {
+  margin-top: 18px;
+}
+
+.observacao-pagamento label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #334155 !important;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.observacao-pagamento textarea {
+  width: 100%;
+  min-height: 130px;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  padding: 14px 18px;
+  font-size: 15px;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.observacao-pagamento textarea:focus {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14);
+}
+
+.cancel-button {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: #fee2e2;
+  color: #dc2626;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background: #fecaca;
+}
+
+.pedido-acoes-documentos {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 30px;
+}
+
+.pedido-documento-card {
+  padding: 20px;
+  border-radius: 14px;
+}
+
+.pedido-documento-card.nota {
+  background: #eff6ff;
+  border-top: 5px solid #0284c7;
+}
+
+.pedido-documento-card.boleto {
+  background: #f0fdf4;
+  border-top: 5px solid #16a34a;
+}
+
+.pedido-documento-card.envio {
+  background: #fefce8;
+  border-top: 5px solid #ca8a04;
+}
+
+.pedido-documento-card p {
+  color: #334155;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.pedido-documento-card .save-secondary-button {
+  width: 100%;
+}
+
+.pedido-documento-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.pedido-documento-titulo h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+
+.save-button,
+.save-secondary-button {
+  min-height: 46px;
+  border-radius: 12px;
+  padding: 0 18px;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.save-button {
+  border: 1px solid #16a34a;
+  background: #22c55e;
+  color: #052e16;
+}
+
+.save-button:hover {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.save-secondary-button {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+.save-secondary-button:hover {
+  background: #f8fafc;
+}
+
+.save-secondary-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1400px) {
+  .orcamento-dados-principais,
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .orcamento-total-area,
+  .orcamento-pagamento-area,
+  .orcamento-topo-card,
+  .pedido-acoes-documentos {
+    grid-template-columns: 1fr;
+  }
+
+  .orcamento-pagamento-lateral {
+    border-right: 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .pagamento-lista-header,
+  .pagamento-lista-linha,
+  .pagamento-lista-header-boleto,
+  .pagamento-lista-linha-boleto {
+    grid-template-columns:
+      minmax(112px, 0.95fr)
+      minmax(78px, 0.7fr)
+      minmax(150px, 1.15fr)
+      minmax(180px, 1.55fr)
+      minmax(74px, 0.62fr)
+      minmax(84px, 0.72fr)
+      42px;
+    gap: 8px;
+  }
+
+  .pagamento-lista-linha input,
+  .pagamento-lista-linha select,
+  .pagamento-lista-linha textarea,
+  .pagamento-lista-linha-boleto input,
+  .pagamento-lista-linha-boleto select,
+  .pagamento-lista-linha-boleto textarea {
+    font-size: 11.5px;
+    padding: 8px 7px;
+  }
+
+  .cancel-button {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (max-width: 900px) {
+  .cliente-form-main {
+    padding: 20px 16px 32px;
+  }
+
+  .orcamento-card {
+    padding: 20px;
+  }
+
+  .orcamento-header-linha,
+  .form-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .orcamento-dados-principais,
+  .form-grid,
+  .orcamento-cliente-selecao,
+  .orcamento-produto-barra {
+    grid-template-columns: 1fr;
+  }
+
+  .orcamento-produto-barra > button {
+    min-height: 58px;
+    border-radius: 0 0 14px 14px;
+  }
+
+  .form-grid .span-2 {
+    grid-column: span 1;
+  }
+
+  .orcamento-pagamento-lista {
+    overflow-x: auto;
+  }
+
+  .pagamento-lista-header,
+  .pagamento-lista-header-boleto {
+    display: none;
+  }
+
+  .pagamento-lista-linha,
+  .pagamento-lista-linha-boleto {
+    grid-template-columns: 1fr;
+    width: 100%;
+    min-width: 0;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .pagamento-lista-linha input,
+  .pagamento-lista-linha select,
+  .pagamento-lista-linha textarea,
+  .pagamento-lista-linha-boleto input,
+  .pagamento-lista-linha-boleto select,
+  .pagamento-lista-linha-boleto textarea {
+    font-size: 14px;
+    min-height: 44px;
+  }
+
+  .cancel-button {
+    width: 100%;
+    height: 42px;
+  }
+}
+/* =========================================================
+   AJUSTE FINO - DIMINUI LATERAL DO PAGAMENTO
+   Para a tabela da direita caber melhor na tela
+========================================================= */
+
+.orcamento-pagamento-area {
+  grid-template-columns: 320px minmax(0, 1fr) !important;
+}
+
+.orcamento-pagamento-lateral {
+  padding: 20px 18px !important;
+}
+
+.orcamento-pagamento-lista {
+  padding: 22px 12px !important;
+}
+
+.pagamento-total {
+  padding: 12px !important;
+}
+
+.pagamento-total strong {
+  font-size: 26px !important;
+}
+
+.dados-pagamento-box {
+  padding: 12px !important;
+}
+/* =========================================================
+   AJUSTE FINAL - PAGAMENTO DO PEDIDO
+   Remove a coluna Banco da tabela da direita
+   e mantém a lateral esquerda no tamanho original
+========================================================= */
+
+.orcamento-pagamento-area {
+  grid-template-columns: 380px minmax(0, 1fr) !important;
+}
+
+.orcamento-pagamento-lateral {
+  padding: 24px !important;
+}
+
+.orcamento-pagamento-lista {
+  padding: 24px 16px !important;
+  overflow-x: hidden !important;
+  min-width: 0 !important;
+}
+
+/* Tabela do pagamento agora fica com:
+   Vencimento | Tipo | Observações | Valor | Status | Ação
+*/
+
+.pagamento-lista-header,
+.pagamento-lista-linha,
+.pagamento-lista-header-boleto,
+.pagamento-lista-linha-boleto {
+  display: grid !important;
+  grid-template-columns:
+    minmax(118px, 0.9fr)
+    minmax(190px, 1.25fr)
+    minmax(240px, 1.7fr)
+    minmax(80px, 0.6fr)
+    minmax(92px, 0.72fr)
+    46px !important;
+  gap: 10px !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Esconde somente a coluna Banco:
+   2ª coluna do cabeçalho e 2ª coluna de cada linha
+*/
+
+.pagamento-lista-header > :nth-child(2),
+.pagamento-lista-linha > :nth-child(2),
+.pagamento-lista-header-boleto > :nth-child(2),
+.pagamento-lista-linha-boleto > :nth-child(2) {
+  display: none !important;
+}
+
+.pagamento-lista-header > *,
+.pagamento-lista-header-boleto > * {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.pagamento-lista-linha input,
+.pagamento-lista-linha select,
+.pagamento-lista-linha textarea,
+.pagamento-lista-linha-boleto input,
+.pagamento-lista-linha-boleto select,
+.pagamento-lista-linha-boleto textarea {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 40px !important;
+  font-size: 12px !important;
+  padding: 8px 8px !important;
+  box-sizing: border-box !important;
+}
+
+.pagamento-lista-linha small,
+.pagamento-lista-linha-boleto small {
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  padding: 0 8px !important;
+}
+
+/* No celular continua empilhando normalmente */
+
+@media (max-width: 900px) {
+  .pagamento-lista-header,
+  .pagamento-lista-header-boleto {
+    display: none !important;
+  }
+
+  .pagamento-lista-linha,
+  .pagamento-lista-linha-boleto {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .pagamento-lista-linha > :nth-child(2),
+  .pagamento-lista-linha-boleto > :nth-child(2) {
+    display: none !important;
+  }
+}
+/* AJUSTES CONSOLIDADOS 2026-07-05 */
+.produto-toolbar-icon{width:58px;height:58px;border-radius:16px;border:1px solid #1e3a5f;background:#071426;display:flex;align-items:center;justify-content:center;cursor:pointer}.produto-toolbar-back{color:#e2e8f0}
+.compras-form-filtros-card,.financeiro-filtros-panel{display:flex;gap:12px;align-items:end;padding:16px 18px;margin:0 0 16px;background:#0b1b30;border:1px solid #1e3a5f;border-radius:14px}.compras-form-filtros-card label,.financeiro-filtros-panel label{display:grid;gap:6px;color:#9fb3c8}.compras-form-filtros-card select,.financeiro-filtros-panel select{min-width:220px;padding:10px;border-radius:9px}.compras-form-filtros-card button,.financeiro-filtros-panel button{padding:10px 14px;border-radius:9px;border:0;cursor:pointer}.compras-filter-count{min-width:20px;height:20px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#f59e0b;color:#08111f;font-weight:800}
+.vendas-icon-new{width:58px;height:58px;border-radius:16px;border:1px solid #14532d;background:#052e16;color:#22c55e;display:flex;align-items:center;justify-content:center;cursor:pointer}.vendas-filter-toggle{min-height:46px;display:inline-flex;align-items:center;gap:8px;padding:0 14px;border-radius:12px;border:1px solid #32445e;background:#0b1b30;color:#d7e4f2;cursor:pointer}.vendas-filter-toggle.ativo{border-color:#f59e0b}.vendas-filter-toggle span{background:#f59e0b;color:#111827;border-radius:999px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-weight:800}.vendas-filtros-recolhiveis{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;padding:12px;background:#0b1b30;border:1px solid #1e3a5f;border-radius:14px}.vendas-clear-filters{padding:10px 13px;border-radius:9px;border:1px solid #465c78;background:transparent;color:#d7e4f2;cursor:pointer}
+.estoque-primary-page-action{display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:0 16px;border-radius:14px;border:1px solid #155e75;background:#083344;color:#67e8f9;font-weight:700;cursor:pointer}.estoque-history-filter{display:flex;align-items:center;gap:7px}.estoque-history-filter select{min-height:42px;border-radius:10px;padding:0 10px}
+.pedido-brindes-card{padding:18px;border:1px solid #28466d;border-radius:16px;background:#071426;margin-bottom:22px}.pedido-brindes-card>p{color:#91a7bd}.pedido-brindes-grid{display:grid;grid-template-columns:2fr .7fr 1.3fr 1.4fr 1.3fr 1.5fr;gap:12px}.pedido-brindes-grid label{display:grid;gap:6px;color:#9fb3c8}.pedido-brindes-grid input,.pedido-brindes-grid select{min-height:42px;border-radius:9px}.pedido-brindes-lista{margin-top:16px;display:grid;gap:8px}.pedido-brinde-linha{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;padding:12px;border:1px solid #233f62;border-radius:12px;background:#0b1b30}.pedido-brinde-linha div:first-child{display:grid;gap:3px}.pedido-brinde-linha span,.pedido-brinde-linha small{color:#9fb3c8}.brinde-status{padding:6px 9px;border-radius:999px;font-size:12px;font-weight:800}.brinde-status.baixado{background:#064e3b;color:#6ee7b7}.brinde-status.pendente{background:#78350f;color:#fcd34d}
+.financeiro-fluxo-detalhado{margin:22px 0;padding:20px;border:1px solid #24415f;border-radius:18px;background:#071426}.financeiro-fluxo-header{display:flex;justify-content:space-between;align-items:end;gap:16px}.financeiro-fluxo-header h2{margin:0;color:#f8fafc}.financeiro-fluxo-header p{margin:5px 0 0;color:#8fa6bc}.financeiro-fluxo-periodo{display:flex;gap:10px}.financeiro-fluxo-periodo label{display:grid;gap:4px;color:#9fb3c8}.financeiro-fluxo-periodo input{padding:9px;border-radius:8px}.financeiro-fluxo-resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.financeiro-fluxo-resumo article{padding:14px;border-radius:12px;background:#0b1b30;border:1px solid #1e3a5f;display:grid;gap:5px}.financeiro-fluxo-resumo span{color:#8fa6bc}.financeiro-fluxo-resumo strong{font-size:20px}.financeiro-fluxo-linhas{display:grid;gap:4px}.financeiro-fluxo-grupo,.financeiro-fluxo-total{display:flex;justify-content:space-between;padding:14px;border:0;border-radius:9px;background:#10243d;color:#e2e8f0;font-weight:800}.financeiro-fluxo-grupo{cursor:pointer}.financeiro-fluxo-detalhes{display:grid;gap:2px;padding:0 10px 10px}.financeiro-fluxo-detalhes>div{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #18334f;color:#bdcce0}.financeiro-fluxo-item{font-size:13px}.financeiro-fluxo-total{margin-top:8px;background:#064e3b;color:#a7f3d0}
+.financeiro-conciliacao-filtros{display:grid;grid-template-columns:minmax(280px,1fr) auto auto auto;gap:10px;margin:18px 0}.financeiro-busca-conciliacao,.financeiro-modal-filtros>div{display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid #294764;border-radius:10px;background:#08182a}.financeiro-busca-conciliacao input,.financeiro-modal-filtros input{width:100%;min-height:42px;border:0;background:transparent;color:#e2e8f0;outline:0}.financeiro-conciliacao-filtros select,.financeiro-modal-filtros select{min-height:44px;border-radius:10px;padding:0 10px}.financeiro-conciliacao-acoes{display:flex;gap:6px}.financeiro-conciliacao-acoes button{padding:7px 9px;border-radius:8px;border:1px solid #31506f;background:#0b1b30;color:#dce7f2;cursor:pointer}.financeiro-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}.financeiro-modal-conciliacao{width:min(1100px,95vw);max-height:88vh;overflow:auto;background:#071426;border:1px solid #31506f;border-radius:18px;padding:20px}.financeiro-modal-header{display:flex;justify-content:space-between;align-items:start}.financeiro-modal-header h2{margin:0}.financeiro-modal-header button{font-size:28px;border:0;background:transparent;color:#e2e8f0;cursor:pointer}.financeiro-modal-filtros{display:grid;grid-template-columns:1fr auto;gap:10px;margin:18px 0}.financeiro-modal-lista{display:grid;gap:8px}.financeiro-conta-candidata{display:flex;justify-content:space-between;align-items:center;text-align:left;padding:14px;border-radius:12px;border:1px solid #24415f;background:#0b1b30;color:#e5edf7;cursor:pointer}.financeiro-conta-candidata:hover{border-color:#22c55e}.financeiro-conta-candidata div{display:grid;gap:4px}.financeiro-conta-candidata span{color:#93a8bd}
+@media(max-width:1100px){.pedido-brindes-grid{grid-template-columns:1fr 1fr}.financeiro-conciliacao-filtros{grid-template-columns:1fr 1fr}.financeiro-fluxo-resumo{grid-template-columns:1fr 1fr}}
+
+/* CORREÇÃO ESTRUTURAL PAGAMENTO + BRINDES 2026-07-06 */
+.orcamento-pagamento-area{display:grid!important;grid-template-columns:minmax(280px,340px) minmax(0,1fr)!important;width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important;box-sizing:border-box!important}
+.orcamento-pagamento-lateral,.orcamento-pagamento-lista{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+.orcamento-pagamento-lista{overflow:hidden!important;padding:22px 14px!important}
+.pagamento-lista-header,.pagamento-lista-linha,.pagamento-lista-header-boleto,.pagamento-lista-linha-boleto{grid-template-columns:minmax(112px,1fr) minmax(130px,1.15fr) minmax(190px,1.7fr) minmax(78px,.7fr) minmax(88px,.78fr) 44px!important;gap:8px!important;width:100%!important;max-width:100%!important;min-width:0!important}
+.pagamento-lista-header>*,.pagamento-lista-linha>*,.pagamento-lista-header-boleto>*,.pagamento-lista-linha-boleto>*{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+.pagamento-lista-linha input,.pagamento-lista-linha select,.pagamento-lista-linha textarea,.pagamento-lista-linha-boleto input,.pagamento-lista-linha-boleto select,.pagamento-lista-linha-boleto textarea{min-width:0!important;width:100%!important;max-width:100%!important}
+.pedido-brindes-card{background:#f8fbff!important;border:1px solid #dbe7f3!important;color:#20314c!important;box-shadow:0 8px 24px rgba(15,23,42,.05)!important}
+.pedido-brindes-card>p{color:#64748b!important}
+.pedido-brindes-grid{display:grid!important;grid-template-columns:minmax(240px,2fr) minmax(90px,.65fr) minmax(180px,1.25fr) minmax(170px,1.2fr) minmax(190px,1.35fr) auto!important;align-items:end!important;gap:12px!important}
+.pedido-brindes-grid label{color:#334155!important;font-weight:700!important}
+.pedido-brinde-adicionar{align-self:end!important;height:48px!important;white-space:nowrap!important;margin:0!important}
+.pedido-brinde-linha{background:#ffffff!important;border-color:#dbe7f3!important}
+.pedido-brinde-linha span,.pedido-brinde-linha small{color:#64748b!important}
+@media(max-width:1250px){.pedido-brindes-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.pedido-brinde-adicionar{width:100%!important}}
+@media(max-width:1050px){.orcamento-pagamento-area{grid-template-columns:1fr!important}.pagamento-lista-header,.pagamento-lista-header-boleto{display:none!important}.pagamento-lista-linha,.pagamento-lista-linha-boleto{grid-template-columns:1fr!important}}
+
+/* RECEBER MANUALMENTE NA LINHA DA PARCELA */
+.pagamento-lista-header,
+.pagamento-lista-linha,
+.pagamento-lista-header-boleto,
+.pagamento-lista-linha-boleto{
+  grid-template-columns:minmax(108px,.9fr) minmax(110px,.8fr) minmax(138px,1fr) minmax(165px,1.3fr) minmax(64px,.5fr) minmax(82px,.64fr) minmax(152px,1.12fr)!important;
+  gap:8px!important;
+}
+.pagamento-lista-header > :nth-child(2),
+.pagamento-lista-linha > :nth-child(2),
+.pagamento-lista-header-boleto > :nth-child(2),
+.pagamento-lista-linha-boleto > :nth-child(2){
+  display:none!important;
+}
+.pagamento-acoes-linha{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;min-width:0!important}
+.pagamento-receber-button{min-height:42px!important;height:42px!important;padding:0 12px!important;border:0!important;border-radius:11px!important;background:#22a45d!important;color:#fff!important;font-size:11px!important;font-weight:900!important;letter-spacing:.02em!important;cursor:pointer!important;white-space:nowrap!important}
+.pagamento-acoes-linha .cancel-button{width:42px!important;height:42px!important;min-width:42px!important;flex:0 0 42px!important}
+@media(max-width:1050px){
+  .pagamento-acoes-linha{justify-content:flex-start!important}
+  .pagamento-receber-button{min-width:110px!important}
+}
+
+/* STATUS PENDENTE - COR SUAVE */
+.pagamento-lista-linha small,
+.pagamento-lista-linha-boleto small{
+  background:#dbeafe!important;
+  color:#1d4ed8!important;
+  border:1px solid #bfdbfe!important;
+}
+
+/* AJUSTE FINAL DA LINHA DE PAGAMENTO DO PEDIDO - CABER EM 1 LINHA SEM SOBREPOSIÇÃO */
+.pagamento-lista-header,
+.pagamento-lista-linha,
+.pagamento-lista-header-boleto,
+.pagamento-lista-linha-boleto{
+  grid-template-columns:
+    minmax(136px,.98fr)
+    0px
+    minmax(138px,.95fr)
+    minmax(180px,1.28fr)
+    minmax(72px,.50fr)
+    minmax(86px,.62fr)
+    minmax(154px,1.08fr) !important;
+  gap:10px!important;
+  align-items:center!important;
+}
+.pagamento-lista-header > :nth-child(1),
+.pagamento-lista-linha > :nth-child(1),
+.pagamento-lista-header-boleto > :nth-child(1),
+.pagamento-lista-linha-boleto > :nth-child(1){
+  min-width:0!important;
+}
+.pagamento-lista-linha > :nth-child(1) input,
+.pagamento-lista-linha-boleto > :nth-child(1) input{
+  padding:8px 6px!important;
+  font-size:11px!important;
+}
+.pagamento-lista-linha > :nth-child(5) input,
+.pagamento-lista-linha-boleto > :nth-child(5) input{
+  padding:8px 8px!important;
+}
+.pagamento-lista-linha small,
+.pagamento-lista-linha-boleto small{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  justify-self:start!important;
+  width:auto!important;
+  max-width:max-content!important;
+  min-width:74px!important;
+  min-height:40px!important;
+  padding:0 12px!important;
+  border-radius:999px!important;
+  white-space:nowrap!important;
+  box-sizing:border-box!important;
+}
+.pagamento-acoes-linha{
+  justify-content:flex-start!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+.pagamento-receber-button{
+  min-width:96px!important;
+  height:42px!important;
+  padding:0 10px!important;
+  font-size:11px!important;
+  flex:0 0 auto!important;
+}
+.pagamento-acoes-linha .cancel-button{
+  width:42px!important;
+  height:42px!important;
+  min-width:42px!important;
+  flex:0 0 42px!important;
+}
+
+/* CORREÇÃO DEFINITIVA DA GRADE DE PAGAMENTO - 6 COLUNAS VISÍVEIS
+   Banco permanece oculto. A grade considera apenas:
+   Vencimento | Tipo | Observações | Valor | Status | Ação
+*/
+.pagamento-lista-header,
+.pagamento-lista-linha,
+.pagamento-lista-header-boleto,
+.pagamento-lista-linha-boleto{
+  display:grid!important;
+  grid-template-columns:
+    150px
+    140px
+    minmax(210px,1fr)
+    100px
+    110px
+    170px!important;
+  gap:10px!important;
+  align-items:center!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+
+/* Banco oculto sem reservar coluna */
+.pagamento-lista-header > :nth-child(2),
+.pagamento-lista-linha > :nth-child(2),
+.pagamento-lista-header-boleto > :nth-child(2),
+.pagamento-lista-linha-boleto > :nth-child(2){
+  display:none!important;
+}
+
+.pagamento-lista-header > *,
+.pagamento-lista-linha > *,
+.pagamento-lista-header-boleto > *,
+.pagamento-lista-linha-boleto > *{
+  min-width:0!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+
+.pagamento-lista-linha input,
+.pagamento-lista-linha select,
+.pagamento-lista-linha textarea,
+.pagamento-lista-linha-boleto input,
+.pagamento-lista-linha-boleto select,
+.pagamento-lista-linha-boleto textarea{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  height:50px!important;
+  min-height:50px!important;
+  padding:0 12px!important;
+  font-size:13px!important;
+  box-sizing:border-box!important;
+}
+
+.pagamento-lista-linha input[type='date'],
+.pagamento-lista-linha-boleto input[type='date']{
+  font-size:13px!important;
+  padding:0 10px!important;
+}
+
+.pagamento-lista-linha small,
+.pagamento-lista-linha-boleto small{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  justify-self:stretch!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  height:44px!important;
+  min-height:44px!important;
+  padding:0 10px!important;
+  border-radius:999px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  box-sizing:border-box!important;
+}
+
+.pagamento-acoes-linha{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+
+.pagamento-receber-button{
+  width:96px!important;
+  min-width:96px!important;
+  max-width:96px!important;
+  height:50px!important;
+  min-height:50px!important;
+  padding:0!important;
+  flex:0 0 96px!important;
+  font-size:11px!important;
+}
+
+.pagamento-acoes-linha .cancel-button{
+  width:50px!important;
+  min-width:50px!important;
+  max-width:50px!important;
+  height:50px!important;
+  min-height:50px!important;
+  flex:0 0 50px!important;
+}
+
+@media(max-width:1180px){
+  .pagamento-lista-header,
+  .pagamento-lista-linha,
+  .pagamento-lista-header-boleto,
+  .pagamento-lista-linha-boleto{
+    grid-template-columns:
+      140px
+      128px
+      minmax(180px,1fr)
+      90px
+      100px
+      156px!important;
+    gap:8px!important;
+  }
+
+  .pagamento-receber-button{
+    width:90px!important;
+    min-width:90px!important;
+    max-width:90px!important;
+    flex-basis:90px!important;
+  }
+
+  .pagamento-acoes-linha .cancel-button{
+    width:44px!important;
+    min-width:44px!important;
+    max-width:44px!important;
+    flex-basis:44px!important;
+  }
+}
+
+/* RECEBER COMO ÍCONE - PADRÃO VISUAL DO ERP */
+.pagamento-lista-header,
+.pagamento-lista-linha,
+.pagamento-lista-header-boleto,
+.pagamento-lista-linha-boleto{
+  grid-template-columns:
+    150px
+    140px
+    minmax(210px,1fr)
+    100px
+    110px
+    112px!important;
+}
+
+.pagamento-acoes-linha{
+  justify-content:flex-start!important;
+  gap:8px!important;
+}
+
+.pagamento-receber-button{
+  width:50px!important;
+  min-width:50px!important;
+  max-width:50px!important;
+  height:50px!important;
+  min-height:50px!important;
+  padding:0!important;
+  flex:0 0 50px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border:0!important;
+  border-radius:14px!important;
+  background:#22a45d!important;
+  color:#ffffff!important;
+  cursor:pointer!important;
+}
+
+.pagamento-receber-button svg{
+  width:22px!important;
+  height:22px!important;
+}
+
+.pagamento-acoes-linha .cancel-button{
+  width:50px!important;
+  min-width:50px!important;
+  max-width:50px!important;
+  height:50px!important;
+  min-height:50px!important;
+  flex:0 0 50px!important;
+}
+
+@media(max-width:1180px){
+  .pagamento-lista-header,
+  .pagamento-lista-linha,
+  .pagamento-lista-header-boleto,
+  .pagamento-lista-linha-boleto{
+    grid-template-columns:
+      140px
+      128px
+      minmax(180px,1fr)
+      90px
+      100px
+      104px!important;
+  }
+
+  .pagamento-receber-button,
+  .pagamento-acoes-linha .cancel-button{
+    width:46px!important;
+    min-width:46px!important;
+    max-width:46px!important;
+    height:46px!important;
+    min-height:46px!important;
+    flex-basis:46px!important;
+  }
+}
+
+/* AÇÃO DO PAGAMENTO - RECEBER + EXCLUIR VISÍVEIS LADO A LADO */
+.pagamento-lista-header,
+.pagamento-lista-linha,
+.pagamento-lista-header-boleto,
+.pagamento-lista-linha-boleto{
+  grid-template-columns:
+    150px
+    140px
+    minmax(210px,1fr)
+    100px
+    110px
+    122px!important;
+}
+
+.pagamento-acoes-linha{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+  width:122px!important;
+  min-width:122px!important;
+  max-width:122px!important;
+  overflow:visible!important;
+}
+
+.pagamento-receber-button{
+  width:50px!important;
+  min-width:50px!important;
+  max-width:50px!important;
+  height:50px!important;
+  min-height:50px!important;
+  flex:0 0 50px!important;
+}
+
+.pagamento-acoes-linha .cancel-button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  visibility:visible!important;
+  opacity:1!important;
+  width:50px!important;
+  min-width:50px!important;
+  max-width:50px!important;
+  height:50px!important;
+  min-height:50px!important;
+  flex:0 0 50px!important;
+  background:#fee2e2!important;
+  color:#ef4444!important;
+  border:0!important;
+  border-radius:14px!important;
+  cursor:pointer!important;
+}
+
+.pagamento-acoes-linha .cancel-button svg{
+  width:18px!important;
+  height:18px!important;
+}
+
+@media(max-width:1180px){
+  .pagamento-lista-header,
+  .pagamento-lista-linha,
+  .pagamento-lista-header-boleto,
+  .pagamento-lista-linha-boleto{
+    grid-template-columns:
+      140px
+      128px
+      minmax(180px,1fr)
+      90px
+      100px
+      112px!important;
+  }
+
+  .pagamento-acoes-linha{
+    width:112px!important;
+    min-width:112px!important;
+    max-width:112px!important;
+  }
+
+  .pagamento-receber-button,
+  .pagamento-acoes-linha .cancel-button{
+    width:48px!important;
+    min-width:48px!important;
+    max-width:48px!important;
+    height:48px!important;
+    min-height:48px!important;
+    flex-basis:48px!important;
+  }
+}
+
+/* CORREÇÃO COMPACTA FINAL - PAGAMENTO SEM SAIR DA TELA */
+.pagamento-lista-header,
+.pagamento-lista-linha,
+.pagamento-lista-header-boleto,
+.pagamento-lista-linha-boleto{
+  grid-template-columns:
+    minmax(118px,1.05fr)
+    minmax(110px,.95fr)
+    minmax(150px,1.5fr)
+    minmax(70px,.65fr)
+    minmax(88px,.78fr)
+    100px!important;
+  gap:8px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+
+.pagamento-lista-header > *,
+.pagamento-lista-linha > *,
+.pagamento-lista-header-boleto > *,
+.pagamento-lista-linha-boleto > *{
+  min-width:0!important;
+  max-width:100%!important;
+}
+
+.pagamento-lista-linha input,
+.pagamento-lista-linha select,
+.pagamento-lista-linha textarea,
+.pagamento-lista-linha-boleto input,
+.pagamento-lista-linha-boleto select,
+.pagamento-lista-linha-boleto textarea{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+
+.pagamento-acoes-linha{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:6px!important;
+  width:100px!important;
+  min-width:100px!important;
+  max-width:100px!important;
+  overflow:hidden!important;
+}
+
+.pagamento-receber-button,
+.pagamento-acoes-linha .cancel-button{
+  width:44px!important;
+  min-width:44px!important;
+  max-width:44px!important;
+  height:44px!important;
+  min-height:44px!important;
+  flex:0 0 44px!important;
+  padding:0!important;
+}
+
+.pagamento-receber-button svg{
+  width:20px!important;
+  height:20px!important;
+}
+
+.pagamento-acoes-linha .cancel-button svg{
+  width:17px!important;
+  height:17px!important;
+}
+
+.pagamento-lista-linha small,
+.pagamento-lista-linha-boleto small{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  padding:0 8px!important;
+  font-size:12px!important;
+}
+
+@media(max-width:1180px){
+  .pagamento-lista-header,
+  .pagamento-lista-linha,
+  .pagamento-lista-header-boleto,
+  .pagamento-lista-linha-boleto{
+    grid-template-columns:
+      minmax(112px,1fr)
+      minmax(102px,.9fr)
+      minmax(138px,1.4fr)
+      minmax(64px,.6fr)
+      minmax(82px,.72fr)
+      96px!important;
+    gap:6px!important;
+  }
+
+  .pagamento-acoes-linha{
+    width:96px!important;
+    min-width:96px!important;
+    max-width:96px!important;
+  }
+
+  .pagamento-receber-button,
+  .pagamento-acoes-linha .cancel-button{
+    width:43px!important;
+    min-width:43px!important;
+    max-width:43px!important;
+    height:43px!important;
+    min-height:43px!important;
+    flex-basis:43px!important;
+  }
+}
+
+
+/* BRINDES - LAYOUT CLARO E COMPACTO */
+.pedido-brindes-grid {
+  grid-template-columns: minmax(300px, 2fr) minmax(100px, .55fr) minmax(240px, 1.25fr) minmax(280px, 1.5fr) auto !important;
+  align-items: end !important;
+}
+
+.pedido-brindes-grid label {
+  min-width: 0;
+}
+
+.pedido-brindes-grid input,
+.pedido-brindes-grid select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.pedido-brindes-card > p {
+  margin: 0 0 14px !important;
+  font-size: 13px !important;
+}
+
+@media (max-width: 1320px) {
+  .pedido-brindes-grid {
+    grid-template-columns: minmax(260px, 1.6fr) minmax(100px, .55fr) minmax(220px, 1.15fr) minmax(240px, 1.3fr) !important;
+  }
+
+  .pedido-brinde-adicionar {
+    width: 100% !important;
+  }
+}
+
+.pagamento-status-link{border:0;background:transparent;color:#5e6f86;font:inherit;font-weight:800;cursor:pointer;padding:8px 10px;border-radius:999px;transition:.18s ease}.pagamento-status-link:hover{background:#eef5ff;color:#2563eb}.pagamento-status-link.pago{background:#dbeafe;color:#1d4ed8}.pagamento-status-link.pago:hover{background:#bfdbfe;color:#1e40af}
+
+/* SYA 2026-07-09 — documentos do pedido em fluxo vertical */
+.pedido-documentos-vertical {
+  display: flex !important;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+}
+
+.pedido-documentos-vertical .pedido-documento-card {
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.pedido-documento-titulo-com-acoes {
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.pedido-documento-titulo-com-acoes > div:first-child,
+.pedido-documento-titulo,
+.envio-canal-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.documento-acoes-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.documento-acoes-principais {
+  margin-top: 16px;
+}
+
+.documento-btn {
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #24324a;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.documento-btn:hover { background: #f8fafc; }
+.documento-btn.destaque { border-color: #16a34a; color: #166534; background: #f0fdf4; }
+.documento-btn.perigo { border-color: #fecaca; color: #dc2626; background: #fff7f7; }
+
+.documento-icon-btn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.documento-icon-btn.perigo { color: #dc2626; border-color: #fecaca; background: #fff7f7; }
+
+.boleto-contadores {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.boleto-contadores > div {
+  background: #fff;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 12px 15px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 12px;
+}
+.boleto-contadores span { font-weight: 800; color: #334155; }
+.boleto-contadores strong { font-size: 18px; color: #166534; }
+.boleto-contadores small { grid-column: 1 / -1; color: #64748b; }
+
+.boleto-parcelas-lista { display: flex; flex-direction: column; gap: 10px; }
+.boleto-parcela-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 14px;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #dcfce7;
+  border-radius: 12px;
+  padding: 13px 15px;
+}
+.boleto-parcela-info { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.boleto-parcela-info strong { color: #172033; font-size: 15px; }
+.boleto-parcela-info span { color: #52617a; font-size: 13px; overflow-wrap: anywhere; }
+.boleto-erro { color: #b91c1c; font-weight: 700; overflow-wrap: anywhere; }
+.boleto-parcela-acoes { display: flex; gap: 7px; align-items: center; }
+
+.boleto-status-badge,
+.nf-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 900;
+  background: #e2e8f0;
+  color: #334155;
+  white-space: nowrap;
+}
+.status-pago, .status-emitida, .status-autorizada, .status-gerado { background: #dcfce7; color: #166534; }
+.status-erro, .status-erro-na-emissão, .status-rejeitada, .status-cancelada, .status-cancelado { background: #fee2e2; color: #b91c1c; }
+.status-gerando, .status-enviando { background: #dbeafe; color: #1d4ed8; }
+.status-vencido { background: #ffedd5; color: #c2410c; }
+
+.nota-resumo-principal { background: #fff; border: 1px solid #bae6fd; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 4px; }
+.nota-resumo-principal strong { font-size: 18px; color: #0f172a; }
+.nota-resumo-principal span { color: #64748b; }
+.nf-resumo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.nf-resumo-grid > div { background: #fff; border: 1px solid #bae6fd; border-radius: 12px; padding: 13px 15px; display: flex; flex-direction: column; gap: 5px; }
+.nf-resumo-grid span { color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.nf-resumo-grid strong { color: #0f172a; font-size: 16px; }
+
+.envio-canais-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.envio-canal-card { background: #fff; border: 1px solid #fde68a; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+.envio-canal-titulo strong { font-size: 16px; }
+.envio-canal-titulo span { margin-left: auto; color: #64748b; font-size: 12px; font-weight: 700; }
+.envio-canal-card label { display: flex; flex-direction: column; gap: 6px; font-weight: 800; color: #334155; }
+.envio-canal-card input { width: 100%; min-height: 42px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0 12px; background: #fff; color: #0f172a; box-sizing: border-box; }
+.whatsapp-modo { display: flex; gap: 8px; }
+.whatsapp-modo button { flex: 1; min-height: 39px; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; cursor: pointer; font-weight: 800; color: #475569; }
+.whatsapp-modo button.ativo { border-color: #16a34a; background: #f0fdf4; color: #166534; }
+.whatsapp-agendamento { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.documento-vazio { background: #fff; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 16px; color: #64748b; text-align: center; }
+
+@media (max-width: 900px) {
+  .boleto-contadores,
+  .nf-resumo-grid,
+  .envio-canais-grid { grid-template-columns: 1fr; }
+  .boleto-parcela-card { grid-template-columns: 1fr; }
+  .boleto-parcela-acoes { justify-content: flex-start; }
+}
+
+/* V40 - quantidade padronizada com orçamento */
+.pedido-quantidade-controles{display:grid;grid-template-columns:1fr 50px;grid-template-rows:1fr 1fr;gap:6px;align-items:stretch}.pedido-quantidade-controles input{grid-row:1/3;width:100%;min-width:84px;text-align:center;font-size:22px;font-weight:800;-moz-appearance:textfield}.pedido-quantidade-controles input::-webkit-inner-spin-button,.pedido-quantidade-controles input::-webkit-outer-spin-button{appearance:none;margin:0}.pedido-quantidade-controles button{display:flex;align-items:center;justify-content:center;border:1px solid #c4b5fd;border-radius:12px;background:#fff;color:#172033;min-width:50px;cursor:pointer}.pedido-qtd-tabela{display:flex;align-items:center;gap:6px}.pedido-qtd-tabela button{width:48px;height:48px;border:1px solid #bae6fd;border-radius:14px;background:#fff;color:#0284c7;display:flex;align-items:center;justify-content:center;cursor:pointer}.pedido-qtd-tabela input{width:88px;height:40px;text-align:center;font-weight:700;-moz-appearance:textfield}.pedido-qtd-tabela input::-webkit-inner-spin-button,.pedido-qtd-tabela input::-webkit-outer-spin-button{appearance:none;margin:0}
+
+
+/* V41 - autocomplete por teclado validado no Pedido */
+.lista-sugestoes .pedido-sugestao-opcao {
+  width: 100%;
+  text-align: left;
+}
+.lista-sugestoes .pedido-sugestao-opcao.ativo-teclado {
+  background: #ede9fe !important;
+  border-color: #7c3aed !important;
+  box-shadow: inset 4px 0 0 #7c3aed;
+  color: #4c1d95 !important;
+}
+.lista-sugestoes .pedido-sugestao-opcao.ativo-teclado strong,
+.lista-sugestoes .pedido-sugestao-opcao.ativo-teclado small {
+  color: inherit !important;
+}
+
+/* V44 - ajuste fiscal dos itens antes da NF-e */
+.ajuste-fiscal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.76);z-index:10050;display:flex;align-items:center;justify-content:center;padding:28px}.ajuste-fiscal-modal{width:min(1120px,96vw);max-height:90vh;overflow:auto;background:#fff;box-shadow:0 24px 70px rgba(0,0,0,.4)}.ajuste-fiscal-cabecalho{display:flex;justify-content:space-between;align-items:stretch;background:#c4c4c4;color:#fff}.ajuste-fiscal-cabecalho>div{padding:22px 28px}.ajuste-fiscal-cabecalho h2{margin:0;font-size:26px}.ajuste-fiscal-cabecalho p{margin:8px 0 0;color:#4b5563;background:#fff;padding:14px 18px}.ajuste-fiscal-cabecalho>button{width:74px;border:0;background:#9f9f9f;color:#fff;font-size:42px;cursor:pointer}.ajuste-fiscal-conteudo{padding:20px 28px}.ajuste-fiscal-grid{display:grid;grid-template-columns:minmax(280px,2fr) 130px 110px minmax(190px,1fr) minmax(220px,1fr);gap:16px;align-items:center}.ajuste-fiscal-titulos{font-weight:800;color:#4b5563;padding:0 10px 10px;border-bottom:1px solid #d1d5db}.ajuste-fiscal-linha{padding:16px 10px;border-bottom:1px solid #d1d5db}.ajuste-fiscal-linha div{display:flex;flex-direction:column;gap:4px}.ajuste-fiscal-linha small{color:#64748b}.ajuste-fiscal-linha input,.ajuste-fiscal-linha select{height:44px;border:1px solid #9ca3af;background:#f8fafc;padding:0 10px;font-size:15px}.ajuste-fiscal-acoes{display:flex;justify-content:flex-end;gap:12px;padding:20px 28px;border-top:1px solid #e5e7eb}.ajuste-fiscal-acoes button{border:0;padding:15px 32px;background:#444;color:#fff;font-weight:800;cursor:pointer}.ajuste-fiscal-acoes .salvar{background:#8ccc31}@media(max-width:900px){.ajuste-fiscal-grid{grid-template-columns:1fr 1fr}.ajuste-fiscal-titulos{display:none}.ajuste-fiscal-linha>div{grid-column:1/-1}.ajuste-fiscal-modal{max-height:94vh}}
+
+/* V46 - compactacao dos controles de quantidade no Pedido */
+.orcamento-produto-barra {
+  grid-template-columns: minmax(420px, 1fr) 175px 220px 225px;
+}
+
+.orcamento-produto-barra > div:nth-child(2) {
+  padding: 18px 14px;
+}
+
+.pedido-quantidade-controles {
+  grid-template-columns: minmax(72px, 88px) 42px;
+  grid-template-rows: 32px 32px;
+  gap: 5px;
+  justify-content: start;
+  align-items: center;
+}
+
+.pedido-quantidade-controles input {
+  grid-row: 1 / 3;
+  width: 88px;
+  min-width: 0;
+  height: 69px;
+  padding: 0 8px;
+  font-size: 19px;
+  line-height: 1;
+  border-radius: 12px;
+}
+
+.pedido-quantidade-controles button {
+  width: 42px;
+  min-width: 42px;
+  height: 32px;
+  padding: 0;
+  border-radius: 10px;
+}
+
+.pedido-quantidade-controles button svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.2;
+}
+
+.pedido-qtd-tabela {
+  gap: 7px;
+  flex-wrap: nowrap;
+}
+
+.pedido-qtd-tabela button {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 11px;
+  padding: 0;
+}
+
+.pedido-qtd-tabela button svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+}
+
+.pedido-qtd-tabela input {
+  width: 76px;
+  height: 38px;
+  padding: 0 6px;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: 10px;
+}
+
+.history-table th:nth-child(2),
+.history-table td:nth-child(2) {
+  min-width: 215px;
+}
+
+.history-table td:nth-child(2) > small {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+@media (max-width: 1180px) {
+  .orcamento-produto-barra {
+    grid-template-columns: minmax(320px, 1fr) 165px 190px 190px;
+  }
+}
+
+/* V95 - ações do Novo/Editar Pedido no padrão oficial */
+.pedido-top-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+}
+.pedido-top-actions > .pedido-voltar-btn { margin-right: auto !important; }
+.pedido-top-actions > .orcamento-iconbar.topo {
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+}
+.pedido-top-actions .pedido-acao {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  border-radius: 16px !important;
+}
+
+
+/* Busca inteligente de NCM por código ou descrição */
+.ncm-busca-campo{position:relative;min-width:0}.ncm-busca-campo>input{width:100%;box-sizing:border-box}.ncm-buscando{position:absolute;right:8px;top:48px;color:#64748b;font-size:11px}.ncm-sugestoes{position:absolute;left:0;right:0;top:48px;z-index:10080;max-height:260px;overflow:auto;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 14px 35px rgba(15,23,42,.18)}.ncm-sugestoes button{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border:0;border-bottom:1px solid #e2e8f0;background:#fff;text-align:left;cursor:pointer}.ncm-sugestoes button:hover{background:#eff6ff}.ncm-sugestoes button:last-child{border-bottom:0}.ncm-sugestoes strong{color:#0f172a;font-size:14px}.ncm-sugestoes span{color:#475569;font-size:12px;line-height:1.3}
+
+.ncm-descricao-selecionada{display:block;margin-top:4px;color:#0f766e;font-weight:700;line-height:1.25}.nota-data-entrega-inline{display:flex;align-items:end;gap:12px;margin:12px 0;padding:12px;border:1px solid #bae6fd;border-radius:12px;background:#f0f9ff}.nota-data-entrega-inline label{display:grid;gap:6px;font-weight:800;color:#334155}.nota-data-entrega-inline input{min-width:180px;padding:10px;border:1px solid #cbd5e1;border-radius:8px}.nota-data-entrega-inline button{padding:10px 14px;border:0;border-radius:8px;background:#0284c7;color:#fff;font-weight:800}.edicao-fiscal-modal{max-width:1000px}.edicao-fiscal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:22px}.edicao-fiscal-grid label{display:grid;gap:6px;font-weight:800;color:#334155}.edicao-fiscal-grid input{padding:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px}@media(max-width:800px){.edicao-fiscal-grid{grid-template-columns:1fr}}
+
+.nfe-cancelamento-overlay{position:fixed;inset:0;z-index:12000;background:rgba(15,23,42,.72);display:flex;align-items:center;justify-content:center;padding:24px}.nfe-cancelamento-modal{width:min(620px,96vw);background:#fff;border-radius:16px;box-shadow:0 28px 80px rgba(0,0,0,.42);overflow:hidden}.nfe-cancelamento-modal header{display:flex;justify-content:space-between;gap:16px;padding:20px 24px;background:#991b1b;color:#fff}.nfe-cancelamento-modal header h2{margin:0;font-size:22px}.nfe-cancelamento-modal header p{margin:6px 0 0;color:#fee2e2}.nfe-cancelamento-modal header button{border:0;background:transparent;color:#fff;font-size:32px;cursor:pointer}.nfe-cancelamento-corpo{display:grid;gap:12px;padding:24px}.nfe-cancelamento-corpo label{display:grid;gap:8px;font-weight:800;color:#334155}.nfe-cancelamento-corpo textarea{min-height:130px;resize:vertical;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit}.nfe-cancelamento-corpo small{color:#64748b}.nfe-cancelamento-corpo p{margin:0;padding:12px;border-radius:10px;background:#fff7ed;color:#9a3412}.nfe-cancelamento-modal footer{display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #e2e8f0}.nfe-cancelamento-modal footer button{border:0;border-radius:9px;padding:12px 18px;font-weight:800;cursor:pointer}.nfe-cancelamento-modal footer .confirmar{background:#b91c1c;color:#fff}.nfe-cancelamento-modal footer button:disabled{opacity:.55;cursor:not-allowed}
+
+
+/* SYNERGIAS V177 — FRETE POR CONTA NO PEDIDO */
+.modalidade-frete-campo select {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+
+/* SYNERGIAS CONSOLIDADO V178 */
+.modalidade-frete-campo select{width:100%;min-height:44px;box-sizing:border-box}
+.pedido-entregue-bloqueado{cursor:not-allowed!important;opacity:.72;pointer-events:none!important}
+.pedido-brindes-card{width:100%;max-width:100%;box-sizing:border-box;overflow:hidden}
+.pedido-brindes-grid{grid-template-columns:minmax(240px,1.65fr) minmax(90px,.48fr) minmax(190px,1.15fr) minmax(190px,1.2fr) minmax(108px,118px)!important;gap:12px!important;align-items:end!important}
+.pedido-brindes-grid>*{min-width:0!important;max-width:100%}
+.pedido-brinde-adicionar{width:100%!important;min-width:0!important;max-width:118px!important;white-space:nowrap!important}
+.pedido-lucratividade-card{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:14px;padding:20px;margin-bottom:24px;border:1px solid #d7e2ef;border-radius:18px;background:#f8fbff}
+.pedido-lucratividade-card div{display:grid;gap:5px}.pedido-lucratividade-card strong{font-size:22px}.pedido-lucratividade-card p{grid-column:1/-1;margin:0;padding:10px 12px;border-radius:10px;background:#fff7ed;color:#9a3412;font-weight:700}
+@media(max-width:1180px){.pedido-brindes-grid{grid-template-columns:minmax(0,1.5fr) minmax(90px,.5fr) minmax(0,1fr)!important}.pedido-brinde-adicionar{max-width:none!important}.pedido-lucratividade-card{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.pedido-brindes-grid,.pedido-lucratividade-card{grid-template-columns:1fr!important}}
+
+/* SYNERGIAS V181 — BOTÃO ORIGEM ORÇAMENTO */
+.pedido-origem-orcamento-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pedido-origem-orcamento-campo > span {
+  color: #243b5a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.pedido-origem-orcamento-botao {
+  width: 100%;
+  min-height: 58px;
+  padding: 0 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #075985;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  transition: .18s ease;
+}
+
+.pedido-origem-orcamento-botao:hover:not(:disabled) {
+  background: #dbeafe;
+  border-color: #7dd3fc;
+  transform: translateY(-1px);
+}
+
+.pedido-origem-orcamento-botao:disabled {
+  cursor: not-allowed;
+  opacity: .6;
+}
+
+.pedido-origem-orcamento-acao {
+  font-size: 12px;
+  color: #0284c7;
+  white-space: nowrap;
+}
+/* SYNERGIAS V181A — ORIGEM ORÇAMENTO NO PADRÃO DO BOTÃO DE PEDIDO */
+.pedido-origem-orcamento-campo {
+  align-items: flex-start !important;
+}
+
+.pedido-origem-orcamento-botao {
+  width: auto !important;
+  min-width: 150px !important;
+  min-height: 40px !important;
+  padding: 7px 16px !important;
+  border-radius: 999px !important;
+  border: 1px solid #93c5fd !important;
+  background: #eff6ff !important;
+  color: #0369a1 !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  box-shadow: none !important;
+}
+
+.pedido-origem-orcamento-botao:hover:not(:disabled) {
+  background: #dbeafe !important;
+  border-color: #60a5fa !important;
+  transform: translateY(-1px) !important;
+}
+
+.pedido-origem-orcamento-acao {
+  display: none !important;
+}
+/* SYNERGIAS V181A — ORIGEM ORÇAMENTO NO PADRÃO DO BOTÃO DE PEDIDO */
+.pedido-origem-orcamento-campo {
+  align-items: flex-start !important;
+}
+
+.pedido-origem-orcamento-botao {
+  width: auto !important;
+  min-width: 150px !important;
+  min-height: 40px !important;
+  padding: 7px 16px !important;
+  border-radius: 999px !important;
+  border: 1px solid #93c5fd !important;
+  background: #eff6ff !important;
+  color: #0369a1 !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  box-shadow: none !important;
+}
+
+.pedido-origem-orcamento-botao:hover:not(:disabled) {
+  background: #dbeafe !important;
+  border-color: #60a5fa !important;
+  transform: translateY(-1px) !important;
+}
+
+.pedido-origem-orcamento-acao {
+  display: none !important;
+}
+/* SYNERGIAS V181A — ORIGEM ORÇAMENTO NO PADRÃO DO BOTÃO DE PEDIDO */
+.pedido-origem-orcamento-campo {
+  align-items: flex-start !important;
+}
+
+.pedido-origem-orcamento-botao {
+  width: auto !important;
+  min-width: 150px !important;
+  min-height: 40px !important;
+  padding: 7px 16px !important;
+  border-radius: 999px !important;
+  border: 1px solid #93c5fd !important;
+  background: #eff6ff !important;
+  color: #0369a1 !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  box-shadow: none !important;
+}
+
+.pedido-origem-orcamento-botao:hover:not(:disabled) {
+  background: #dbeafe !important;
+  border-color: #60a5fa !important;
+  transform: translateY(-1px) !important;
+}
+
+.pedido-origem-orcamento-acao {
+  display: none !important;
+}
+/* SYNERGIAS V181C — ORIGEM ORÇAMENTO SOMENTE NÚMERO */
+.pedido-origem-orcamento-botao {
+  width: auto !important;
+  min-width: 110px !important;
+  min-height: 40px !important;
+  padding: 7px 18px !important;
+  border-radius: 999px !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.pedido-origem-orcamento-botao .pedido-origem-orcamento-acao {
+  display: none !important;
+}
+/* SYNERGIAS V181D — BOTÃO ORIGEM ORÇAMENTO TEAL */
+.pedido-origem-orcamento-campo {
+  align-items: flex-start !important;
+}
+
+.pedido-origem-orcamento-botao {
+  width: auto !important;
+  min-width: 112px !important;
+  min-height: 42px !important;
+  padding: 8px 20px !important;
+  border-radius: 999px !important;
+  border: 1px solid #0f766e !important;
+  background: linear-gradient(135deg, #0f766e, #14b8a6) !important;
+  color: #ffffff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  font-size: 17px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  letter-spacing: .02em !important;
+  box-shadow: 0 8px 18px rgba(15, 118, 110, .24) !important;
+  cursor: pointer !important;
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease !important;
+}
+
+.pedido-origem-orcamento-botao:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 24px rgba(15, 118, 110, .32) !important;
+  filter: brightness(1.04) !important;
+}
+
+.pedido-origem-orcamento-botao:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+
+.pedido-origem-orcamento-botao:disabled {
+  background: #cbd5e1 !important;
+  border-color: #94a3b8 !important;
+  color: #64748b !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  opacity: .75 !important;
+}
+
+.pedido-origem-orcamento-acao {
+  display: none !important;
+}
+/* FIM SYNERGIAS V181D */
+
+/* SYNERGIAS STATUS PEDIDOS V191A - INICIO */
+
+/* =========================================================
+   LISTA DE PEDIDOS
+   Status menor e compacto, sem alterar sua funcao.
+   ========================================================= */
+.vendas-page .pedido-status,
+.vendas-page .status-pedido,
+.vendas-page .pedido-status-badge,
+.vendas-page .venda-status,
+.vendas-page .venda-status-badge,
+.vendas-page .status-badge,
+.vendas-lista .pedido-status,
+.vendas-lista .status-pedido,
+.vendas-lista .pedido-status-badge,
+.vendas-lista .venda-status,
+.vendas-lista .venda-status-badge,
+.pedidos-page .pedido-status,
+.pedidos-page .status-pedido,
+.pedidos-page .pedido-status-badge,
+.pedidos-lista .pedido-status,
+.pedidos-lista .status-pedido,
+.pedidos-lista .pedido-status-badge,
+.pedido-lista-card [class*="status"],
+.venda-lista-card [class*="status"],
+.pedido-card-lista [class*="status"] {
+  width: auto !important;
+  min-width: 96px !important;
+  max-width: 108px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 2px 10px !important;
+  border-radius: 14px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: flex-start !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+/* =========================================================
+   PEDIDO ABERTO
+   Status maior, azul e retangular com cantos arredondados.
+   ========================================================= */
+.orcamento-page .orcamento-status-card,
+.cliente-form-page .orcamento-status-card {
+  width: 170px !important;
+  min-width: 170px !important;
+  max-width: 170px !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  padding: 8px 14px !important;
+  border-radius: 14px !important;
+  background: #2563eb !important;
+  border: 2px solid #1d4ed8 !important;
+  color: #ffffff !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18) !important;
+}
+
+/* Cores especificas por situacao dentro do pedido aberto */
+.orcamento-page .orcamento-status-card[data-status="Cancelado"],
+.cliente-form-page .orcamento-status-card[data-status="Cancelado"] {
+  background: #dc2626 !important;
+  border-color: #b91c1c !important;
+}
+
+.orcamento-page .orcamento-status-card[data-status="Entregue"],
+.cliente-form-page .orcamento-status-card[data-status="Entregue"] {
+  background: #7c3aed !important;
+  border-color: #6d28d9 !important;
+}
+
+/* SYNERGIAS STATUS PEDIDOS V191A - FIM */
+
+/* SYNERGIAS CONSOLIDADO V248 */
+.form-footer .pedido-footer-imprimir { margin-right: auto; }
+.nota-fiscal-dados-inline { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: end; }
+.nota-fiscal-observacoes { margin-top: 14px; }
+@media (max-width: 900px) {
+  .nota-fiscal-dados-inline { grid-template-columns: 1fr; }
+}
+
+/* SYNERGIAS STATUS LATERAL REAL SEM BOTAO V253D - INICIO */
+.orcamento-page .orcamento-topo-card > .orcamento-status-card {
+  position: relative !important;
+  inset: auto !important;
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: stretch !important;
+  justify-self: stretch !important;
+  width: 255px !important;
+  min-width: 255px !important;
+  max-width: 255px !important;
+  height: 100% !important;
+  min-height: 228px !important;
+  margin: 0 !important;
+  padding: 20px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 30px 0 0 30px !important;
+  color: #ffffff !important;
+  font-size: 20px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+}
+.orcamento-page .orcamento-topo-card > .orcamento-status-card[data-status="Aberto"] { background: #0284c7 !important; border-color: #0369a1 !important; }
+.orcamento-page .orcamento-topo-card > .orcamento-status-card[data-status="Em separação"] { background: #f59e0b !important; border-color: #d97706 !important; }
+.orcamento-page .orcamento-topo-card > .orcamento-status-card[data-status="Faturado"] { background: #2563eb !important; border-color: #1d4ed8 !important; }
+.orcamento-page .orcamento-topo-card > .orcamento-status-card[data-status="Concluído"] { background: #16a34a !important; border-color: #15803d !important; }
+.orcamento-page .orcamento-topo-card > .orcamento-status-card[data-status="Entregue"] { background: #7c3aed !important; border-color: #6d28d9 !important; }
+.orcamento-page .orcamento-topo-card > .orcamento-status-card[data-status="Cancelado"] { background: #dc2626 !important; border-color: #b91c1c !important; }
+@media (max-width: 1180px) {
+  .orcamento-page .orcamento-topo-card > .orcamento-status-card {
+    width: 190px !important;
+    min-width: 190px !important;
+    max-width: 190px !important;
+    min-height: 100% !important;
+  }
+}
+@media (max-width: 760px) {
+  .orcamento-page .orcamento-topo-card > .orcamento-status-card {
+    width: calc(100% + 28px) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    min-height: 84px !important;
+    height: auto !important;
+    margin: 0 -14px 12px !important;
+    border-radius: 22px 22px 0 0 !important;
+  }
+}
+/* SYNERGIAS STATUS LATERAL REAL SEM BOTAO V253D - FIM */
+
+
+/* SYNERGIAS_BRINDES_BUSCA_POR_NOME_V260 */
+.pedido-brinde-produto-busca{
+  position:relative;
+  min-width:0;
+}
+.pedido-brinde-produto-busca>input{
+  width:100%;
+  box-sizing:border-box;
+}
+.pedido-brinde-produto-sugestoes{
+  position:absolute;
+  z-index:80;
+  top:calc(100% + 4px);
+  left:0;
+  right:0;
+  max-height:300px;
+  overflow-y:auto;
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  background:#fff;
+  box-shadow:0 14px 34px rgba(15,23,42,.18);
+  padding:5px;
+}
+.pedido-brinde-produto-sugestoes button{
+  display:block;
+  width:100%;
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  color:#172033;
+  text-align:left;
+  font:inherit;
+  font-weight:500;
+  line-height:1.25;
+  padding:9px 10px;
+  cursor:pointer;
+}
+.pedido-brinde-produto-sugestoes button:hover,
+.pedido-brinde-produto-sugestoes button:focus,
+.pedido-brinde-produto-sugestoes button.is-selected{
+  background:#e8f2ff;
+  color:#0f3f77;
+  outline:none;
+}
+.pedido-brinde-produto-vazio{
+  padding:10px;
+  color:#64748b;
+  font-weight:500;
+}

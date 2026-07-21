@@ -1,0 +1,715 @@
+/* =========================================================
+   PRODUTOS - PADRÃO VISUAL DO MÓDULO
+   Cor do módulo: Laranja
+========================================================= */
+
+.produtos-page {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.produtos-main {
+  background: #f1f5f9;
+}
+
+.produtos-toolbar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  border: 1px solid #fed7aa !important;
+  background: #fff7ed !important;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.produtos-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 520px;
+  flex-wrap: wrap;
+}
+
+.produtos-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.produtos-search {
+  width: min(520px, 100%);
+  border-color: #fed7aa !important;
+}
+
+.produtos-search:focus-within {
+  border-color: #ea580c !important;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.14) !important;
+}
+
+.produtos-action-btn {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px;
+  border: 0 !important;
+  border-radius: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+  transition: 0.2s ease;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.produtos-action-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.produtos-action-btn svg,
+.produtos-add-btn svg,
+.produtos-delete-all-btn svg {
+  width: 21px !important;
+  height: 21px !important;
+}
+
+.produtos-action-list {
+  background: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
+.produtos-action-search {
+  background: #ea580c !important;
+  color: #ffffff !important;
+}
+
+.produtos-action-import {
+  background: #075985 !important;
+  color: #bae6fd !important;
+}
+
+.produtos-action-print {
+  background: #581c87 !important;
+  color: #e9d5ff !important;
+}
+
+.produtos-action-email {
+  background: #312e81 !important;
+  color: #c4b5fd !important;
+}
+
+.produtos-action-export {
+  background: #064e3b !important;
+  color: #34d399 !important;
+}
+
+.produtos-filter-btn {
+  height: 46px;
+  padding: 0 18px;
+  border-radius: 14px;
+  border: 1px dashed #fb923c;
+  background: #ffffff;
+  color: #ea580c;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: 0.2s ease;
+}
+
+.produtos-filter-btn:hover,
+.produtos-filter-btn.ativo {
+  background: #ffedd5;
+  transform: translateY(-2px);
+}
+
+.produtos-filter-btn span {
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #ea580c;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.produtos-delete-all-btn {
+  display: none !important;
+}
+
+.produtos-add-btn {
+  width: 46px !important;
+  min-width: 46px !important;
+  height: 46px !important;
+  border-radius: 14px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  font-weight: 900 !important;
+  white-space: nowrap;
+  font-size: 0 !important;
+  border: 0 !important;
+  background: #ea580c !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 28px rgba(234, 88, 12, 0.22);
+}
+
+.produtos-add-btn:hover {
+  background: #c2410c !important;
+  transform: translateY(-2px);
+}
+
+/* FILTROS */
+
+.produtos-filtros-card {
+  width: 100%;
+  margin: 0 0 26px;
+  background: #ffffff;
+  border: 1px solid #fed7aa;
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
+  box-sizing: border-box;
+}
+
+.produtos-filtros-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.produtos-filtros-header h2 {
+  margin: 0;
+  color: #7c2d12;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.produtos-filtros-header p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.produtos-filtros-header button {
+  min-height: 42px;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: #ea580c;
+  padding: 0 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.produtos-filtros-header button:hover {
+  background: #ffedd5;
+}
+
+.produtos-filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.produtos-filtros-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.produtos-filtros-grid select {
+  width: 100%;
+  height: 44px;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 0 12px;
+  outline: none;
+  font-weight: 700;
+}
+
+.produtos-filtros-grid select:focus {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.14);
+}
+
+.produtos-filtros-checks {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.produtos-filtros-checks label {
+  min-height: 42px;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #7c2d12;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.produtos-filtros-checks input {
+  width: 16px;
+  height: 16px;
+  accent-color: #ea580c;
+}
+
+/* Tabela / DataTable em Produtos */
+
+.produtos-page table,
+.produtos-main table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.produtos-page thead,
+.produtos-main thead,
+.produtos-page thead tr,
+.produtos-main thead tr {
+  background: #ffedd5 !important;
+}
+
+.produtos-page th,
+.produtos-main th {
+  background: #ffedd5 !important;
+  color: #9a3412 !important;
+  border-bottom: 1px solid #fed7aa !important;
+}
+
+.produtos-page td,
+.produtos-main td {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.produtos-page tbody tr:hover td,
+.produtos-main tbody tr:hover td {
+  background: #fff7ed !important;
+}
+
+.produtos-page td[colspan],
+.produtos-main td[colspan] {
+  color: #64748b !important;
+  background: #ffffff !important;
+}
+
+/* Cards, containers ou wrappers genéricos do DataTable */
+
+.produtos-page .table-card,
+.produtos-page .data-table-card,
+.produtos-page .clientes-table-card,
+.produtos-page .clientes-table-container,
+.produtos-main .table-card,
+.produtos-main .data-table-card,
+.produtos-main .clientes-table-card,
+.produtos-main .clientes-table-container {
+  background: #ffffff !important;
+  border: 1px solid #fed7aa !important;
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
+}
+
+/* ProdutoForm / abas e NCM, quando o CSS for importado também no formulário */
+
+.produtos-page .form-tabs button.active,
+.produtos-page .form-tabs button:hover,
+.produtos-main .form-tabs button.active,
+.produtos-main .form-tabs button:hover {
+  background: #ffedd5 !important;
+  border-color: #fb923c !important;
+  color: #ea580c !important;
+}
+
+.produtos-page .form-tabs button.active {
+  background: #ffedd5 !important;
+  border-color: #fb923c !important;
+  color: #ea580c !important;
+}
+
+.produtos-page .form-tabs button:hover {
+  background: #fff7ed !important;
+  border-color: #fdba74 !important;
+  color: #c2410c !important;
+}
+
+.produtos-page .form-section-title h2,
+.produtos-main .form-section-title h2 {
+  color: #9a3412 !important;
+}
+
+.produtos-page input:focus,
+.produtos-page select:focus,
+.produtos-page textarea:focus,
+.produtos-main input:focus,
+.produtos-main select:focus,
+.produtos-main textarea:focus {
+  border-color: #ea580c !important;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.14) !important;
+}
+
+.produtos-page .btn-buscar-ncm,
+.produtos-main .btn-buscar-ncm {
+  background: #ea580c !important;
+  color: #ffffff !important;
+  border: 0 !important;
+}
+
+.produtos-page .select-plus button,
+.produtos-main .select-plus button {
+  background: #ea580c !important;
+  color: #ffffff !important;
+  border-color: #ea580c !important;
+}
+
+.produtos-page .select-plus button:hover,
+.produtos-main .select-plus button:hover {
+  background: #c2410c !important;
+  border-color: #c2410c !important;
+}
+
+@media (max-width: 1200px) {
+  .produtos-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .produtos-toolbar-left {
+    min-width: 0;
+  }
+
+  .produtos-search {
+    width: 100%;
+  }
+
+  .produtos-filtros-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .produtos-toolbar-left,
+  .produtos-actions {
+    width: 100%;
+  }
+
+  .produtos-filter-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .produtos-filtros-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .produtos-filtros-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+
+/* =========================================================
+   AJUSTE V2 - ÍCONES DE PRODUTOS NO MESMO TAMANHO DE CLIENTES
+========================================================= */
+
+.produtos-action-btn,
+.produtos-add-btn,
+.produtos-delete-all-btn {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  border-radius: 16px !important;
+}
+
+.produtos-action-btn svg,
+.produtos-add-btn svg,
+.produtos-delete-all-btn svg {
+  width: 25px !important;
+  height: 25px !important;
+}
+
+.produtos-search {
+  height: 58px !important;
+  border-radius: 16px !important;
+}
+
+.produtos-filter-btn {
+  min-height: 58px !important;
+  height: 58px !important;
+  padding: 0 20px !important;
+  border-radius: 16px !important;
+  font-size: 15px !important;
+}
+
+@media (max-width: 900px) {
+  .produtos-action-btn,
+  .produtos-add-btn,
+  .produtos-delete-all-btn {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+  }
+}
+
+/* AJUSTES CONSOLIDADOS 2026-07-05 */
+.produto-toolbar-icon{width:58px;height:58px;border-radius:16px;border:1px solid #1e3a5f;background:#071426;display:flex;align-items:center;justify-content:center;cursor:pointer}.produto-toolbar-back{color:#e2e8f0}
+.compras-form-filtros-card,.financeiro-filtros-panel{display:flex;gap:12px;align-items:end;padding:16px 18px;margin:0 0 16px;background:#0b1b30;border:1px solid #1e3a5f;border-radius:14px}.compras-form-filtros-card label,.financeiro-filtros-panel label{display:grid;gap:6px;color:#9fb3c8}.compras-form-filtros-card select,.financeiro-filtros-panel select{min-width:220px;padding:10px;border-radius:9px}.compras-form-filtros-card button,.financeiro-filtros-panel button{padding:10px 14px;border-radius:9px;border:0;cursor:pointer}.compras-filter-count{min-width:20px;height:20px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#f59e0b;color:#08111f;font-weight:800}
+.vendas-icon-new{width:58px;height:58px;border-radius:16px;border:1px solid #14532d;background:#052e16;color:#22c55e;display:flex;align-items:center;justify-content:center;cursor:pointer}.vendas-filter-toggle{min-height:46px;display:inline-flex;align-items:center;gap:8px;padding:0 14px;border-radius:12px;border:1px solid #32445e;background:#0b1b30;color:#d7e4f2;cursor:pointer}.vendas-filter-toggle.ativo{border-color:#f59e0b}.vendas-filter-toggle span{background:#f59e0b;color:#111827;border-radius:999px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-weight:800}.vendas-filtros-recolhiveis{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;padding:12px;background:#0b1b30;border:1px solid #1e3a5f;border-radius:14px}.vendas-clear-filters{padding:10px 13px;border-radius:9px;border:1px solid #465c78;background:transparent;color:#d7e4f2;cursor:pointer}
+.estoque-primary-page-action{display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:0 16px;border-radius:14px;border:1px solid #155e75;background:#083344;color:#67e8f9;font-weight:700;cursor:pointer}.estoque-history-filter{display:flex;align-items:center;gap:7px}.estoque-history-filter select{min-height:42px;border-radius:10px;padding:0 10px}
+.pedido-brindes-card{padding:18px;border:1px solid #28466d;border-radius:16px;background:#071426;margin-bottom:22px}.pedido-brindes-card>p{color:#91a7bd}.pedido-brindes-grid{display:grid;grid-template-columns:2fr .7fr 1.3fr 1.4fr 1.3fr 1.5fr;gap:12px}.pedido-brindes-grid label{display:grid;gap:6px;color:#9fb3c8}.pedido-brindes-grid input,.pedido-brindes-grid select{min-height:42px;border-radius:9px}.pedido-brindes-lista{margin-top:16px;display:grid;gap:8px}.pedido-brinde-linha{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;padding:12px;border:1px solid #233f62;border-radius:12px;background:#0b1b30}.pedido-brinde-linha div:first-child{display:grid;gap:3px}.pedido-brinde-linha span,.pedido-brinde-linha small{color:#9fb3c8}.brinde-status{padding:6px 9px;border-radius:999px;font-size:12px;font-weight:800}.brinde-status.baixado{background:#064e3b;color:#6ee7b7}.brinde-status.pendente{background:#78350f;color:#fcd34d}
+.financeiro-fluxo-detalhado{margin:22px 0;padding:20px;border:1px solid #24415f;border-radius:18px;background:#071426}.financeiro-fluxo-header{display:flex;justify-content:space-between;align-items:end;gap:16px}.financeiro-fluxo-header h2{margin:0;color:#f8fafc}.financeiro-fluxo-header p{margin:5px 0 0;color:#8fa6bc}.financeiro-fluxo-periodo{display:flex;gap:10px}.financeiro-fluxo-periodo label{display:grid;gap:4px;color:#9fb3c8}.financeiro-fluxo-periodo input{padding:9px;border-radius:8px}.financeiro-fluxo-resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.financeiro-fluxo-resumo article{padding:14px;border-radius:12px;background:#0b1b30;border:1px solid #1e3a5f;display:grid;gap:5px}.financeiro-fluxo-resumo span{color:#8fa6bc}.financeiro-fluxo-resumo strong{font-size:20px}.financeiro-fluxo-linhas{display:grid;gap:4px}.financeiro-fluxo-grupo,.financeiro-fluxo-total{display:flex;justify-content:space-between;padding:14px;border:0;border-radius:9px;background:#10243d;color:#e2e8f0;font-weight:800}.financeiro-fluxo-grupo{cursor:pointer}.financeiro-fluxo-detalhes{display:grid;gap:2px;padding:0 10px 10px}.financeiro-fluxo-detalhes>div{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #18334f;color:#bdcce0}.financeiro-fluxo-item{font-size:13px}.financeiro-fluxo-total{margin-top:8px;background:#064e3b;color:#a7f3d0}
+.financeiro-conciliacao-filtros{display:grid;grid-template-columns:minmax(280px,1fr) auto auto auto;gap:10px;margin:18px 0}.financeiro-busca-conciliacao,.financeiro-modal-filtros>div{display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid #294764;border-radius:10px;background:#08182a}.financeiro-busca-conciliacao input,.financeiro-modal-filtros input{width:100%;min-height:42px;border:0;background:transparent;color:#e2e8f0;outline:0}.financeiro-conciliacao-filtros select,.financeiro-modal-filtros select{min-height:44px;border-radius:10px;padding:0 10px}.financeiro-conciliacao-acoes{display:flex;gap:6px}.financeiro-conciliacao-acoes button{padding:7px 9px;border-radius:8px;border:1px solid #31506f;background:#0b1b30;color:#dce7f2;cursor:pointer}.financeiro-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}.financeiro-modal-conciliacao{width:min(1100px,95vw);max-height:88vh;overflow:auto;background:#071426;border:1px solid #31506f;border-radius:18px;padding:20px}.financeiro-modal-header{display:flex;justify-content:space-between;align-items:start}.financeiro-modal-header h2{margin:0}.financeiro-modal-header button{font-size:28px;border:0;background:transparent;color:#e2e8f0;cursor:pointer}.financeiro-modal-filtros{display:grid;grid-template-columns:1fr auto;gap:10px;margin:18px 0}.financeiro-modal-lista{display:grid;gap:8px}.financeiro-conta-candidata{display:flex;justify-content:space-between;align-items:center;text-align:left;padding:14px;border-radius:12px;border:1px solid #24415f;background:#0b1b30;color:#e5edf7;cursor:pointer}.financeiro-conta-candidata:hover{border-color:#22c55e}.financeiro-conta-candidata div{display:grid;gap:4px}.financeiro-conta-candidata span{color:#93a8bd}
+@media(max-width:1100px){.pedido-brindes-grid{grid-template-columns:1fr 1fr}.financeiro-conciliacao-filtros{grid-template-columns:1fr 1fr}.financeiro-fluxo-resumo{grid-template-columns:1fr 1fr}}
+
+/* AJUSTE LISTAGEM PRODUTOS 2026-07-06 */
+.produtos-listagem-table{table-layout:fixed!important;width:100%!important}
+.produtos-col-descricao{width:25%!important}
+.produtos-col-categoria{width:15%!important}
+.produtos-col-subcategoria{width:16%!important}
+.produtos-col-marca{width:15%!important}
+.produtos-col-estoque{width:9%!important}
+.produtos-col-valor{width:11%!important}
+.produtos-col-status{width:8%!important}
+.produtos-col-acoes{width:104px!important}
+.produto-descricao-linha{display:block!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:18px!important;font-weight:700!important;color:#20314c!important}
+.produto-texto-truncado{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:15px}
+.produtos-linha-acoes{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;white-space:nowrap!important}
+.produtos-row-btn{width:44px!important;height:44px!important;min-width:44px!important;border-radius:13px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
+.produtos-row-btn.editar{background:#e0f2fe!important;border:1px solid #38bdf8!important;color:#0284c7!important}
+.produtos-row-btn.excluir{background:#fee2e2!important;border:1px solid #f87171!important;color:#dc2626!important}
+
+
+/* AJUSTE FINO LISTAGEM PRODUTOS 2026-07-06 B */
+.produtos-listagem-card{max-width:100%!important;overflow:hidden!important}
+.produtos-table-scroll{max-width:100%!important;overflow-x:auto!important}
+.produtos-listagem-table{table-layout:fixed!important;width:100%!important;min-width:0!important}
+.produtos-listagem-table th,.produtos-listagem-table td{padding:18px 16px!important;vertical-align:middle!important}
+.produtos-col-descricao{width:28%!important}
+.produtos-col-categoria{width:13%!important}
+.produtos-col-subcategoria{width:14%!important}
+.produtos-col-marca{width:10%!important}
+.produtos-col-estoque{width:8%!important}
+.produtos-col-valor{width:11%!important}
+.produtos-col-status{width:7%!important}
+.produtos-col-acoes{width:9%!important;min-width:96px!important}
+.produto-descricao-linha{font-size:14px!important;font-weight:700!important;line-height:1.25!important}
+.produto-texto-truncado{font-size:14px!important;line-height:1.25!important}
+.produtos-col-valor,.produtos-col-estoque,.produtos-col-status,.produtos-col-acoes{text-align:center!important}
+.produtos-linha-acoes{justify-content:center!important;gap:8px!important}
+@media (max-width: 1200px){
+  .produtos-listagem-table{min-width:980px!important}
+}
+
+/* V95 - padrão consolidado */
+.produtos-action-refresh {
+  background: #eab308 !important;
+  color: #ffffff !important;
+  border-color: #ca8a04 !important;
+}
+.produtos-action-refresh:hover { background: #ca8a04 !important; }
+.produtos-form-actions { width: 100% !important; }
+.produtos-form-actions > .produtos-form-actions-left { margin-right: auto !important; }
+.produtos-form-actions > .produtos-form-actions-right { margin-left: auto !important; }
+
+
+/* V158 - STATUS ATIVO/INATIVO DO CADASTRO DE PRODUTO */
+.produto-status-toggle {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  width: 100% !important;
+  margin: 4px 0 18px !important;
+  padding: 5px !important;
+  border: 1px solid #294765 !important;
+  border-radius: 14px !important;
+  background: #0b1b30 !important;
+  box-sizing: border-box !important;
+}
+
+.produto-status-toggle .produto-status-btn {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  height: 44px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border: 1px solid #3d536e !important;
+  border-radius: 10px !important;
+  background: #13263d !important;
+  color: #b9c7d8 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+  letter-spacing: .04em !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  transition: border-color .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease !important;
+}
+
+.produto-status-toggle .produto-status-btn:hover {
+  border-color: #7890aa !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+}
+
+.produto-status-toggle .produto-status-btn:focus-visible {
+  outline: 3px solid rgba(56, 189, 248, .35) !important;
+  outline-offset: 2px !important;
+}
+
+.produto-status-toggle .produto-status-indicador {
+  width: 9px !important;
+  height: 9px !important;
+  flex: 0 0 9px !important;
+  border-radius: 999px !important;
+  background: #64748b !important;
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, .15) !important;
+}
+
+.produto-status-toggle .produto-status-btn.ativo.selecionado {
+  border-color: #22c55e !important;
+  background: #064e3b !important;
+  color: #bbf7d0 !important;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, .16) inset !important;
+}
+
+.produto-status-toggle .produto-status-btn.ativo.selecionado .produto-status-indicador {
+  background: #4ade80 !important;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, .18) !important;
+}
+
+.produto-status-toggle .produto-status-btn.inativo.selecionado {
+  border-color: #ef4444 !important;
+  background: #7f1d1d !important;
+  color: #fecaca !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, .16) inset !important;
+}
+
+.produto-status-toggle .produto-status-btn.inativo.selecionado .produto-status-indicador {
+  background: #f87171 !important;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, .18) !important;
+}
+
+/* SYNERGIAS STATUS PEDIDOS V191A - INICIO */
+
+/* =========================================================
+   LISTA DE PEDIDOS
+   Status menor e compacto, sem alterar sua funcao.
+   ========================================================= */
+.vendas-page .pedido-status,
+.vendas-page .status-pedido,
+.vendas-page .pedido-status-badge,
+.vendas-page .venda-status,
+.vendas-page .venda-status-badge,
+.vendas-page .status-badge,
+.vendas-lista .pedido-status,
+.vendas-lista .status-pedido,
+.vendas-lista .pedido-status-badge,
+.vendas-lista .venda-status,
+.vendas-lista .venda-status-badge,
+.pedidos-page .pedido-status,
+.pedidos-page .status-pedido,
+.pedidos-page .pedido-status-badge,
+.pedidos-lista .pedido-status,
+.pedidos-lista .status-pedido,
+.pedidos-lista .pedido-status-badge,
+.pedido-lista-card [class*="status"],
+.venda-lista-card [class*="status"],
+.pedido-card-lista [class*="status"] {
+  width: auto !important;
+  min-width: 96px !important;
+  max-width: 108px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 2px 10px !important;
+  border-radius: 14px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: flex-start !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+/* =========================================================
+   PEDIDO ABERTO
+   Status maior, azul e retangular com cantos arredondados.
+   ========================================================= */
+.orcamento-page .orcamento-status-card,
+.cliente-form-page .orcamento-status-card {
+  width: 170px !important;
+  min-width: 170px !important;
+  max-width: 170px !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  padding: 8px 14px !important;
+  border-radius: 14px !important;
+  background: #2563eb !important;
+  border: 2px solid #1d4ed8 !important;
+  color: #ffffff !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18) !important;
+}
+
+/* Cores especificas por situacao dentro do pedido aberto */
+.orcamento-page .orcamento-status-card[data-status="Cancelado"],
+.cliente-form-page .orcamento-status-card[data-status="Cancelado"] {
+  background: #dc2626 !important;
+  border-color: #b91c1c !important;
+}
+
+.orcamento-page .orcamento-status-card[data-status="Entregue"],
+.cliente-form-page .orcamento-status-card[data-status="Entregue"] {
+  background: #7c3aed !important;
+  border-color: #6d28d9 !important;
+}
+
+/* SYNERGIAS STATUS PEDIDOS V191A - FIM */

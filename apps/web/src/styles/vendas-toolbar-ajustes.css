@@ -1,0 +1,1927 @@
+/* Barra e listagem de Vendas
+   Padroniza busca, novo registro, status, datas e devoluções na mesma linha. */
+
+.vendas-toolbar.vendas-toolbar-filtros {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+}
+
+.vendas-toolbar-filtros .vendas-search {
+  flex: 1 1 360px !important;
+  width: auto !important;
+  min-width: 260px !important;
+  max-width: 470px !important;
+}
+
+.vendas-toolbar-filtros .vendas-btn-primary {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  min-width: 220px !important;
+}
+
+.vendas-toolbar-filtros .vendas-status-filter {
+  flex: 0 0 190px !important;
+  width: 190px !important;
+  min-width: 190px !important;
+}
+
+.vendas-date-filter {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: 0 0 170px !important;
+  min-width: 170px !important;
+  height: 58px !important;
+  padding: 0 14px !important;
+  border: 1px solid #d8e0ec !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
+}
+
+.vendas-date-filter > span {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  color: #64748b !important;
+  white-space: nowrap !important;
+}
+
+.vendas-date-filter input {
+  width: 100% !important;
+  min-width: 0 !important;
+  border: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  color: #0f172a !important;
+  font: inherit !important;
+}
+
+.vendas-toolbar-filtros .vendas-btn-devolucoes {
+  flex: 0 0 58px !important;
+  width: 58px !important;
+  min-width: 58px !important;
+  height: 58px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 16px !important;
+  background: #9a673d !important;
+  color: #ffffff !important;
+}
+
+.vendas-devolucao-svg {
+  display: block !important;
+  width: 35px !important;
+  height: 35px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 3.2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.vendas-list-card {
+  overflow: hidden !important;
+}
+
+.vendas-lista-documentos {
+  width: 100% !important;
+}
+
+.vendas-lista-cabecalho,
+.vendas-documento-row {
+  display: grid !important;
+  grid-template-columns: 150px 220px minmax(240px, 1fr) 135px 135px 210px !important;
+  align-items: center !important;
+  column-gap: 12px !important;
+}
+
+.vendas-lista-cabecalho {
+  min-height: 58px !important;
+  padding: 0 18px !important;
+  border-bottom: 1px solid #dbe3ef !important;
+  color: #075985 !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.02em !important;
+}
+
+.vendas-documento-row {
+  min-height: 138px !important;
+  padding: 18px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
+}
+
+.vendas-documento-row:last-child {
+  border-bottom: 0 !important;
+}
+
+.vendas-documento-numero {
+  min-height: 84px !important;
+  border-left: 10px solid #1593c4 !important;
+  padding-left: 22px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.vendas-documento-numero strong {
+  font-size: 29px !important;
+  line-height: 1 !important;
+  font-weight: 500 !important;
+  color: #0787c1 !important;
+}
+
+.vendas-documento-numero span {
+  margin-top: 4px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #0787c1 !important;
+}
+
+.vendas-documento-status {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 7px !important;
+  color: #94a3b8 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+}
+
+.vendas-documento-status strong {
+  color: #475569 !important;
+  font-size: 13px !important;
+}
+
+.vendas-nfe-numero strong {
+  color: #7c3aed !important;
+}
+
+.vendas-documento-cliente {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+.vendas-documento-cliente strong {
+  color: #334155 !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.vendas-documento-cliente span {
+  color: #64748b !important;
+  font-size: 13px !important;
+}
+
+.vendas-documento-data,
+.vendas-documento-valor {
+  color: #334155 !important;
+  font-size: 22px !important;
+  font-weight: 500 !important;
+}
+
+.vendas-documento-valor {
+  white-space: nowrap !important;
+}
+
+.vendas-documento-acoes {
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+}
+
+.vendas-lista-vazia {
+  min-height: 150px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+@media (max-width: 1480px) {
+  .vendas-toolbar.vendas-toolbar-filtros {
+    flex-wrap: wrap !important;
+  }
+
+  .vendas-toolbar-filtros .vendas-search {
+    max-width: none !important;
+  }
+
+  .vendas-lista-documentos {
+    overflow-x: hidden !important;
+  }
+
+  .vendas-lista-cabecalho,
+  .vendas-documento-row {
+    min-width: 0 !important;
+  }
+}
+
+/* ORÇAMENTOS E PEDIDOS - LISTAGEM SEM ESTOURO HORIZONTAL */
+.vendas-lista-documentos{
+  width:100%!important;
+  max-width:100%!important;
+  overflow-x:hidden!important;
+}
+.vendas-lista-cabecalho,
+.vendas-documento-row{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  grid-template-columns:150px 220px minmax(240px,1fr) 135px 135px 210px!important;
+  column-gap:12px!important;
+  padding-left:18px!important;
+  padding-right:18px!important;
+  box-sizing:border-box!important;
+}
+.vendas-lista-cabecalho > *,
+.vendas-documento-row > *{
+  min-width:0!important;
+}
+.vendas-documento-acoes{
+  min-width:0!important;
+  gap:6px!important;
+}
+@media(max-width:1250px){
+  .vendas-lista-cabecalho,
+  .vendas-documento-row{
+    grid-template-columns:125px 185px minmax(210px,1fr) 115px 120px 180px!important;
+    column-gap:10px!important;
+    padding-left:14px!important;
+    padding-right:14px!important;
+  }
+}
+
+
+/* SYA 2026-07-09 — grade correta da listagem de Pedidos + conciliação compacta */
+.vendas-lista-cabecalho.is-orcamentos,
+.vendas-documento-row.is-orcamentos {
+  grid-template-columns: 150px 220px minmax(240px, 1fr) 135px 135px 210px !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos,
+.vendas-documento-row.is-pedidos {
+  grid-template-columns:
+    minmax(120px, .82fr)
+    minmax(190px, 1.18fr)
+    minmax(230px, 1.65fr)
+    minmax(105px, .74fr)
+    minmax(105px, .72fr)
+    minmax(105px, .72fr)
+    minmax(105px, .74fr)
+    minmax(96px, .66fr) !important;
+  column-gap: 10px !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos {
+  font-size: 12px !important;
+  letter-spacing: .015em !important;
+  white-space: nowrap !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos > span {
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+.vendas-action-reconcile {
+  color: #0f766e !important;
+  border-color: #99f6e4 !important;
+  background: #f0fdfa !important;
+}
+
+.vendas-action-reconcile:hover {
+  color: #115e59 !important;
+  border-color: #5eead4 !important;
+  background: #ccfbf1 !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes {
+  justify-content: flex-start !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-conciliado {
+  min-height: 32px !important;
+  padding: 0 8px !important;
+  font-size: 10px !important;
+  gap: 4px !important;
+}
+
+@media (max-width: 1250px) {
+  .vendas-lista-cabecalho.is-pedidos,
+  .vendas-documento-row.is-pedidos {
+    min-width: 1180px !important;
+  }
+}
+
+
+/* SYA 2026-07-09 — Pedidos: entrega no status, NF-e real e conciliação compacta */
+.vendas-lista-cabecalho.is-pedidos,
+.vendas-documento-row.is-pedidos {
+  grid-template-columns:
+    minmax(118px, .78fr)
+    minmax(260px, 1.48fr)
+    minmax(300px, 2.10fr)
+    minmax(108px, .72fr)
+    minmax(105px, .72fr)
+    minmax(108px, .74fr)
+    minmax(102px, .68fr) !important;
+  column-gap: 10px !important;
+}
+
+.vendas-documento-row.is-pedidos {
+  min-height: 148px !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status {
+  gap: 6px !important;
+  font-size: 10px !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status strong {
+  font-size: 12px !important;
+  white-space: nowrap !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-nfe-numero,
+.vendas-documento-row.is-pedidos .vendas-nfe-numero strong {
+  white-space: nowrap !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente strong {
+  font-size: 17px !important;
+  line-height: 1.22 !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente span {
+  font-size: 12px !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-valor {
+  font-size: 18px !important;
+}
+
+.vendas-action-reconcile {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  padding: 0 !important;
+  border-radius: 12px !important;
+  color: #15803d !important;
+  border-color: #bbf7d0 !important;
+  background: #f0fdf4 !important;
+}
+
+.vendas-action-reconcile svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.vendas-action-reconcile:hover {
+  color: #166534 !important;
+  border-color: #86efac !important;
+  background: #dcfce7 !important;
+}
+
+@media (max-width: 1250px) {
+  .vendas-lista-cabecalho.is-pedidos,
+  .vendas-documento-row.is-pedidos {
+    min-width: 1160px !important;
+  }
+}
+
+/* SYA 2026-07-09 — Pedidos: alinhamento uniforme das 7 colunas */
+.vendas-lista-cabecalho.is-pedidos,
+.vendas-documento-row.is-pedidos {
+  grid-template-columns:
+    minmax(130px, .90fr)
+    minmax(275px, 1.70fr)
+    minmax(320px, 2.15fr)
+    minmax(115px, .80fr)
+    minmax(125px, .88fr)
+    minmax(125px, .88fr)
+    minmax(118px, .82fr) !important;
+  column-gap: 14px !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos > span {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(1),
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(4),
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(5),
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(6),
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(7) {
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(2),
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(3) {
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+.vendas-documento-row.is-pedidos > * {
+  align-self: center !important;
+  min-width: 0 !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-numero,
+.vendas-documento-row.is-pedidos .vendas-documento-valor,
+.vendas-documento-row.is-pedidos > .vendas-pagamento-status,
+.vendas-documento-row.is-pedidos > .vendas-conciliado,
+.vendas-documento-row.is-pedidos > .vendas-action-reconcile,
+.vendas-documento-row.is-pedidos .vendas-documento-acoes {
+  justify-self: center !important;
+  text-align: center !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status,
+.vendas-documento-row.is-pedidos .vendas-documento-cliente {
+  justify-self: stretch !important;
+  text-align: left !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes {
+  width: 100% !important;
+  justify-content: center !important;
+}
+
+@media (max-width: 1250px) {
+  .vendas-lista-cabecalho.is-pedidos,
+  .vendas-documento-row.is-pedidos {
+    min-width: 1210px !important;
+  }
+}
+
+/* SYA 2026-07-09 — Pedidos: grade compacta sem estouro horizontal */
+.vendas-lista-cabecalho.is-pedidos,
+.vendas-documento-row.is-pedidos {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  grid-template-columns:
+    .82fr
+    1.35fr
+    2.25fr
+    .72fr
+    .86fr
+    .78fr
+    .78fr !important;
+  column-gap: 8px !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+  box-sizing: border-box !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente strong {
+  font-size: 15px !important;
+  line-height: 1.18 !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente span {
+  font-size: 11px !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-valor {
+  font-size: 16px !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos > span,
+.vendas-documento-row.is-pedidos > * {
+  min-width: 0 !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente {
+  overflow: hidden !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente strong,
+.vendas-documento-row.is-pedidos .vendas-documento-cliente span {
+  max-width: 100% !important;
+}
+
+@media (max-width: 1250px) {
+  .vendas-lista-cabecalho.is-pedidos,
+  .vendas-documento-row.is-pedidos {
+    min-width: 0 !important;
+    grid-template-columns:
+      .80fr
+      1.28fr
+      2.05fr
+      .70fr
+      .82fr
+      .76fr
+      .76fr !important;
+    column-gap: 6px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .vendas-lista-cabecalho.is-pedidos {
+    font-size: 11px !important;
+  }
+
+  .vendas-documento-row.is-pedidos .vendas-documento-cliente strong {
+    font-size: 14px !important;
+  }
+
+  .vendas-documento-row.is-pedidos .vendas-documento-valor {
+    font-size: 15px !important;
+  }
+}
+
+/* SYA 2026-07-09 — refinamento visual Pedidos + Orçamentos */
+.vendas-documento-row.is-pedidos .vendas-documento-numero strong {
+  font-size: 25px !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-numero span {
+  font-size: 13px !important;
+}
+
+.vendas-lista-cabecalho.is-orcamentos,
+.vendas-documento-row.is-orcamentos {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  grid-template-columns: .90fr 1.35fr 2.25fr .95fr .82fr 1.55fr !important;
+  column-gap: 8px !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+  box-sizing: border-box !important;
+}
+
+.vendas-lista-cabecalho.is-orcamentos {
+  font-size: 12px !important;
+  white-space: nowrap !important;
+}
+
+.vendas-lista-cabecalho.is-orcamentos > span {
+  display: flex !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.vendas-documento-row.is-orcamentos > * {
+  min-width: 0 !important;
+  align-self: center !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-numero,
+.vendas-documento-row.is-orcamentos .vendas-documento-data,
+.vendas-documento-row.is-orcamentos .vendas-documento-valor,
+.vendas-documento-row.is-orcamentos .vendas-documento-acoes {
+  justify-self: center !important;
+  text-align: center !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-status {
+  justify-self: stretch !important;
+  text-align: left !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-cliente {
+  justify-self: stretch !important;
+  text-align: left !important;
+  overflow: hidden !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-numero strong {
+  font-size: 25px !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-numero span {
+  font-size: 13px !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-cliente strong {
+  font-size: 15px !important;
+  line-height: 1.18 !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-cliente span {
+  font-size: 11px !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-data,
+.vendas-documento-row.is-orcamentos .vendas-documento-valor {
+  font-size: 16px !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-acoes {
+  width: 100% !important;
+  justify-content: center !important;
+  gap: 6px !important;
+}
+
+@media (max-width: 1250px) {
+  .vendas-lista-cabecalho.is-orcamentos,
+  .vendas-documento-row.is-orcamentos {
+    grid-template-columns: .88fr 1.28fr 2.05fr .92fr .78fr 1.48fr !important;
+    column-gap: 6px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .vendas-lista-cabecalho.is-orcamentos {
+    font-size: 11px !important;
+  }
+
+  .vendas-documento-row.is-orcamentos .vendas-documento-cliente strong {
+    font-size: 14px !important;
+  }
+
+  .vendas-documento-row.is-orcamentos .vendas-documento-data,
+  .vendas-documento-row.is-orcamentos .vendas-documento-valor {
+    font-size: 15px !important;
+  }
+}
+
+/* SYA 2026-07-09 — Orçamentos: número e status iguais ao Pedido */
+.vendas-documento-row.is-orcamentos .vendas-documento-numero strong,
+.vendas-documento-row.is-pedidos .vendas-documento-numero strong {
+  font-size: 25px !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-numero span,
+.vendas-documento-row.is-pedidos .vendas-documento-numero span {
+  font-size: 13px !important;
+}
+
+/* SYA V82 — Orçamentos: manter Data, Valor e todas as Ações dentro da tela */
+.vendas-lista-cabecalho.is-orcamentos,
+.vendas-documento-row.is-orcamentos {
+  grid-template-columns:
+    minmax(118px, .72fr)
+    minmax(215px, 1.05fr)
+    minmax(285px, 1.72fr)
+    minmax(112px, .66fr)
+    minmax(108px, .62fr)
+    minmax(282px, 1.48fr) !important;
+  column-gap: 5px !important;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+  overflow: hidden !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-data,
+.vendas-documento-row.is-orcamentos .vendas-documento-valor {
+  justify-self: start !important;
+  text-align: left !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-acoes {
+  width: 100% !important;
+  min-width: 0 !important;
+  justify-content: flex-start !important;
+  gap: 5px !important;
+  overflow: visible !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-acoes .vendas-action-btn {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  border-radius: 11px !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-acoes .vendas-action-btn svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+@media (max-width: 1320px) {
+  .vendas-lista-cabecalho.is-orcamentos,
+  .vendas-documento-row.is-orcamentos {
+    grid-template-columns:
+      minmax(105px, .68fr)
+      minmax(195px, 1fr)
+      minmax(245px, 1.55fr)
+      minmax(105px, .62fr)
+      minmax(98px, .58fr)
+      minmax(258px, 1.42fr) !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    column-gap: 4px !important;
+  }
+
+  .vendas-documento-row.is-orcamentos .vendas-documento-acoes {
+    gap: 4px !important;
+  }
+
+  .vendas-documento-row.is-orcamentos .vendas-documento-acoes .vendas-action-btn {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+  }
+}
+
+
+/* SYA V85 — correção definitiva da grade de Orçamentos
+   Mantém Data, Valor e todos os botões de Ações dentro da largura visível. */
+.vendas-list-card,
+.vendas-lista-documentos {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+}
+
+.vendas-lista-cabecalho.is-orcamentos,
+.vendas-documento-row.is-orcamentos {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  grid-template-columns:
+    110px
+    175px
+    minmax(230px, 1fr)
+    95px
+    95px
+    250px !important;
+  column-gap: 4px !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  overflow: hidden !important;
+}
+
+.vendas-lista-cabecalho.is-orcamentos > span,
+.vendas-documento-row.is-orcamentos > * {
+  min-width: 0 !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-data,
+.vendas-documento-row.is-orcamentos .vendas-documento-valor {
+  justify-self: start !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-acoes {
+  width: 250px !important;
+  min-width: 250px !important;
+  max-width: 250px !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+  gap: 4px !important;
+  overflow: visible !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-acoes .vendas-action-btn {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  flex: 0 0 36px !important;
+  border-radius: 10px !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-acoes .vendas-action-btn svg {
+  width: 19px !important;
+  height: 19px !important;
+}
+
+@media (max-width: 1320px) {
+  .vendas-lista-cabecalho.is-orcamentos,
+  .vendas-documento-row.is-orcamentos {
+    grid-template-columns:
+      100px
+      155px
+      minmax(200px, 1fr)
+      88px
+      90px
+      232px !important;
+    column-gap: 3px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .vendas-documento-row.is-orcamentos .vendas-documento-acoes {
+    width: 232px !important;
+    min-width: 232px !important;
+    max-width: 232px !important;
+    gap: 3px !important;
+  }
+
+  .vendas-documento-row.is-orcamentos .vendas-documento-acoes .vendas-action-btn {
+    width: 35px !important;
+    height: 35px !important;
+    min-width: 35px !important;
+    flex-basis: 35px !important;
+  }
+}
+
+
+/* SYNERGIAS V160 — status de orçamento clicável, alinhado e com cor */
+.vendas-lista-cabecalho.is-orcamentos,
+.vendas-documento-row.is-orcamentos {
+  grid-template-columns: 150px 180px minmax(230px, 1fr) 95px 105px 250px !important;
+  column-gap: 6px !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-documento-numero {
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
+  box-sizing: border-box !important;
+  padding-left: 14px !important;
+  padding-right: 8px !important;
+  align-items: center !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-orcamento-status,
+.vendas-documento-row .vendas-pedido-label {
+  width: 118px !important;
+  min-width: 118px !important;
+  max-width: 118px !important;
+  min-height: 27px !important;
+  margin-top: 8px !important;
+  padding: 4px 8px !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+  letter-spacing: .02em !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-orcamento-status {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  cursor: pointer !important;
+  transition: transform .15s ease, filter .15s ease, box-shadow .15s ease !important;
+  background-clip: padding-box !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-orcamento-status:hover {
+  transform: translateY(-1px) !important;
+  filter: brightness(.98) !important;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, .08) !important;
+}
+
+.vendas-documento-row .vendas-pedido-label {
+  color: #0787c1 !important;
+  background: #e0f2fe !important;
+  border: 1px solid #7dd3fc !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-orcamento-status.status-aberto {
+  color: #0369a1 !important;
+  background: #e0f2fe !important;
+  border: 1px solid #7dd3fc !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-orcamento-status.status-aprovado {
+  color: #15803d !important;
+  background: #dcfce7 !important;
+  border: 1px solid #86efac !important;
+}
+
+.vendas-documento-row.is-orcamentos .vendas-orcamento-status.status-reprovado {
+  color: #475569 !important;
+  background: #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+@media (max-width: 1320px) {
+  .vendas-lista-cabecalho.is-orcamentos,
+  .vendas-documento-row.is-orcamentos {
+    grid-template-columns: 140px 165px minmax(190px, 1fr) 88px 95px 232px !important;
+  }
+
+  .vendas-documento-row.is-orcamentos .vendas-documento-numero {
+    width: 140px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+  }
+}
+
+
+/* SYNERGIAS V176 — BLOQUEIO DE AÇÕES DO ORÇAMENTO */
+.vendas-action-btn.is-disabled,
+.vendas-action-btn:disabled {
+  opacity: .38 !important;
+  filter: grayscale(.75) !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+
+/* SYNERGIAS CONSOLIDADO V178 — STATUS OPERACIONAL */
+.vendas-pedido-label{min-width:126px;min-height:34px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:12px!important;font-weight:900!important;border:1px solid transparent;white-space:nowrap}
+.vendas-pedido-label.status-aberto{background:#dbeafe!important;color:#1d4ed8!important;border-color:#93c5fd!important}.vendas-pedido-label.status-pendente{background:#e5e7eb!important;color:#4b5563!important;border-color:#cbd5e1!important}.vendas-pedido-label.status-concluido{background:#dcfce7!important;color:#166534!important;border-color:#86efac!important}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:5px!important}
+.vendas-action-btn.is-disabled,.vendas-action-btn:disabled{opacity:.38!important;filter:grayscale(.75)!important;cursor:not-allowed!important;pointer-events:none!important;box-shadow:none!important}
+
+/* SYNERGIAS V182 — STATUS ÚNICO DOS PEDIDOS */
+.vendas-documento-row.is-pedidos .vendas-documento-numero {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+}
+
+.vendas-pedido-label {
+  margin: 0 !important;
+}
+/* SYNERGIAS V182A — ALINHAMENTO DEFINITIVO DA LISTA DE PEDIDOS */
+.vendas-lista-cabecalho.is-pedidos,
+.vendas-documento-row.is-pedidos {
+  grid-template-columns:
+    minmax(155px, 155px)
+    minmax(250px, 285px)
+    minmax(300px, 1fr)
+    minmax(118px, 130px)
+    minmax(120px, 135px)
+    minmax(120px, 135px)
+    minmax(140px, 155px)
+    minmax(185px, 205px) !important;
+  column-gap: 14px !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-numero {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  justify-self: stretch !important;
+  overflow: visible !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-numero strong {
+  width: 100% !important;
+  text-align: center !important;
+  line-height: 1 !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-label {
+  width: 132px !important;
+  min-width: 132px !important;
+  max-width: 132px !important;
+  min-height: 34px !important;
+  margin: 0 auto !important;
+  padding: 0 10px !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status {
+  width: 100% !important;
+  min-width: 0 !important;
+  justify-self: stretch !important;
+  align-items: flex-start !important;
+  padding-left: 0 !important;
+  overflow: hidden !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status > span {
+  width: 100% !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente strong {
+  display: block !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(1) {
+  justify-content: center !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(2),
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(3) {
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+@media (max-width: 1320px) {
+  .vendas-lista-documentos {
+    overflow-x: auto !important;
+  }
+
+  .vendas-lista-cabecalho.is-pedidos,
+  .vendas-documento-row.is-pedidos {
+    min-width: 1330px !important;
+  }
+}
+/* FIM SYNERGIAS V182A */
+/* SYNERGIAS V184 — PEDIDO E STATUS CLICÁVEIS */
+.vendas-lista-cabecalho.is-pedidos,
+.vendas-documento-row.is-pedidos {
+  grid-template-columns:
+    minmax(130px, 140px)
+    minmax(245px, 275px)
+    minmax(285px, 1fr)
+    minmax(105px, 120px)
+    minmax(112px, 126px)
+    minmax(112px, 126px)
+    minmax(168px, 190px) !important;
+  column-gap: 12px !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-numero {
+  width: 100% !important;
+  min-width: 0 !important;
+  gap: 10px !important;
+  overflow: visible !important;
+}
+
+.vendas-pedido-numero-botao {
+  appearance: none !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #0284c7 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font: inherit !important;
+  font-size: 29px !important;
+  line-height: 1 !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: color .18s ease, transform .18s ease !important;
+}
+
+.vendas-pedido-numero-botao:hover {
+  color: #0369a1 !important;
+  transform: translateY(-1px) !important;
+}
+
+.vendas-pedido-status-botao {
+  appearance: none !important;
+  width: 124px !important;
+  min-width: 124px !important;
+  max-width: 124px !important;
+  min-height: 36px !important;
+  margin: 0 auto !important;
+  padding: 0 10px !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  transition: transform .18s ease, filter .18s ease, box-shadow .18s ease !important;
+}
+
+.vendas-pedido-status-botao:hover {
+  transform: translateY(-1px) !important;
+  filter: brightness(.98) !important;
+  box-shadow: 0 5px 12px rgba(15, 23, 42, .10) !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes {
+  width: 100% !important;
+  min-width: 168px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 7px !important;
+  overflow: visible !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes .vendas-action-btn {
+  display: inline-flex !important;
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+}
+
+@media (max-width: 1250px) {
+  .vendas-lista-documentos {
+    overflow-x: auto !important;
+  }
+
+  .vendas-lista-cabecalho.is-pedidos,
+  .vendas-documento-row.is-pedidos {
+    min-width: 1240px !important;
+  }
+}
+/* FIM SYNERGIAS V184 */
+
+/* SYNERGIAS V184A — LISTA PEDIDOS COMPACTA */
+.vendas-lista-cabecalho.is-pedidos,
+.vendas-documento-row.is-pedidos {
+  grid-template-columns:
+    145px
+    300px
+    minmax(300px, 1fr)
+    120px
+    128px
+    122px
+    210px !important;
+  column-gap: 10px !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  box-sizing: border-box !important;
+  align-items: center !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-numero {
+  width: 145px !important;
+  min-width: 145px !important;
+  max-width: 145px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  overflow: visible !important;
+}
+
+.vendas-pedido-numero-botao {
+  font-size: 27px !important;
+  line-height: 1 !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-label,
+.vendas-pedido-status-botao {
+  width: 122px !important;
+  min-width: 122px !important;
+  max-width: 122px !important;
+  min-height: 34px !important;
+  padding: 0 8px !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status {
+  width: 100% !important;
+  min-width: 0 !important;
+  padding-left: 10px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  overflow: hidden !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status > span {
+  width: 100% !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente strong {
+  display: block !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-valor,
+.vendas-documento-row.is-pedidos > .vendas-pagamento-status,
+.vendas-documento-row.is-pedidos > .vendas-conciliado,
+.vendas-documento-row.is-pedidos > .vendas-action-reconcile {
+  justify-self: center !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes {
+  width: 210px !important;
+  min-width: 210px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  overflow: visible !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes .vendas-action-btn {
+  flex: 0 0 42px !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(1),
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(4),
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(5),
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(6),
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(7) {
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(2),
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(3) {
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+@media (max-width: 1380px) {
+  .vendas-lista-documentos {
+    overflow-x: auto !important;
+  }
+
+  .vendas-lista-cabecalho.is-pedidos,
+  .vendas-documento-row.is-pedidos {
+    min-width: 1360px !important;
+  }
+}
+/* FIM SYNERGIAS V184A */
+/* SYNERGIAS V184B — AÇÕES VISÍVEIS NA LISTA DE PEDIDOS */
+.vendas-lista-documentos {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos,
+.vendas-documento-row.is-pedidos {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  grid-template-columns:
+    132px
+    245px
+    minmax(250px, 1fr)
+    105px
+    112px
+    105px
+    152px !important;
+  column-gap: 8px !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+.vendas-documento-row.is-pedidos > * {
+  min-width: 0 !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-numero {
+  width: 132px !important;
+  min-width: 132px !important;
+  max-width: 132px !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-label,
+.vendas-pedido-status-botao {
+  width: 118px !important;
+  min-width: 118px !important;
+  max-width: 118px !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status {
+  padding-left: 6px !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente {
+  overflow: hidden !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente strong {
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes {
+  width: 152px !important;
+  min-width: 152px !important;
+  max-width: 152px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+  overflow: visible !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes .vendas-action-btn {
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(7) {
+  justify-content: flex-end !important;
+  padding-right: 8px !important;
+  text-align: right !important;
+}
+
+@media (max-width: 1180px) {
+  .vendas-lista-documentos {
+    overflow-x: auto !important;
+  }
+
+  .vendas-lista-cabecalho.is-pedidos,
+  .vendas-documento-row.is-pedidos {
+    min-width: 1120px !important;
+  }
+}
+/* FIM SYNERGIAS V184B */
+/* SYNERGIAS V184C — AJUSTE FINAL LISTA PEDIDOS */
+.vendas-lista-cabecalho.is-pedidos,
+.vendas-documento-row.is-pedidos {
+  grid-template-columns:
+    138px
+    255px
+    minmax(360px, 1fr)
+    110px
+    118px
+    112px
+    164px !important;
+  column-gap: 10px !important;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+  box-sizing: border-box !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-numero {
+  width: 138px !important;
+  min-width: 138px !important;
+  max-width: 138px !important;
+  overflow: visible !important;
+  gap: 9px !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-label,
+.vendas-pedido-status-botao {
+  width: 108px !important;
+  min-width: 108px !important;
+  max-width: 108px !important;
+  min-height: 33px !important;
+  padding: 0 6px !important;
+  font-size: 11px !important;
+  margin: 0 auto !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status {
+  width: 100% !important;
+  min-width: 0 !important;
+  padding-left: 8px !important;
+  overflow: hidden !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status > span {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente {
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente strong {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes {
+  width: 164px !important;
+  min-width: 164px !important;
+  max-width: 164px !important;
+  gap: 7px !important;
+  justify-content: flex-end !important;
+  overflow: visible !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes .vendas-action-btn {
+  flex: 0 0 42px !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+}
+
+@media (max-width: 1240px) {
+  .vendas-lista-documentos {
+    overflow-x: auto !important;
+  }
+
+  .vendas-lista-cabecalho.is-pedidos,
+  .vendas-documento-row.is-pedidos {
+    min-width: 1210px !important;
+  }
+}
+/* FIM SYNERGIAS V184C */
+/* SYNERGIAS V184D — TODOS OS ÍCONES NA TELA */
+.vendas-lista-documentos {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos,
+.vendas-documento-row.is-pedidos {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  grid-template-columns:
+    128px
+    232px
+    minmax(245px, 1fr)
+    102px
+    108px
+    102px
+    178px !important;
+  column-gap: 7px !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+.vendas-documento-row.is-pedidos > * {
+  min-width: 0 !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-numero {
+  width: 128px !important;
+  min-width: 128px !important;
+  max-width: 128px !important;
+  gap: 8px !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-label,
+.vendas-pedido-status-botao {
+  width: 112px !important;
+  min-width: 112px !important;
+  max-width: 112px !important;
+  min-height: 33px !important;
+  padding: 0 6px !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status {
+  width: 100% !important;
+  min-width: 0 !important;
+  padding-left: 4px !important;
+  overflow: hidden !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-status > span {
+  width: 100% !important;
+  white-space: nowrap !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-cliente strong {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes {
+  width: 178px !important;
+  min-width: 178px !important;
+  max-width: 178px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 5px !important;
+  overflow: visible !important;
+  flex-wrap: nowrap !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes .vendas-action-btn {
+  flex: 0 0 38px !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-acoes .vendas-action-btn svg {
+  width: 19px !important;
+  height: 19px !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos > span:nth-child(7) {
+  justify-content: flex-end !important;
+  padding-right: 4px !important;
+  text-align: right !important;
+}
+
+@media (max-width: 1080px) {
+  .vendas-lista-documentos {
+    overflow-x: auto !important;
+  }
+
+  .vendas-lista-cabecalho.is-pedidos,
+  .vendas-documento-row.is-pedidos {
+    min-width: 1060px !important;
+  }
+}
+/* FIM SYNERGIAS V184D */
+
+/* SYNERGIAS STATUS PEDIDOS V191A - INICIO */
+
+/* =========================================================
+   LISTA DE PEDIDOS
+   Status menor e compacto, sem alterar sua funcao.
+   ========================================================= */
+.vendas-page .pedido-status,
+.vendas-page .status-pedido,
+.vendas-page .pedido-status-badge,
+.vendas-page .venda-status,
+.vendas-page .venda-status-badge,
+.vendas-page .status-badge,
+.vendas-lista .pedido-status,
+.vendas-lista .status-pedido,
+.vendas-lista .pedido-status-badge,
+.vendas-lista .venda-status,
+.vendas-lista .venda-status-badge,
+.pedidos-page .pedido-status,
+.pedidos-page .status-pedido,
+.pedidos-page .pedido-status-badge,
+.pedidos-lista .pedido-status,
+.pedidos-lista .status-pedido,
+.pedidos-lista .pedido-status-badge,
+.pedido-lista-card [class*="status"],
+.venda-lista-card [class*="status"],
+.pedido-card-lista [class*="status"] {
+  width: auto !important;
+  min-width: 96px !important;
+  max-width: 108px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 2px 10px !important;
+  border-radius: 14px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: flex-start !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+/* =========================================================
+   PEDIDO ABERTO
+   Status maior, azul e retangular com cantos arredondados.
+   ========================================================= */
+.orcamento-page .orcamento-status-card,
+.cliente-form-page .orcamento-status-card {
+  width: 170px !important;
+  min-width: 170px !important;
+  max-width: 170px !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  padding: 8px 14px !important;
+  border-radius: 14px !important;
+  background: #2563eb !important;
+  border: 2px solid #1d4ed8 !important;
+  color: #ffffff !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18) !important;
+}
+
+/* Cores especificas por situacao dentro do pedido aberto */
+.orcamento-page .orcamento-status-card[data-status="Cancelado"],
+.cliente-form-page .orcamento-status-card[data-status="Cancelado"] {
+  background: #dc2626 !important;
+  border-color: #b91c1c !important;
+}
+
+.orcamento-page .orcamento-status-card[data-status="Entregue"],
+.cliente-form-page .orcamento-status-card[data-status="Entregue"] {
+  background: #7c3aed !important;
+  border-color: #6d28d9 !important;
+}
+
+/* SYNERGIAS STATUS PEDIDOS V191A - FIM */
+
+/* SYNERGIAS_PEDIDOS_STATUS_FIXO_V200X_INICIO */
+.vendas-documento-row.is-pedidos .vendas-pedido-label.vendas-pedido-status-botao {
+  width: 118px !important;
+  min-width: 118px !important;
+  max-width: 118px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 0 10px !important;
+  margin: 7px auto 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  border-radius: 999px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  flex: 0 0 34px !important;
+  align-self: center !important;
+}
+
+.vendas-pedido-status-botao.status-aberto {
+  background: #dbeafe !important;
+  border: 1px solid #93c5fd !important;
+  color: #1d4ed8 !important;
+}
+
+.vendas-pedido-status-botao.status-pendente {
+  background: #e5e7eb !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #4b5563 !important;
+}
+
+.vendas-pedido-status-botao.status-concluido {
+  background: #dcfce7 !important;
+  border: 1px solid #86efac !important;
+  color: #166534 !important;
+}
+/* SYNERGIAS_PEDIDOS_STATUS_FIXO_V200X_FIM */
+
+
+/* SYNERGIAS V203 — STATUS DE PEDIDOS COM TAMANHO IDÊNTICO */
+.vendas-documento-row.is-pedidos .vendas-pedido-label {
+  width: 126px !important;
+  min-width: 126px !important;
+  max-width: 126px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  flex: 0 0 126px !important;
+  flex-basis: 126px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}
+.vendas-documento-row.is-pedidos .vendas-documento-numero .vendas-pedido-label {
+  align-self: center !important;
+}
+
+/* SYNERGIAS_STATUS_ORCAMENTOS_PEDIDOS_V202 - INICIO */
+
+/* Orçamento totalmente vazio: status NOVO, visual roxo para diferenciar. */
+.vendas-documento-row.is-orcamentos .vendas-orcamento-status.status-novo {
+  width: 118px !important;
+  min-width: 118px !important;
+  max-width: 118px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  color: #6d28d9 !important;
+  background: #ede9fe !important;
+  border: 1px solid #c4b5fd !important;
+}
+
+/* Todos os botões de status dos pedidos seguem exatamente o padrão do CONCLUÍDO. */
+.vendas-documento-row.is-pedidos .vendas-pedido-status-botao,
+.vendas-documento-row.is-pedidos .vendas-pedido-status-botao.status-aberto,
+.vendas-documento-row.is-pedidos .vendas-pedido-status-botao.status-pendente,
+.vendas-documento-row.is-pedidos .vendas-pedido-status-botao.status-concluido,
+.vendas-documento-row.is-pedidos .vendas-pedido-status-botao.status-entregue,
+.vendas-documento-row.is-pedidos .vendas-pedido-status-botao.status-cancelado {
+  width: 116px !important;
+  min-width: 116px !important;
+  max-width: 116px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 0 10px !important;
+  margin: 7px auto 0 !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 116px !important;
+  box-sizing: border-box !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
+
+/* Cores dos pedidos: formato igual; muda somente cor e texto. */
+.vendas-documento-row.is-pedidos .vendas-pedido-status-botao.status-aberto {
+  color: #1d4ed8 !important;
+  background: #dbeafe !important;
+  border: 1px solid #93c5fd !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-status-botao.status-pendente {
+  color: #92400e !important;
+  background: #fef3c7 !important;
+  border: 1px solid #fbbf24 !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-status-botao.status-concluido {
+  color: #166534 !important;
+  background: #dcfce7 !important;
+  border: 1px solid #86efac !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-status-botao.status-entregue {
+  color: #6d28d9 !important;
+  background: #ede9fe !important;
+  border: 1px solid #c4b5fd !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-status-botao.status-cancelado {
+  color: #b91c1c !important;
+  background: #fee2e2 !important;
+  border: 1px solid #fca5a5 !important;
+}
+
+/* SYNERGIAS_STATUS_ORCAMENTOS_PEDIDOS_V202 - FIM */
+
+/* SYNERGIAS_PEDIDOS_STATUS_UNICO_V202D_INICIO */
+
+/*
+  UMA ÚNICA REGRA PARA TODOS OS STATUS DOS PEDIDOS.
+  ABERTO, PENDENTE, CONCLUÍDO, ENTREGUE E CANCELADO
+  possuem exatamente a mesma largura, altura e formato.
+*/
+.vendas-documento-row.is-pedidos .vendas-pedido-status-unico {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+
+  width: 116px !important;
+  min-width: 116px !important;
+  max-width: 116px !important;
+
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+
+  padding: 0 10px !important;
+  margin: 7px auto 0 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  flex: 0 0 116px !important;
+  box-sizing: border-box !important;
+
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-radius: 999px !important;
+
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+
+  white-space: nowrap !important;
+  text-align: center !important;
+
+  aspect-ratio: auto !important;
+  transform: none !important;
+  overflow: hidden !important;
+  cursor: pointer !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-status-unico.status-aberto {
+  color: #0369a1 !important;
+  background: #e0f2fe !important;
+  border-color: #7dd3fc !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-status-unico.status-pendente {
+  color: #92400e !important;
+  background: #fef3c7 !important;
+  border-color: #fbbf24 !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-status-unico.status-concluido {
+  color: #15803d !important;
+  background: #dcfce7 !important;
+  border-color: #86efac !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-status-unico.status-entregue {
+  color: #6d28d9 !important;
+  background: #ede9fe !important;
+  border-color: #c4b5fd !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-status-unico.status-cancelado {
+  color: #b91c1c !important;
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+}
+
+/* SYNERGIAS_PEDIDOS_STATUS_UNICO_V202D_FIM */
+
+
+/* SYNERGIAS_PEDIDOS_STATUS_CENTRALIZADO_V205 */
+.vendas-documento-row.is-pedidos .vendas-documento-numero {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-status-unico {
+  --synergias-pedidos-status-centralizado-v205: 1;
+  width: 96px !important;
+  min-width: 96px !important;
+  max-width: 96px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  flex: 0 0 30px !important;
+  margin: 7px auto 0 !important;
+  align-self: center !important;
+  position: relative !important;
+  left: 0 !important;
+  right: auto !important;
+  transform: none !important;
+}
+/* FIM SYNERGIAS_PEDIDOS_STATUS_CENTRALIZADO_V205 */

@@ -1,0 +1,2643 @@
+.financeiro-page {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  background: #f3f7f4;
+  color: #173f2a;
+  overflow-x: hidden;
+}
+
+.financeiro-page .dashboard-sidebar {
+  flex-shrink: 0;
+}
+
+.financeiro-content {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 100vh;
+  min-height: 100vh;
+  padding: 34px 74px 48px;
+  margin: 0;
+  background: #f3f7f4;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.financeiro-content > * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* HEADER DO MÓDULO FINANCEIRO */
+.financeiro-content .page-header,
+.financeiro-content .clientes-header,
+.financeiro-content .dashboard-header {
+  margin-bottom: 24px;
+}
+
+.financeiro-content h1,
+.financeiro-content .page-header h1,
+.financeiro-content .page-header-title,
+.financeiro-content .page-title,
+.financeiro-content .clientes-header h1,
+.financeiro-content .dashboard-header h1 {
+  color: #0f172a !important;
+}
+
+.financeiro-content .page-header p,
+.financeiro-content .clientes-header p,
+.financeiro-content .dashboard-header p,
+.financeiro-content p {
+  color: #64776b;
+}
+
+.financeiro-content .page-header small,
+.financeiro-content .page-header span,
+.financeiro-content .clientes-header small,
+.financeiro-content .clientes-header span,
+.financeiro-content .dashboard-header small,
+.financeiro-content .dashboard-header span {
+  color: #0f9f55 !important;
+}
+
+.financeiro-content .page-header svg,
+.financeiro-content .clientes-header svg,
+.financeiro-content .dashboard-header svg {
+  color: #0f9f55 !important;
+}
+
+.financeiro-content .page-header [class*='icon'],
+.financeiro-content .clientes-header [class*='icon'],
+.financeiro-content .dashboard-header [class*='icon'] {
+  background: #dcfce7 !important;
+  color: #0f9f55 !important;
+}
+
+/* PADRÃO GLOBAL DOS ÍCONES COLORIDOS */
+.erp-icone-padrao {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.erp-icone-lista {
+  background: #2454d6;
+  color: #ffffff;
+}
+
+.erp-icone-buscar {
+  background: #f0520b;
+  color: #ffffff;
+}
+
+.erp-icone-importar {
+  background: #0e6a8f;
+  color: #ffffff;
+}
+
+.erp-icone-exportar {
+  background: #00684f;
+  color: #ffffff;
+}
+
+.erp-icone-email {
+  background: #3d348b;
+  color: #ffffff;
+}
+
+.erp-icone-imprimir {
+  background: #5b1f91;
+  color: #ffffff;
+}
+
+.erp-icone-novo {
+  background: #f0520b;
+  color: #ffffff;
+}
+
+.erp-icone-excluir {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.erp-icone-campo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.erp-botao-icone {
+  width: 58px;
+  height: 58px;
+  min-width: 58px;
+  border: 0;
+  border-radius: 18px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  transition: 0.2s ease;
+}
+
+.erp-botao-icone:hover {
+  transform: translateY(-2px);
+  filter: brightness(0.96);
+}
+
+.erp-botao-lista {
+  background: #2454d6;
+}
+
+.erp-botao-buscar {
+  background: #f0520b;
+}
+
+.erp-botao-importar {
+  background: #0e6a8f;
+}
+
+.erp-botao-exportar {
+  background: #00684f;
+}
+
+.erp-botao-email {
+  background: #3d348b;
+}
+
+.erp-botao-imprimir {
+  background: #5b1f91;
+}
+
+.erp-botao-novo {
+  background: #f0520b;
+}
+
+.erp-botao-excluir {
+  background: #dc2626;
+}
+
+/* TOOLBAR */
+.financeiro-toolbar {
+  width: 100%;
+  max-width: 100%;
+  margin: 22px 0 18px;
+  padding: 16px 20px;
+  border: 1px solid #cfe5d6;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(23, 63, 42, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.financeiro-toolbar-principal {
+  background: #fffaf2;
+  border-color: #fed7aa;
+}
+
+.financeiro-toolbar-left {
+  min-width: 240px;
+}
+
+.financeiro-toolbar-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.financeiro-toolbar-title strong {
+  display: block;
+  font-size: 16px;
+  color: #0f6b3f;
+  line-height: 1.2;
+}
+
+.financeiro-toolbar-title small {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: #6f8175;
+}
+
+.financeiro-toolbar-icon {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.financeiro-toolbar-icon.lista {
+  background: #e8f7ee;
+  color: #138a4f;
+}
+
+.financeiro-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.financeiro-action-button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 13px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: 0.2s ease;
+  white-space: nowrap;
+}
+
+.financeiro-action-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(0.98);
+}
+
+.financeiro-action-button.importar {
+  background: #e7f0ff;
+  color: #1c5fb8;
+}
+
+.financeiro-action-button.exportar {
+  background: #ecfdf3;
+  color: #16884f;
+}
+
+.financeiro-action-button.email {
+  background: #fff4e5;
+  color: #c36a00;
+}
+
+.financeiro-action-button.imprimir {
+  background: #f1ecff;
+  color: #6a3fc2;
+}
+
+.financeiro-action-button.novo {
+  background: #118348;
+  color: #ffffff;
+}
+
+/* DASHBOARD */
+.financeiro-dashboard {
+  width: 100%;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 22px 0 18px;
+  box-sizing: border-box;
+}
+
+.financeiro-card {
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #cfe5d6;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(23, 63, 42, 0.08);
+  box-sizing: border-box;
+}
+
+.financeiro-card.resumo {
+  min-height: 118px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.financeiro-card-icon,
+.financeiro-modulo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.financeiro-card-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+}
+
+.financeiro-card-icon.verde,
+.financeiro-modulo-icon.verde {
+  background: #e8f7ee;
+  color: #118348;
+}
+
+.financeiro-card-icon.azul,
+.financeiro-modulo-icon.azul {
+  background: #e9f2ff;
+  color: #1d66c2;
+}
+
+.financeiro-card-icon.amarelo,
+.financeiro-modulo-icon.amarelo {
+  background: #fff5d8;
+  color: #bd8100;
+}
+
+.financeiro-card span,
+.financeiro-card-resumo span {
+  display: block;
+  font-size: 13px;
+  color: #6f8175;
+  font-weight: 800;
+  margin-bottom: 5px;
+}
+
+.financeiro-card strong,
+.financeiro-card-resumo strong {
+  display: block;
+  max-width: 100%;
+  font-size: 24px;
+  color: #0f6b3f;
+  font-weight: 900;
+  line-height: 1.1;
+  word-break: break-word;
+}
+
+.financeiro-card small {
+  display: block;
+  margin-top: 6px;
+  color: #7a8c80;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* MÓDULOS */
+.financeiro-modulos {
+  width: 100%;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0 0 20px;
+  box-sizing: border-box;
+}
+
+.financeiro-modulo-card {
+  width: 100%;
+  min-width: 0;
+  min-height: 150px;
+  border: 1px solid #cfe5d6;
+  border-radius: 22px;
+  background: #ffffff;
+  padding: 19px;
+  text-align: left;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(23, 63, 42, 0.08);
+  transition: 0.2s ease;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.financeiro-modulo-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: #118348;
+  box-shadow: 0 12px 28px rgba(17, 131, 72, 0.14);
+}
+
+.financeiro-modulo-card.desabilitado {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.financeiro-modulo-icon {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  border-radius: 20px;
+}
+
+.financeiro-modulo-card h3 {
+  margin: 0 0 8px;
+  color: #0f6b3f;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.financeiro-modulo-card p {
+  margin: 0;
+  color: #64776b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* BOTÕES */
+.financeiro-voltar,
+.financeiro-confirmar {
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 18px;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+}
+
+.financeiro-voltar {
+  background: #e2e8f0;
+  color: #173f2a;
+}
+
+.financeiro-confirmar {
+  background: #118348;
+  color: #ffffff;
+}
+
+/* BUSCA E FILTROS */
+.financeiro-busca {
+  flex: 1;
+  min-width: 0;
+  min-height: 54px;
+  background: #f8fcf9;
+  border: 1px solid #cfe5d6;
+  border-radius: 16px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  box-sizing: border-box;
+}
+
+.financeiro-busca svg {
+  color: #118348;
+}
+
+.financeiro-busca input {
+  border: 0;
+  outline: 0;
+  width: 100%;
+  min-width: 0;
+  font-size: 14px;
+  color: #173f2a;
+  background: transparent;
+  font-family: inherit;
+  font-weight: 700;
+}
+
+.financeiro-busca input::placeholder {
+  color: #8ba093;
+}
+
+.financeiro-toolbar select,
+.financeiro-toolbar input {
+  height: 54px;
+  border-radius: 16px;
+  border: 1px solid #cfe5d6;
+  padding: 0 16px;
+  background: #f8fcf9;
+  color: #173f2a;
+  font-weight: 800;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.financeiro-toolbar select:focus,
+.financeiro-toolbar input:focus,
+.financeiro-busca:focus-within {
+  border-color: #118348;
+  box-shadow: 0 0 0 3px rgba(17, 131, 72, 0.12);
+  outline: none;
+}
+
+.financeiro-filtros,
+.financeiro-filtros-avancados {
+  width: 100%;
+  max-width: 100%;
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px 190px 190px;
+  gap: 12px;
+  border-bottom: 1px solid #edf4ef;
+  box-sizing: border-box;
+}
+
+.financeiro-filtro-campo,
+.financeiro-filtro-status {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.financeiro-filtro-campo span,
+.financeiro-filtro-status span {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f6b3f;
+}
+
+.financeiro-filtro-campo input,
+.financeiro-filtro-campo select,
+.financeiro-filtro-status select {
+  width: 100%;
+  height: 54px;
+  border: 1px solid #cfe5d6;
+  border-radius: 16px;
+  background: #f8fcf9;
+  color: #173f2a;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 800;
+  padding: 0 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.financeiro-filtro-campo input:focus,
+.financeiro-filtro-campo select:focus,
+.financeiro-filtro-status select:focus {
+  border-color: #118348;
+  box-shadow: 0 0 0 3px rgba(17, 131, 72, 0.12);
+}
+
+/* RESUMOS */
+.financeiro-resumo-grid {
+  width: 100%;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+  box-sizing: border-box;
+}
+
+.financeiro-resumo-grid.pequeno {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.financeiro-card-resumo {
+  min-width: 0;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #cfe5d6;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(23, 63, 42, 0.08);
+  box-sizing: border-box;
+}
+
+/* LISTAGEM E TABELA */
+.financeiro-tabela-card,
+.financeiro-listagem {
+  width: 100%;
+  max-width: 100%;
+  background: #ffffff;
+  border-radius: 22px;
+  border: 1px solid #cfe5d6;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(23, 63, 42, 0.08);
+  box-sizing: border-box;
+}
+
+.financeiro-listagem-header {
+  padding: 18px;
+  border-bottom: 1px solid #edf4ef;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.financeiro-listagem-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.financeiro-listagem-title h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #0f6b3f;
+}
+
+.financeiro-listagem-title p {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: #6f8175;
+}
+
+.financeiro-listagem-link {
+  min-height: 38px;
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 14px;
+  background: #e8f7ee;
+  color: #118348;
+  font-size: 13px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.financeiro-tabela-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.financeiro-tabela-card {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.financeiro-tabela {
+  width: 100%;
+  min-width: 1060px;
+  border-collapse: collapse;
+  color: #173f2a;
+}
+
+.financeiro-tabela thead {
+  background: #f1f8f4;
+}
+
+.financeiro-tabela th {
+  text-align: left;
+  padding: 14px 16px;
+  color: #0f6b3f;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #dcece2;
+  white-space: nowrap;
+}
+
+.financeiro-tabela td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef4f0;
+  vertical-align: middle;
+  font-size: 13px;
+  color: #254934;
+  white-space: nowrap;
+}
+
+.financeiro-tabela td strong {
+  display: block;
+  color: #173f2a;
+  font-weight: 900;
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.financeiro-tabela td small {
+  display: block;
+  color: #7a8c80;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.financeiro-tabela tbody tr:hover {
+  background: #f8fcf9;
+}
+
+.financeiro-vazio,
+.financeiro-tabela-vazia {
+  text-align: center;
+  color: #7a8c80 !important;
+  padding: 30px 16px !important;
+  font-weight: 700;
+  white-space: normal !important;
+}
+
+/* STATUS */
+.financeiro-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.financeiro-status.aberta {
+  background: #e8f7ee;
+  color: #118348;
+}
+
+.financeiro-status.parcialmente-paga,
+.financeiro-status.parcialmente-pago {
+  background: #fff4e5;
+  color: #c36a00;
+}
+
+.financeiro-status.paga,
+.financeiro-status.pago {
+  background: #e7f0ff;
+  color: #1d66c2;
+}
+
+.financeiro-status.vencida {
+  background: #ffe8e8;
+  color: #c62828;
+}
+
+.financeiro-status.cancelada {
+  background: #eeeeee;
+  color: #666666;
+}
+
+/* AÇÕES */
+.financeiro-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.financeiro-acoes button {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid #dbe3ef;
+  background: #ffffff;
+  color: #173f2a;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.financeiro-acoes button:hover {
+  background: #ecfdf5;
+  color: #118348;
+  border-color: #86efac;
+}
+
+/* MODAL */
+.financeiro-modal-fundo {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 999;
+}
+
+.financeiro-modal {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 26px;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.35);
+  box-sizing: border-box;
+}
+
+.financeiro-modal h2 {
+  margin: 0 0 14px;
+  color: #0f6b3f;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.financeiro-modal p {
+  margin: 7px 0;
+  color: #334155;
+}
+
+.financeiro-modal label {
+  display: block;
+  margin-top: 14px;
+  color: #0f6b3f;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.financeiro-modal input,
+.financeiro-modal textarea,
+.financeiro-modal select {
+  width: 100%;
+  margin-top: 7px;
+  border: 1px solid #cfe5d6;
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: #173f2a;
+  background: #ffffff;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.financeiro-modal input:focus,
+.financeiro-modal textarea:focus,
+.financeiro-modal select:focus {
+  border-color: #118348;
+  box-shadow: 0 0 0 3px rgba(17, 131, 72, 0.12);
+}
+
+.financeiro-modal textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.financeiro-modal-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+/* IMPORTAÇÃO OFX */
+.financeiro-importacao-card {
+  width: 100%;
+  max-width: 100%;
+  background: #ffffff;
+  border: 1px solid #cfe5d6;
+  border-radius: 22px;
+  padding: 26px;
+  box-shadow: 0 8px 24px rgba(23, 63, 42, 0.08);
+  margin-bottom: 22px;
+  box-sizing: border-box;
+}
+
+.financeiro-importacao-card h3 {
+  margin: 0 0 8px;
+  color: #0f6b3f;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.financeiro-importacao-card p {
+  margin: 0 0 16px;
+  color: #64776b;
+  line-height: 1.5;
+}
+
+.financeiro-importacao-acoes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.financeiro-importacao-acoes input[type='file'] {
+  max-width: 100%;
+  background: #f8fcf9;
+  border: 1px dashed #86c99e;
+  border-radius: 14px;
+  padding: 12px;
+  color: #173f2a;
+  box-sizing: border-box;
+}
+
+/* CONCILIAÇÃO */
+.financeiro-sugestoes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.financeiro-sugestao-card {
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #cfe5d6;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(23, 63, 42, 0.08);
+  box-sizing: border-box;
+}
+
+.financeiro-sugestao-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.financeiro-sugestao-topo h3 {
+  margin: 0;
+  color: #0f6b3f;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.financeiro-pontuacao {
+  border-radius: 999px;
+  background: #e8f7ee;
+  color: #118348;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.financeiro-sugestao-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.financeiro-sugestao-bloco {
+  min-width: 0;
+  border: 1px solid #dcece2;
+  border-radius: 16px;
+  padding: 14px;
+  background: #f8fcf9;
+}
+
+.financeiro-sugestao-bloco span {
+  display: block;
+  color: #64776b;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.financeiro-sugestao-bloco strong {
+  display: block;
+  color: #173f2a;
+  font-size: 16px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.financeiro-sugestao-bloco small {
+  display: block;
+  color: #7a8c80;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.financeiro-motivos {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.financeiro-motivos span {
+  background: #e7f0ff;
+  color: #1d66c2;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.financeiro-sugestao-acoes {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* RESPONSIVO */
+@media (max-width: 1200px) {
+  .financeiro-content {
+    padding: 32px 42px 46px;
+  }
+
+  .financeiro-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .financeiro-toolbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .financeiro-dashboard,
+  .financeiro-resumo-grid,
+  .financeiro-modulos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .financeiro-filtros,
+  .financeiro-filtros-avancados {
+    grid-template-columns: minmax(0, 1fr) 190px;
+  }
+
+  .financeiro-sugestao-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .financeiro-content {
+    padding: 24px;
+  }
+
+  .financeiro-dashboard,
+  .financeiro-resumo-grid,
+  .financeiro-resumo-grid.pequeno,
+  .financeiro-modulos,
+  .financeiro-filtros,
+  .financeiro-filtros-avancados {
+    grid-template-columns: 1fr;
+  }
+
+  .financeiro-modulo-card {
+    min-height: auto;
+  }
+
+  .financeiro-listagem-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .financeiro-listagem-link {
+    width: 100%;
+  }
+
+  .financeiro-sugestao-topo {
+    flex-direction: column;
+  }
+
+  .financeiro-modal {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .financeiro-content {
+    padding: 18px;
+  }
+
+  .financeiro-card.resumo,
+  .financeiro-modulo-card {
+    flex-direction: column;
+  }
+
+  .financeiro-toolbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .erp-botao-icone {
+    width: 100%;
+  }
+
+  .financeiro-modal-fundo {
+    padding: 14px;
+  }
+
+  .financeiro-modal-acoes,
+  .financeiro-importacao-acoes {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .financeiro-modal-acoes button,
+  .financeiro-importacao-acoes button {
+    width: 100%;
+  }
+}
+
+@media print {
+  .financeiro-page {
+    background: #ffffff;
+  }
+
+  .financeiro-page aside,
+  .financeiro-toolbar-actions,
+  .financeiro-modulos,
+  .financeiro-filtros,
+  .financeiro-filtros-avancados,
+  .financeiro-listagem-link,
+  .financeiro-acoes,
+  .financeiro-importacao-card {
+    display: none !important;
+  }
+
+  .financeiro-content {
+    padding: 0;
+    background: #ffffff;
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .financeiro-card,
+  .financeiro-card-resumo,
+  .financeiro-toolbar,
+  .financeiro-listagem,
+  .financeiro-tabela-card {
+    box-shadow: none;
+  }
+
+  .financeiro-tabela {
+    min-width: 100%;
+  }
+}
+
+/* =========================================================
+   FINANCEIRO - CONTAS A RECEBER E CONCILIAÇÃO PADRÃO ATUAL
+========================================================= */
+
+.financeiro-page {
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.financeiro-content {
+  height: 100vh;
+  min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding-bottom: 80px;
+}
+
+.financeiro-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.financeiro-content::-webkit-scrollbar-track {
+  background: #ecfdf3;
+  border-radius: 999px;
+}
+
+.financeiro-content::-webkit-scrollbar-thumb {
+  background: #118348;
+  border-radius: 999px;
+}
+
+.financeiro-content::-webkit-scrollbar-thumb:hover {
+  background: #0f6b3f;
+}
+
+.financeiro-toolbar-padrao {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.financeiro-toolbar-left-actions,
+.financeiro-toolbar-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.financeiro-toolbar-left-actions {
+  flex: 1;
+  min-width: 0;
+}
+
+.financeiro-toolbar-right-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.financeiro-icon-button {
+  width: 58px;
+  height: 58px;
+  min-width: 58px;
+  flex: 0 0 58px;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10);
+  transition: 0.2s ease;
+}
+
+.financeiro-icon-button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.financeiro-icon-back {
+  background: #c026d3;
+}
+
+.financeiro-icon-refresh {
+  background: #0f766e;
+}
+
+.financeiro-icon-filter {
+  background: #7c3aed;
+}
+
+.financeiro-icon-filter.ativo {
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.16);
+}
+
+.financeiro-busca-toolbar {
+  width: min(680px, 100%);
+  min-height: 58px;
+  flex: 1;
+}
+
+.financeiro-busca-toolbar input {
+  width: 100%;
+}
+
+.financeiro-banco-select {
+  min-width: 240px;
+}
+
+.financeiro-filtros-avancados {
+  margin: 0 0 22px;
+  border: 1px solid #cfe5d6;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(23, 63, 42, 0.08);
+}
+
+@media (max-width: 1200px) {
+  .financeiro-toolbar-padrao {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .financeiro-toolbar-left-actions,
+  .financeiro-toolbar-right-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .financeiro-toolbar-right-actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 820px) {
+  .financeiro-page {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .financeiro-content {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: visible;
+    padding-bottom: 60px;
+  }
+
+  .financeiro-busca-toolbar {
+    min-width: 100%;
+    order: 4;
+  }
+
+  .financeiro-banco-select {
+    min-width: 220px;
+    flex: 1;
+  }
+}
+
+
+/* =========================================================
+   FINANCEIRO - NOVA CONTA A RECEBER
+========================================================= */
+
+.financeiro-nova-conta-actions {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 4px 0 22px;
+}
+
+.financeiro-icon-save {
+  background: #118348;
+}
+
+.financeiro-nova-conta-card {
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 22px;
+  border: 1px solid #cfe5d6;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(23, 63, 42, 0.08);
+  box-sizing: border-box;
+}
+
+.financeiro-nova-conta-section-title {
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #cfe5d6;
+}
+
+.financeiro-nova-conta-section-title h2 {
+  margin: 0;
+  color: #173f2a;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.financeiro-nova-conta-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.financeiro-nova-conta-grid:last-child {
+  margin-bottom: 0;
+}
+
+.financeiro-nova-conta-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.financeiro-nova-conta-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.financeiro-nova-conta-card label,
+.financeiro-nova-conta-observacao {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.financeiro-nova-conta-card input,
+.financeiro-nova-conta-card select,
+.financeiro-nova-conta-card textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #cfe5d6;
+  border-radius: 12px;
+  background: #f8fcf9;
+  color: #173f2a;
+  padding: 11px 13px;
+  box-sizing: border-box;
+  outline: 0;
+  font: inherit;
+  font-weight: 500;
+}
+
+.financeiro-nova-conta-card input,
+.financeiro-nova-conta-card select {
+  min-height: 42px;
+}
+
+.financeiro-nova-conta-card textarea {
+  min-height: 78px;
+  resize: vertical;
+}
+
+.financeiro-nova-conta-card input:focus,
+.financeiro-nova-conta-card select:focus,
+.financeiro-nova-conta-card textarea:focus {
+  border-color: #118348;
+  box-shadow: 0 0 0 3px rgba(17, 131, 72, 0.12);
+}
+
+@media (max-width: 980px) {
+  .financeiro-nova-conta-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .financeiro-nova-conta-grid-2,
+  .financeiro-nova-conta-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* AJUSTES CONSOLIDADOS 2026-07-05 */
+.produto-toolbar-icon{width:58px;height:58px;border-radius:16px;border:1px solid #1e3a5f;background:#071426;display:flex;align-items:center;justify-content:center;cursor:pointer}.produto-toolbar-back{color:#e2e8f0}
+.compras-form-filtros-card,.financeiro-filtros-panel{display:flex;gap:12px;align-items:end;padding:16px 18px;margin:0 0 16px;background:#0b1b30;border:1px solid #1e3a5f;border-radius:14px}.compras-form-filtros-card label,.financeiro-filtros-panel label{display:grid;gap:6px;color:#9fb3c8}.compras-form-filtros-card select,.financeiro-filtros-panel select{min-width:220px;padding:10px;border-radius:9px}.compras-form-filtros-card button,.financeiro-filtros-panel button{padding:10px 14px;border-radius:9px;border:0;cursor:pointer}.compras-filter-count{min-width:20px;height:20px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#f59e0b;color:#08111f;font-weight:800}
+.vendas-icon-new{width:58px;height:58px;border-radius:16px;border:1px solid #14532d;background:#052e16;color:#22c55e;display:flex;align-items:center;justify-content:center;cursor:pointer}.vendas-filter-toggle{min-height:46px;display:inline-flex;align-items:center;gap:8px;padding:0 14px;border-radius:12px;border:1px solid #32445e;background:#0b1b30;color:#d7e4f2;cursor:pointer}.vendas-filter-toggle.ativo{border-color:#f59e0b}.vendas-filter-toggle span{background:#f59e0b;color:#111827;border-radius:999px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-weight:800}.vendas-filtros-recolhiveis{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;padding:12px;background:#0b1b30;border:1px solid #1e3a5f;border-radius:14px}.vendas-clear-filters{padding:10px 13px;border-radius:9px;border:1px solid #465c78;background:transparent;color:#d7e4f2;cursor:pointer}
+.estoque-primary-page-action{display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:0 16px;border-radius:14px;border:1px solid #155e75;background:#083344;color:#67e8f9;font-weight:700;cursor:pointer}.estoque-history-filter{display:flex;align-items:center;gap:7px}.estoque-history-filter select{min-height:42px;border-radius:10px;padding:0 10px}
+.pedido-brindes-card{padding:18px;border:1px solid #28466d;border-radius:16px;background:#071426;margin-bottom:22px}.pedido-brindes-card>p{color:#91a7bd}.pedido-brindes-grid{display:grid;grid-template-columns:2fr .7fr 1.3fr 1.4fr 1.3fr 1.5fr;gap:12px}.pedido-brindes-grid label{display:grid;gap:6px;color:#9fb3c8}.pedido-brindes-grid input,.pedido-brindes-grid select{min-height:42px;border-radius:9px}.pedido-brindes-lista{margin-top:16px;display:grid;gap:8px}.pedido-brinde-linha{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;padding:12px;border:1px solid #233f62;border-radius:12px;background:#0b1b30}.pedido-brinde-linha div:first-child{display:grid;gap:3px}.pedido-brinde-linha span,.pedido-brinde-linha small{color:#9fb3c8}.brinde-status{padding:6px 9px;border-radius:999px;font-size:12px;font-weight:800}.brinde-status.baixado{background:#064e3b;color:#6ee7b7}.brinde-status.pendente{background:#78350f;color:#fcd34d}
+.financeiro-fluxo-detalhado{margin:22px 0;padding:20px;border:1px solid #24415f;border-radius:18px;background:#071426}.financeiro-fluxo-header{display:flex;justify-content:space-between;align-items:end;gap:16px}.financeiro-fluxo-header h2{margin:0;color:#f8fafc}.financeiro-fluxo-header p{margin:5px 0 0;color:#8fa6bc}.financeiro-fluxo-periodo{display:flex;gap:10px}.financeiro-fluxo-periodo label{display:grid;gap:4px;color:#9fb3c8}.financeiro-fluxo-periodo input{padding:9px;border-radius:8px}.financeiro-fluxo-resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.financeiro-fluxo-resumo article{padding:14px;border-radius:12px;background:#0b1b30;border:1px solid #1e3a5f;display:grid;gap:5px}.financeiro-fluxo-resumo span{color:#8fa6bc}.financeiro-fluxo-resumo strong{font-size:20px}.financeiro-fluxo-linhas{display:grid;gap:4px}.financeiro-fluxo-grupo,.financeiro-fluxo-total{display:flex;justify-content:space-between;padding:14px;border:0;border-radius:9px;background:#10243d;color:#e2e8f0;font-weight:800}.financeiro-fluxo-grupo{cursor:pointer}.financeiro-fluxo-detalhes{display:grid;gap:2px;padding:0 10px 10px}.financeiro-fluxo-detalhes>div{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #18334f;color:#bdcce0}.financeiro-fluxo-item{font-size:13px}.financeiro-fluxo-total{margin-top:8px;background:#064e3b;color:#a7f3d0}
+.financeiro-conciliacao-filtros{display:grid;grid-template-columns:minmax(280px,1fr) auto auto auto;gap:10px;margin:18px 0}.financeiro-busca-conciliacao,.financeiro-modal-filtros>div{display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid #294764;border-radius:10px;background:#08182a}.financeiro-busca-conciliacao input,.financeiro-modal-filtros input{width:100%;min-height:42px;border:0;background:transparent;color:#e2e8f0;outline:0}.financeiro-conciliacao-filtros select,.financeiro-modal-filtros select{min-height:44px;border-radius:10px;padding:0 10px}.financeiro-conciliacao-acoes{display:flex;gap:6px}.financeiro-conciliacao-acoes button{padding:7px 9px;border-radius:8px;border:1px solid #31506f;background:#0b1b30;color:#dce7f2;cursor:pointer}.financeiro-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}.financeiro-modal-conciliacao{width:min(1100px,95vw);max-height:88vh;overflow:auto;background:#071426;border:1px solid #31506f;border-radius:18px;padding:20px}.financeiro-modal-header{display:flex;justify-content:space-between;align-items:start}.financeiro-modal-header h2{margin:0}.financeiro-modal-header button{font-size:28px;border:0;background:transparent;color:#e2e8f0;cursor:pointer}.financeiro-modal-filtros{display:grid;grid-template-columns:1fr auto;gap:10px;margin:18px 0}.financeiro-modal-lista{display:grid;gap:8px}.financeiro-conta-candidata{display:flex;justify-content:space-between;align-items:center;text-align:left;padding:14px;border-radius:12px;border:1px solid #24415f;background:#0b1b30;color:#e5edf7;cursor:pointer}.financeiro-conta-candidata:hover{border-color:#22c55e}.financeiro-conta-candidata div{display:grid;gap:4px}.financeiro-conta-candidata span{color:#93a8bd}
+@media(max-width:1100px){.pedido-brindes-grid{grid-template-columns:1fr 1fr}.financeiro-conciliacao-filtros{grid-template-columns:1fr 1fr}.financeiro-fluxo-resumo{grid-template-columns:1fr 1fr}}
+
+/* AÇÃO RECEBER - CONTAS A RECEBER */
+.financeiro-receber-button{width:auto!important;min-width:86px!important;height:38px!important;padding:0 12px!important;border:0!important;border-radius:10px!important;background:#22a45d!important;color:#fff!important;font-size:11px!important;font-weight:900!important;letter-spacing:.02em!important;cursor:pointer!important}
+
+.financeiro-editar-button{background:#eef5ff!important;color:#2563eb!important;border-color:#bfdbfe!important}.financeiro-editar-button:hover{background:#dbeafe!important;color:#1d4ed8!important;border-color:#93c5fd!important}
+
+/* FLUXO DE CAIXA ANALITICO - PADRAO CLARO FINANCEIRO */
+.fluxo-caixa-page{height:100vh;min-height:100vh;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable}
+.fluxo-caixa-filtros{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:12px;align-items:end;margin:0 0 18px;padding:18px;background:#fff;border:1px solid #dfe6ef;border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.04)}
+.fluxo-caixa-filtros label{display:grid;gap:6px}.fluxo-caixa-filtros label span{font-size:12px;font-weight:800;color:#475569}.fluxo-caixa-filtros input,.fluxo-caixa-filtros select{width:100%;box-sizing:border-box;min-height:42px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#0f172a;outline:none}.fluxo-caixa-filtros input:focus,.fluxo-caixa-filtros select:focus{border-color:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.1)}
+.fluxo-caixa-filtros-acoes{display:flex;align-items:end}.fluxo-caixa-filtros-acoes button{min-height:42px;padding:0 15px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#475569;font-weight:800;cursor:pointer}
+.fluxo-caixa-resumo{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}.fluxo-caixa-resumo article{min-height:112px;padding:18px;background:#fff;border:1px solid #dfe6ef;border-radius:16px;box-sizing:border-box}.fluxo-caixa-resumo span{display:block;color:#64748b;font-size:12px;font-weight:800}.fluxo-caixa-resumo strong{display:block;margin:7px 0;color:#0f172a;font-size:24px}.fluxo-caixa-resumo small{display:block;color:#64748b;font-size:11px;line-height:1.4}.fluxo-caixa-resumo .saldo-projetado{border-color:#bbf7d0;background:#f0fdf4}.fluxo-caixa-resumo .saldo-projetado strong{color:#15803d}
+.fluxo-caixa-modos{display:flex;gap:8px;margin-bottom:12px}.fluxo-caixa-modos button{padding:10px 16px;border:1px solid #dbe4ee;border-radius:10px;background:#fff;color:#64748b;font-size:12px;font-weight:900;cursor:pointer}.fluxo-caixa-modos button.ativo{background:#166534;border-color:#166534;color:#fff}
+.fluxo-caixa-analitico{margin-bottom:30px;background:#fff;border:1px solid #dfe6ef;border-radius:18px;overflow:hidden;box-shadow:0 10px 28px rgba(15,23,42,.05)}
+.fluxo-caixa-linha-principal,.fluxo-caixa-linha-grupo,.fluxo-caixa-linha-categoria{width:100%;border:0;display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left;box-sizing:border-box}.fluxo-caixa-linha-principal span,.fluxo-caixa-linha-grupo span,.fluxo-caixa-linha-categoria span{display:flex;align-items:center;gap:8px}
+.fluxo-caixa-linha-principal{padding:16px 18px;background:#f8fafc;color:#0f172a;font-size:14px;font-weight:900}.fluxo-caixa-linha-principal.entrada,.fluxo-caixa-linha-principal.saida{cursor:pointer;border-top:1px solid #e2e8f0}.fluxo-caixa-linha-principal.entrada{background:#f0fdf4;color:#166534}.fluxo-caixa-linha-principal.saida{background:#fff7ed;color:#9a3412}.fluxo-caixa-linha-principal.saldo-final{background:#ecfdf5;color:#065f46;border-top:1px solid #bbf7d0;font-size:15px}.fluxo-caixa-linha-principal strong{font-size:16px}
+.fluxo-caixa-grupos{background:#fff}.fluxo-caixa-grupo{border-top:1px solid #eef2f7}.fluxo-caixa-linha-grupo{padding:13px 28px;background:#fff;color:#334155;font-size:13px;font-weight:850;cursor:pointer}.fluxo-caixa-linha-grupo:hover{background:#f8fafc}.fluxo-caixa-categoria{border-top:1px solid #f1f5f9}.fluxo-caixa-linha-categoria{padding:11px 40px;background:#fbfdff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.fluxo-caixa-linha-categoria:hover{background:#f8fafc}
+.fluxo-caixa-itens{background:#fff}.fluxo-caixa-item{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:11px 46px 11px 62px;border-top:1px solid #f1f5f9}.fluxo-caixa-item>div:first-child{display:grid;grid-template-columns:90px minmax(180px,1fr);gap:2px 12px;align-items:center;flex:1}.fluxo-caixa-item>div:first-child strong{grid-row:1/3;color:#64748b;font-size:11px}.fluxo-caixa-item>div:first-child span{color:#334155;font-size:12px;font-weight:700}.fluxo-caixa-item>div:first-child small{color:#94a3b8;font-size:10px}.fluxo-caixa-item>div:last-child{display:flex;align-items:center;gap:14px}.fluxo-caixa-item>div:last-child strong{min-width:120px;text-align:right;color:#0f172a;font-size:12px}.fluxo-caixa-vazio{padding:22px;text-align:center;color:#64748b;font-size:12px}
+.fluxo-situacao,.fluxo-tipo{display:inline-flex;align-items:center;justify-content:center;padding:5px 9px;border-radius:999px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}.fluxo-situacao.realizado{background:#dcfce7;color:#15803d}.fluxo-situacao.previsto{background:#fef3c7;color:#a16207}.fluxo-tipo.entrada{background:#dcfce7;color:#15803d}.fluxo-tipo.saida{background:#fee2e2;color:#b91c1c}
+.fluxo-caixa-tabela-card{margin-bottom:30px;padding:18px;background:#fff;border:1px solid #dfe6ef;border-radius:18px;box-shadow:0 10px 28px rgba(15,23,42,.05)}.fluxo-caixa-tabela{min-width:1180px}.fluxo-caixa-tabela td small{display:block;margin-top:3px;color:#94a3b8;font-size:10px}.fluxo-caixa-tabela .valor-entrada{color:#15803d;font-weight:900}.fluxo-caixa-tabela .valor-saida{color:#b91c1c;font-weight:900}
+@media(max-width:1250px){.fluxo-caixa-filtros{grid-template-columns:repeat(3,minmax(150px,1fr))}.fluxo-caixa-resumo{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.fluxo-caixa-filtros,.fluxo-caixa-resumo{grid-template-columns:1fr}.fluxo-caixa-item{padding-left:24px;padding-right:24px}.fluxo-caixa-item>div:first-child{grid-template-columns:1fr}.fluxo-caixa-item>div:first-child strong{grid-row:auto}.fluxo-caixa-item>div:last-child{flex-direction:column;align-items:flex-end;gap:6px}}
+@media print{.financeiro-page>aside,.financeiro-toolbar,.fluxo-caixa-modos,.fluxo-caixa-filtros{display:none!important}.financeiro-content.fluxo-caixa-page{height:auto!important;overflow:visible!important;padding:0!important}.fluxo-caixa-analitico,.fluxo-caixa-tabela-card,.fluxo-caixa-resumo article{box-shadow:none!important}}
+
+/* FLUXO DE CAIXA EMBUTIDO NA PAGINA PRINCIPAL DO FINANCEIRO */
+.financeiro-fluxo-embutido{margin:24px 0 36px;padding:20px;background:#f8fafc;border:1px solid #dfe6ef;border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.05)}
+.financeiro-fluxo-embutido-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}.financeiro-fluxo-embutido-header h2{margin:0;color:#173f2a;font-size:22px;font-weight:900}.financeiro-fluxo-embutido-header p{margin:5px 0 0;color:#64748b;font-size:13px}.financeiro-fluxo-embutido-acoes{display:flex;align-items:center;gap:10px}.financeiro-fluxo-busca-embutida{max-width:none!important;width:100%;margin-bottom:14px;background:#fff!important;border-color:#dbe4ee!important}.financeiro-fluxo-embutido .fluxo-caixa-filtros{margin-bottom:14px}.financeiro-fluxo-embutido .fluxo-caixa-resumo{margin-bottom:14px}.financeiro-fluxo-embutido .fluxo-caixa-analitico,.financeiro-fluxo-embutido .fluxo-caixa-tabela-card{margin-bottom:0}
+/* Botão NOVO padrão ERP: verde sólido com ícone branco */
+.financeiro-icon-new {
+  background: #16a34a !important;
+  color: #ffffff !important;
+  border-color: #16a34a !important;
+}
+
+.financeiro-icon-new:hover {
+  background: #15803d !important;
+  color: #ffffff !important;
+  border-color: #15803d !important;
+}
+@media(max-width:760px){.financeiro-fluxo-embutido-header{align-items:flex-start;flex-direction:column}.financeiro-fluxo-embutido-acoes{width:100%;justify-content:flex-end}}
+
+/* =========================================================
+   CONCILIAÇÃO BANCÁRIA — FLUXO ASSISTIDO E REVERSÍVEL
+   ========================================================= */
+.conciliacao-resumo-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.conciliacao-importacao-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.conciliacao-importacao-card h3,
+.conciliacao-importacao-card p {
+  margin: 0;
+}
+
+.conciliacao-importacao-card p {
+  margin-top: 8px;
+}
+
+.conciliacao-lancamentos-lista {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.conciliacao-lancamento-card {
+  display: grid;
+  grid-template-columns: minmax(390px, 1.35fr) minmax(360px, 1.15fr) minmax(210px, 0.72fr);
+  border: 1px solid #dce9e3;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(15, 50, 38, 0.06);
+}
+
+.conciliacao-lancamento-card.descartado {
+  opacity: 0.8;
+}
+
+.conciliacao-lancamento-origem {
+  padding: 16px 20px;
+  background: #fffdf0;
+  border-right: 1px solid #e8eadf;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.conciliacao-lancamento-origem > span,
+.conciliacao-lancamento-origem > small {
+  color: #7d8d86;
+  font-weight: 700;
+}
+
+.conciliacao-lancamento-origem > strong {
+  color: #10261f;
+  font-size: 16px;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+}
+
+.conciliacao-lancamento-origem > em {
+  margin-top: 5px;
+  font-size: 23px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.conciliacao-lancamento-origem > em.entrada { color: #1365d8; }
+.conciliacao-lancamento-origem > em.saida { color: #dc2626; }
+
+.conciliacao-descartar-origem {
+  align-self: flex-start;
+  margin-top: 7px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #f3b6ba;
+  border-radius: 8px;
+  background: #fff7f7;
+  color: #bb3d45;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.conciliacao-descartar-origem:hover {
+  background: #fff0f1;
+}
+
+.conciliacao-vinculo-dados {
+  min-width: 0;
+}
+
+.conciliacao-desvincular-conta {
+  margin-top: 10px;
+  min-height: 36px;
+  padding: 7px 11px;
+  border: 1px solid #e7a9ad;
+  border-radius: 8px;
+  background: #fff7f7;
+  color: #a8323b;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.conciliacao-desvincular-conta:hover {
+  background: #ffedef;
+}
+
+.conciliacao-lancamento-sugestao {
+  padding: 16px 20px;
+  min-width: 0;
+}
+
+.conciliacao-sugestao-titulo,
+.conciliacao-sugestao-conteudo,
+.conciliacao-vinculo-atual {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.conciliacao-sugestao-titulo span {
+  color: #07965a;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
+.conciliacao-sugestao-titulo b {
+  color: #51655c;
+  font-size: 12px;
+}
+
+.conciliacao-sugestao-conteudo {
+  margin-top: 10px;
+}
+
+.conciliacao-sugestao-conteudo h3,
+.conciliacao-sugestao-conteudo p,
+.conciliacao-sugestao-conteudo strong,
+.conciliacao-vinculo-atual p {
+  margin: 0;
+}
+
+.conciliacao-sugestao-conteudo h3 {
+  margin-top: 5px;
+  color: #0f201a;
+  font-size: 20px;
+}
+
+.conciliacao-sugestao-conteudo p,
+.conciliacao-vinculo-atual p {
+  margin-top: 5px;
+  color: #63776e;
+}
+
+.conciliacao-sugestao-valor,
+.conciliacao-vinculo-valor {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.conciliacao-sugestao-valor span,
+.conciliacao-vinculo-valor span {
+  display: block;
+  color: #778a81;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.conciliacao-sugestao-valor strong,
+.conciliacao-vinculo-valor strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 25px;
+  color: #10261f;
+}
+
+.conciliacao-sugestao-valor small {
+  color: #71877c;
+}
+
+.conciliacao-motivos-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.conciliacao-motivos-inline span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #effaf4;
+  color: #087344;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.conciliacao-lancamento-acoes {
+  border-left: 1px solid #e8eee9;
+  display: grid;
+  align-content: stretch;
+  background: #fbfdfc;
+}
+
+.conciliacao-acao {
+  min-height: 48px;
+  border: 0;
+  border-bottom: 1px solid #e6eee9;
+  background: transparent;
+  padding: 9px 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.conciliacao-acao:last-child { border-bottom: 0; }
+.conciliacao-acao.aceitar { color: #198754; }
+.conciliacao-acao.localizar,
+.conciliacao-acao.ver { color: #1672aa; }
+.conciliacao-acao.novo-recebimento { color: #7ab92c; }
+.conciliacao-acao.novo-pagamento { color: #ef5d65; }
+.conciliacao-acao.descartar,
+.conciliacao-acao.desfazer { color: #bb3d45; }
+.conciliacao-acao.recuperar { color: #7a5b26; }
+.conciliacao-acao:hover { background: #f2f8f5; }
+
+.conciliacao-estado-vazio {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #687c73;
+}
+
+.conciliacao-estado-vazio strong {
+  display: block;
+  color: #1d332a;
+  font-size: 17px;
+}
+
+.conciliacao-estado-vazio p {
+  margin: 6px 0 0;
+}
+
+.conciliacao-vinculo-atual > div:first-child span {
+  color: #07965a;
+  text-transform: uppercase;
+  font-weight: 900;
+  font-size: 12px;
+}
+
+.conciliacao-vinculo-atual > div:first-child strong {
+  display: block;
+  margin-top: 7px;
+  color: #10261f;
+  font-size: 20px;
+}
+
+.conciliacao-modal-amplo {
+  width: min(1120px, calc(100vw - 64px));
+  max-height: min(88vh, 860px);
+}
+
+.conciliacao-modal-novo {
+  width: min(1050px, calc(100vw - 64px));
+  max-height: min(90vh, 900px);
+}
+
+.conciliacao-modal-vinculo {
+  width: min(780px, calc(100vw - 64px));
+}
+
+.conciliacao-modal-header {
+  background: #5fa0f0;
+  color: #fff;
+}
+
+.conciliacao-modal-header h2,
+.conciliacao-modal-header p {
+  color: #fff;
+}
+
+.conciliacao-modal-lancamento {
+  display: grid;
+  grid-template-columns: 210px 1fr 190px;
+  gap: 20px;
+  align-items: center;
+  padding: 18px 24px;
+  background: #fffde0;
+  border-bottom: 1px solid #e7ead8;
+}
+
+.conciliacao-modal-lancamento span,
+.conciliacao-modal-lancamento small {
+  display: block;
+  color: #75857e;
+}
+
+.conciliacao-modal-lancamento strong {
+  display: block;
+  margin-top: 4px;
+  color: #111f19;
+  font-size: 18px;
+}
+
+.conciliacao-modal-lancamento > div:last-child {
+  text-align: right;
+}
+
+.conciliacao-modal-lancamento > div:last-child strong {
+  color: #1263d2;
+  font-size: 26px;
+}
+
+.conciliacao-modal-filtros {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 18px;
+  align-items: end;
+}
+
+.conciliacao-modal-filtros label,
+.conciliacao-novo-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.conciliacao-modal-filtros label > span,
+.conciliacao-novo-form label > span {
+  color: #61766d;
+  font-weight: 800;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.conciliacao-busca-manual > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #ccdcd4;
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #fff;
+}
+
+.conciliacao-busca-manual input {
+  border: 0 !important;
+  flex: 1;
+}
+
+.conciliacao-contas-lista {
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.conciliacao-conta-candidata {
+  display: grid !important;
+  grid-template-columns: 36px 1fr 150px;
+  gap: 16px;
+  align-items: center;
+}
+
+.conciliacao-conta-check span {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #a9b8b1;
+  border-radius: 4px;
+  display: block;
+}
+
+.conciliacao-conta-candidata > div:nth-child(2) {
+  display: grid;
+  gap: 3px;
+}
+
+.conciliacao-conta-candidata > div:nth-child(2) strong {
+  color: #10261f;
+  font-size: 16px;
+}
+
+.conciliacao-conta-candidata > div:nth-child(2) span {
+  color: #335c4b;
+  font-weight: 800;
+}
+
+.conciliacao-conta-candidata > div:nth-child(2) em {
+  color: #75877f;
+  font-style: normal;
+}
+
+.conciliacao-conta-score {
+  text-align: right;
+}
+
+.conciliacao-conta-score span {
+  display: block;
+  color: #07965a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.conciliacao-conta-score strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 20px;
+}
+
+.conciliacao-modal-rodape {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: auto;
+}
+
+.conciliacao-modal-rodape button {
+  min-height: 72px;
+  border: 0;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 900;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.conciliacao-modal-rodape button:first-child {
+  background: #414745;
+  color: #fff;
+}
+
+.conciliacao-modal-rodape button.recebimento {
+  background: #8bd12b;
+  color: #fff;
+}
+
+.conciliacao-modal-rodape button.pagamento,
+.conciliacao-modal-rodape button.desfazer {
+  background: #ef6269;
+  color: #fff;
+}
+
+.conciliacao-novo-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.conciliacao-novo-form .span-2 { grid-column: span 2; }
+.conciliacao-novo-form .span-3 { grid-column: span 3; }
+
+.conciliacao-novo-form input,
+.conciliacao-novo-form textarea {
+  min-height: 48px;
+  border: 1px solid #cbdad3;
+  border-radius: 9px;
+  padding: 10px 12px;
+  font: inherit;
+  background: #fff;
+}
+
+.conciliacao-novo-form textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.conciliacao-vinculo-detalhe {
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+.conciliacao-vinculo-detalhe > div {
+  padding: 18px;
+  border: 1px solid #dce9e3;
+  border-radius: 12px;
+  background: #fbfdfc;
+}
+
+.conciliacao-vinculo-detalhe span,
+.conciliacao-vinculo-detalhe small {
+  display: block;
+  color: #6c8177;
+}
+
+.conciliacao-vinculo-detalhe strong {
+  display: block;
+  margin: 6px 0;
+  color: #10261f;
+  font-size: 18px;
+}
+
+@media (max-width: 1200px) {
+  .conciliacao-resumo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .conciliacao-lancamento-card { grid-template-columns: 280px 1fr; }
+  .conciliacao-lancamento-acoes { grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0, 1fr)); border-left: 0; border-top: 1px solid #e8eee9; }
+  .conciliacao-acao { border-bottom: 0; border-right: 1px solid #e6eee9; }
+}
+
+@media (max-width: 850px) {
+  .conciliacao-importacao-card { align-items: stretch; flex-direction: column; }
+  .conciliacao-lancamento-card { grid-template-columns: 1fr; }
+  .conciliacao-lancamento-origem { border-right: 0; border-bottom: 1px solid #e8eadf; }
+  .conciliacao-lancamento-acoes { grid-column: auto; grid-template-columns: 1fr; }
+  .conciliacao-acao { border-right: 0; border-bottom: 1px solid #e6eee9; }
+  .conciliacao-modal-lancamento,
+  .conciliacao-modal-filtros,
+  .conciliacao-novo-form { grid-template-columns: 1fr; }
+  .conciliacao-novo-form .span-2,
+  .conciliacao-novo-form .span-3 { grid-column: auto; }
+  .conciliacao-modal-lancamento > div:last-child { text-align: left; }
+  .conciliacao-conta-candidata { grid-template-columns: 28px 1fr; }
+  .conciliacao-conta-score { grid-column: 2; text-align: left; }
+}
+
+/* AJUSTE CONCILIACAO: LOTE OFX TEMPORARIO E LINHAS MAIS COMPACTAS */
+.conciliacao-lancamentos-lista {
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.conciliacao-lancamento-card {
+  grid-template-columns: minmax(430px, 1.55fr) minmax(330px, 1fr) minmax(178px, 0.58fr);
+  border-radius: 16px;
+}
+
+.conciliacao-lancamento-origem {
+  padding: 11px 16px;
+  gap: 2px;
+}
+
+.conciliacao-lancamento-origem > span,
+.conciliacao-lancamento-origem > small {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.conciliacao-lancamento-origem > strong {
+  margin-top: 2px;
+  font-size: 15px;
+  line-height: 1.22;
+}
+
+.conciliacao-lancamento-origem > em {
+  margin-top: 4px;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.conciliacao-descartar-origem {
+  margin-top: 5px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: 7px;
+  gap: 5px;
+  font-size: 11px;
+}
+
+.conciliacao-descartar-origem.recuperar {
+  border-color: #b9d9c6;
+  background: #f4fbf7;
+  color: #198754;
+}
+
+.conciliacao-descartar-origem.recuperar:hover {
+  background: #eaf7ef;
+}
+
+.conciliacao-lancamento-sugestao {
+  padding: 11px 16px;
+}
+
+.conciliacao-sugestao-titulo,
+.conciliacao-sugestao-conteudo,
+.conciliacao-vinculo-atual {
+  gap: 12px;
+}
+
+.conciliacao-sugestao-titulo span,
+.conciliacao-sugestao-titulo b {
+  font-size: 11px;
+}
+
+.conciliacao-sugestao-conteudo {
+  margin-top: 6px;
+}
+
+.conciliacao-sugestao-conteudo h3 {
+  margin-top: 2px;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.conciliacao-sugestao-conteudo p,
+.conciliacao-vinculo-atual p {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.conciliacao-sugestao-valor strong,
+.conciliacao-vinculo-valor strong {
+  margin-top: 2px;
+  font-size: 21px;
+}
+
+.conciliacao-sugestao-valor span,
+.conciliacao-vinculo-valor span,
+.conciliacao-sugestao-valor small {
+  font-size: 11px;
+}
+
+.conciliacao-motivos-inline {
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.conciliacao-motivos-inline span {
+  padding: 4px 7px;
+  font-size: 10px;
+}
+
+.conciliacao-sugestao-botoes {
+  display: flex;
+  gap: 7px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.conciliacao-botao-meio {
+  min-height: 31px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.conciliacao-botao-meio.aceitar {
+  border: 1px solid #9ed7b7;
+  background: #edf9f2;
+  color: #198754;
+}
+
+.conciliacao-botao-meio.localizar {
+  border: 1px solid #afd3e9;
+  background: #f1f8fc;
+  color: #1672aa;
+}
+
+.conciliacao-botao-meio:hover {
+  filter: brightness(0.98);
+}
+
+.conciliacao-desvincular-conta {
+  margin-top: 6px;
+  min-height: 31px;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.conciliacao-lancamento-acoes {
+  align-content: center;
+}
+
+.conciliacao-acao {
+  min-height: 38px;
+  padding: 6px 10px;
+  gap: 7px;
+  font-size: 11px;
+  line-height: 1.15;
+}
+
+.conciliacao-estado-vazio {
+  min-height: 76px;
+  gap: 11px;
+}
+
+.conciliacao-estado-vazio > svg {
+  width: 21px;
+  height: 21px;
+}
+
+.conciliacao-estado-vazio strong {
+  font-size: 15px;
+}
+
+.conciliacao-estado-vazio p {
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.22;
+}
+
+@media (max-width: 1180px) {
+  .conciliacao-lancamento-card {
+    grid-template-columns: 300px 1fr;
+  }
+}
+
+
+/* AJUSTE CONCILIACAO: ALTURA FIXA, ACOES VISUAIS E JUROS/DESCONTO */
+.conciliacao-lancamento-card {
+  height: 150px;
+  min-height: 150px;
+  max-height: 150px;
+  grid-template-columns: minmax(440px, 1.55fr) minmax(350px, 1fr) minmax(168px, .52fr);
+  overflow: hidden;
+  border: 1px solid #e1e9e4;
+  box-shadow: 0 4px 14px rgba(35, 76, 56, .055);
+  background: #fff;
+}
+
+.conciliacao-lancamento-card:hover {
+  border-color: #c9dbd0;
+  box-shadow: 0 7px 20px rgba(35, 76, 56, .085);
+}
+
+.conciliacao-lancamento-origem,
+.conciliacao-lancamento-sugestao,
+.conciliacao-lancamento-acoes {
+  min-height: 0;
+  height: 150px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.conciliacao-lancamento-origem {
+  padding: 10px 16px;
+  justify-content: center;
+}
+
+.conciliacao-lancamento-origem > strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-height: 38px;
+}
+
+.conciliacao-descartar-origem {
+  width: fit-content;
+  min-width: 92px;
+  min-height: 26px;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border: 1px solid #efc4c8;
+  background: #fff7f8;
+  color: #bd414b;
+  font-weight: 900;
+}
+
+.conciliacao-descartar-origem:hover {
+  background: #fdecef;
+}
+
+.conciliacao-lancamento-sugestao {
+  padding: 11px 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
+}
+
+.conciliacao-sugestao-conteudo,
+.conciliacao-vinculo-atual {
+  width: 100%;
+  min-height: 66px;
+  align-items: center;
+}
+
+.conciliacao-sugestao-conteudo > div:first-child,
+.conciliacao-vinculo-dados {
+  min-width: 0;
+}
+
+.conciliacao-sugestao-conteudo h3,
+.conciliacao-vinculo-dados > strong {
+  margin: 0;
+  color: #173b2b;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conciliacao-sugestao-conteudo p,
+.conciliacao-vinculo-atual p {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 4px 0 0;
+  color: #64786f;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.conciliacao-sugestao-valor,
+.conciliacao-vinculo-valor {
+  min-width: 126px;
+  text-align: right;
+}
+
+.conciliacao-sugestao-valor strong,
+.conciliacao-vinculo-valor strong {
+  color: #1672aa;
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+.conciliacao-sugestao-valor small {
+  display: block;
+  margin-top: 3px;
+  color: #81918a;
+  font-size: 10px;
+}
+
+.conciliacao-sugestao-botoes {
+  flex-wrap: nowrap;
+  margin-top: 7px;
+}
+
+.conciliacao-botao-meio {
+  min-height: 30px;
+  border-radius: 8px;
+  padding: 5px 10px;
+  box-shadow: none;
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+
+.conciliacao-botao-meio.aceitar {
+  border: 1px solid #23965d;
+  background: #23965d;
+  color: #fff;
+}
+
+.conciliacao-botao-meio.localizar {
+  border: 1px solid #3b82b8;
+  background: #edf7fd;
+  color: #176c9e;
+}
+
+.conciliacao-botao-meio:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(39, 91, 65, .12);
+}
+
+.conciliacao-desvincular-conta {
+  width: fit-content;
+  margin-top: 7px;
+  border: 1px solid #e0b3a5;
+  background: #fff4f0;
+  color: #a84b35;
+  border-radius: 8px;
+}
+
+.conciliacao-lancamento-acoes {
+  align-content: center;
+  padding: 10px;
+  gap: 7px;
+  background: #fafcfb;
+}
+
+.conciliacao-acao {
+  width: 100%;
+  min-height: 32px;
+  max-height: 38px;
+  padding: 5px 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  justify-content: flex-start;
+  font-size: 10.5px;
+  font-weight: 900;
+}
+
+.conciliacao-acao.localizar,
+.conciliacao-acao.ver {
+  border-color: #b8d7eb;
+  background: #eef8fd;
+  color: #176e9f;
+}
+
+.conciliacao-acao.novo-recebimento {
+  border-color: #b8db9f;
+  background: #f1f9eb;
+  color: #548c25;
+}
+
+.conciliacao-acao.novo-pagamento {
+  border-color: #f1bdc1;
+  background: #fff1f2;
+  color: #bd4b55;
+}
+
+.conciliacao-acao:hover {
+  filter: brightness(.98);
+  transform: translateY(-1px);
+}
+
+.conciliacao-estado-vazio {
+  min-height: 70px;
+  height: 70px;
+  padding: 8px 10px;
+  border: 1px dashed #d8e5de;
+  border-radius: 10px;
+  background: #f9fcfa;
+}
+
+.conciliacao-estado-vazio strong {
+  font-size: 14px;
+  color: #345447;
+}
+
+.conciliacao-estado-vazio p {
+  font-size: 11.5px;
+  line-height: 1.2;
+}
+
+.conciliacao-modal-ajuste {
+  width: min(760px, calc(100vw - 40px));
+}
+
+.conciliacao-ajuste-resumo {
+  display: grid;
+  grid-template-columns: 1.5fr .8fr;
+  gap: 12px;
+  padding: 16px 20px 8px;
+}
+
+.conciliacao-ajuste-resumo > div {
+  padding: 13px 14px;
+  border: 1px solid #dfe9e3;
+  border-radius: 12px;
+  background: #f9fcfa;
+}
+
+.conciliacao-ajuste-resumo span,
+.conciliacao-ajuste-resumo small,
+.conciliacao-ajuste-total span,
+.conciliacao-ajuste-total small,
+.conciliacao-total-calculado span,
+.conciliacao-total-calculado small {
+  display: block;
+  color: #6d8177;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.conciliacao-ajuste-resumo strong {
+  display: block;
+  margin: 3px 0;
+  color: #173b2b;
+  font-size: 18px;
+}
+
+.conciliacao-ajuste-valores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) 1.15fr;
+  gap: 12px;
+  padding: 12px 20px 20px;
+  align-items: stretch;
+}
+
+.conciliacao-ajuste-valores label {
+  display: grid;
+  gap: 6px;
+}
+
+.conciliacao-ajuste-valores label > span {
+  color: #61766d;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.conciliacao-ajuste-valores input {
+  min-height: 43px;
+  border: 1px solid #cfded6;
+  border-radius: 9px;
+  padding: 0 11px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #213b30;
+}
+
+.conciliacao-ajuste-total,
+.conciliacao-total-calculado {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 68px;
+  padding: 10px 13px;
+  border: 1px solid #bdd8c8;
+  border-radius: 10px;
+  background: #f2faf5;
+}
+
+.conciliacao-ajuste-total strong,
+.conciliacao-total-calculado strong {
+  margin: 2px 0;
+  color: #198754;
+  font-size: 20px;
+}
+
+.conciliacao-total-calculado {
+  align-self: end;
+}
+
+@media (max-width: 1180px) {
+  .conciliacao-lancamento-card,
+  .conciliacao-lancamento-origem,
+  .conciliacao-lancamento-sugestao,
+  .conciliacao-lancamento-acoes {
+    height: auto;
+    min-height: initial;
+    max-height: none;
+  }
+
+  .conciliacao-ajuste-valores {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .conciliacao-ajuste-resumo,
+  .conciliacao-ajuste-valores {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* SYNERGIAS STATUS PEDIDOS V191A - INICIO */
+
+/* =========================================================
+   LISTA DE PEDIDOS
+   Status menor e compacto, sem alterar sua funcao.
+   ========================================================= */
+.vendas-page .pedido-status,
+.vendas-page .status-pedido,
+.vendas-page .pedido-status-badge,
+.vendas-page .venda-status,
+.vendas-page .venda-status-badge,
+.vendas-page .status-badge,
+.vendas-lista .pedido-status,
+.vendas-lista .status-pedido,
+.vendas-lista .pedido-status-badge,
+.vendas-lista .venda-status,
+.vendas-lista .venda-status-badge,
+.pedidos-page .pedido-status,
+.pedidos-page .status-pedido,
+.pedidos-page .pedido-status-badge,
+.pedidos-lista .pedido-status,
+.pedidos-lista .status-pedido,
+.pedidos-lista .pedido-status-badge,
+.pedido-lista-card [class*="status"],
+.venda-lista-card [class*="status"],
+.pedido-card-lista [class*="status"] {
+  width: auto !important;
+  min-width: 96px !important;
+  max-width: 108px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 2px 10px !important;
+  border-radius: 14px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: flex-start !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+/* =========================================================
+   PEDIDO ABERTO
+   Status maior, azul e retangular com cantos arredondados.
+   ========================================================= */
+.orcamento-page .orcamento-status-card,
+.cliente-form-page .orcamento-status-card {
+  width: 170px !important;
+  min-width: 170px !important;
+  max-width: 170px !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  padding: 8px 14px !important;
+  border-radius: 14px !important;
+  background: #2563eb !important;
+  border: 2px solid #1d4ed8 !important;
+  color: #ffffff !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18) !important;
+}
+
+/* Cores especificas por situacao dentro do pedido aberto */
+.orcamento-page .orcamento-status-card[data-status="Cancelado"],
+.cliente-form-page .orcamento-status-card[data-status="Cancelado"] {
+  background: #dc2626 !important;
+  border-color: #b91c1c !important;
+}
+
+.orcamento-page .orcamento-status-card[data-status="Entregue"],
+.cliente-form-page .orcamento-status-card[data-status="Entregue"] {
+  background: #7c3aed !important;
+  border-color: #6d28d9 !important;
+}
+
+/* SYNERGIAS STATUS PEDIDOS V191A - FIM */

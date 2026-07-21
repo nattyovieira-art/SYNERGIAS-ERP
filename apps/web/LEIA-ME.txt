@@ -1,0 +1,22 @@
+SYNERGIAS ERP - MÓDULO FISCAL / CONFIGURAÇÃO FISCAL
+
+Arquivos completos:
+src/App.tsx
+src/components/Sidebar/Sidebar.tsx
+src/pages/Fiscal/Fiscal.tsx
+src/pages/Fiscal/ConfiguracaoFiscal.tsx
+src/services/configuracaoFiscalStorage.ts
+src/types/ConfiguracaoFiscal.ts
+src/styles/fiscal.css
+
+Rotas:
+ /fiscal
+ /fiscal/configuracao
+
+O módulo salva a configuração fiscal no localStorage.
+
+IMPORTANTE:
+- O campo "Aproveita crédito de ICMS" deve ser preenchido conforme orientação contábil real.
+- Esta etapa apenas configura os parâmetros do futuro motor fiscal.
+- Ainda não calcula ST, antecipação ou ICMS automaticamente.
+- Ainda não cria a página do certificado A1.

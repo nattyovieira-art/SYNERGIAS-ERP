@@ -1,0 +1,62 @@
+.config-form-layout { display:flex; width:100%; height:100vh; min-height:100vh; overflow:hidden; background:#f5f7fb; }
+.config-form-layout > .dashboard-sidebar { flex:0 0 auto; }
+.config-form-page { flex:1; width:0; min-width:0; height:100vh; min-height:100vh; overflow-y:auto; overflow-x:hidden; scrollbar-gutter:stable; padding:32px 36px 54px; box-sizing:border-box; }
+.config-form-page .page-header { margin-bottom:20px; }
+.config-form-actions { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+.config-icon-button { width:58px; height:58px; border:0; border-radius:16px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.18s ease; }
+.config-icon-button:hover { transform:translateY(-1px); box-shadow:0 10px 22px rgba(15,23,42,.12); }
+.config-icon-button-back { background:#e2e8f0; color:#475569; }
+.config-icon-button-save { background:#dcfce7; color:#15803d; }
+.config-form-notice { border:1px solid #cbd5e1; border-radius:14px; background:#fff; padding:14px 16px; color:#475569; font-size:13px; line-height:1.5; margin-bottom:18px; }
+.config-form-card { background:#fff; border:1px solid #dfe6ef; border-radius:18px; padding:22px; box-shadow:0 10px 28px rgba(15,23,42,.05); }
+.config-section + .config-section { margin-top:24px; padding-top:24px; border-top:1px solid #e2e8f0; }
+.config-section h3 { margin:0 0 5px; color:#0f172a; font-size:17px; }
+.config-section > p { margin:0 0 16px; color:#64748b; font-size:13px; line-height:1.5; }
+.config-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.config-grid-2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.config-field { display:flex; flex-direction:column; gap:7px; min-width:0; }
+.config-field-full { grid-column:1 / -1; }
+.config-field label { color:#334155; font-size:12px; font-weight:800; }
+.config-field input, .config-field select, .config-field textarea { width:100%; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:11px; background:#fff; color:#0f172a; padding:11px 12px; font:inherit; font-size:13px; outline:none; }
+.config-field textarea { min-height:92px; resize:vertical; }
+.config-field input:focus, .config-field select:focus, .config-field textarea:focus { border-color:#64748b; box-shadow:0 0 0 3px rgba(100,116,139,.12); }
+.config-checks { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.config-check { border:1px solid #dfe6ef; border-radius:12px; padding:12px 14px; display:flex; align-items:center; gap:10px; color:#334155; font-size:13px; font-weight:700; background:#fff; }
+.config-check input { width:17px; height:17px; }
+.config-table-wrap { width:100%; overflow:auto; border:1px solid #e2e8f0; border-radius:14px; }
+.config-table { width:100%; border-collapse:collapse; min-width:720px; }
+.config-table th { background:#f8fafc; color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:.04em; text-align:left; padding:12px; border-bottom:1px solid #e2e8f0; }
+.config-table td { padding:12px; border-bottom:1px solid #edf2f7; color:#334155; font-size:13px; vertical-align:middle; }
+.config-table tr:last-child td { border-bottom:0; }
+.config-inline-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.config-small-button { border:0; border-radius:10px; padding:9px 12px; cursor:pointer; font-weight:800; font-size:12px; background:#e2e8f0; color:#334155; }
+.config-small-button-primary { background:#dbeafe; color:#1d4ed8; }
+.config-small-button-danger { background:#fee2e2; color:#b91c1c; }
+.config-status { display:inline-flex; align-items:center; border-radius:999px; padding:5px 9px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.05em; background:#f1f5f9; color:#475569; }
+.config-status-ok { background:#dcfce7; color:#15803d; }
+.config-status-warn { background:#fef3c7; color:#b45309; }
+.config-status-off { background:#fee2e2; color:#b91c1c; }
+.config-empty { padding:24px; text-align:center; color:#64748b; font-size:13px; }
+@media (max-width:1100px){ .config-grid{grid-template-columns:repeat(2,minmax(0,1fr));} }
+@media (max-width:760px){ .config-form-page{padding:24px 20px 44px;} .config-grid,.config-grid-2,.config-checks{grid-template-columns:1fr;} }
+.config-icon-button-print{background:#7e22ce;color:#fff;margin-left:auto}
+
+.config-status-value {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 1px solid #d8e1ea;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 700;
+}
+
+.config-small-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}

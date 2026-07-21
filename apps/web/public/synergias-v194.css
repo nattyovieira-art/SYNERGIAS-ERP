@@ -1,0 +1,60 @@
+/* SYNERGIAS ERP - V194
+   Corrige o botao grande da esquerda no topo do Pedido,
+   mantendo a area ocupada pelo status/acao. */
+
+.synergias-v194-acao-coluna {
+  width: 250px !important;
+  min-width: 250px !important;
+  max-width: 250px !important;
+  min-height: 190px !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  align-self: stretch !important;
+}
+
+.synergias-v194-acao-botao {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  min-height: 190px !important;
+  padding: 16px 18px !important;
+  border-radius: 22px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  white-space: normal !important;
+  font-size: 30px !important;
+  line-height: 1.05 !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.4px !important;
+  box-sizing: border-box !important;
+  background: #2563eb !important;
+  border: 2px solid #1d4ed8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22) !important;
+}
+
+.synergias-v194-acao-botao:hover {
+  filter: brightness(0.98) !important;
+  transform: none !important;
+}
+
+/* Variacoes por situacao */
+.synergias-v194-acao-botao[data-status="ENTREGUE"] {
+  background: #2563eb !important;
+  border-color: #1d4ed8 !important;
+}
+
+.synergias-v194-acao-botao[data-status="ENTREGAR"] {
+  background: #059669 !important;
+  border-color: #047857 !important;
+}
+
+.synergias-v194-acao-botao[data-status="CONCLUIDO"],
+.synergias-v194-acao-botao[data-status="CONCLUÍDO"] {
+  background: #7c3aed !important;
+  border-color: #6d28d9 !important;
+}

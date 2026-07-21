@@ -1,0 +1,201 @@
+/* =========================================================
+   SYNERGIAS ERP - PADRÃO GLOBAL: FILTRO E ATUALIZAR
+   Adicionar filtro = ícone fúcsia
+   Atualizar = ícone cobre
+========================================================= */
+
+:root {
+  --erp-icon-filtro: #c026d3;
+  --erp-icon-atualizar-novo: #eab308;
+  --erp-icon-atualizar-hover: #ca8a04;
+}
+
+/* =========================================================
+   ADICIONAR FILTRO - SOMENTE ÍCONE
+   Abrange classes atuais e qualquer botão com ícone Filter.
+========================================================= */
+.clientes-filter-btn,
+.produtos-filter-btn,
+.compras-filter-btn,
+.estoque-filter-btn,
+button[title="Adicionar filtro" i],
+button[aria-label="Adicionar filtro" i],
+button:has(svg.lucide-filter) {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  min-height: 58px !important;
+  max-width: 58px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  background: var(--erp-icon-filtro) !important;
+  color: #ffffff !important;
+  font-size: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease !important;
+}
+
+.clientes-filter-btn svg,
+.produtos-filter-btn svg,
+.compras-filter-btn svg,
+.estoque-filter-btn svg,
+button[title="Adicionar filtro" i] svg,
+button[aria-label="Adicionar filtro" i] svg,
+button:has(svg.lucide-filter) svg.lucide-filter {
+  width: 25px !important;
+  height: 25px !important;
+  min-width: 25px !important;
+  min-height: 25px !important;
+  stroke-width: 2.4 !important;
+  color: #ffffff !important;
+}
+
+/* contador de filtros ativos permanece visível */
+.clientes-filter-btn > span,
+.produtos-filter-btn > span,
+.compras-filter-btn > span,
+.estoque-filter-btn > span,
+button[title="Adicionar filtro" i] > span,
+button[aria-label="Adicionar filtro" i] > span,
+button:has(svg.lucide-filter) > span {
+  position: absolute !important;
+  top: -7px !important;
+  right: -7px !important;
+  width: 23px !important;
+  height: 23px !important;
+  min-width: 23px !important;
+  min-height: 23px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 2px solid var(--erp-icon-filtro) !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  color: var(--erp-icon-filtro) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+/* =========================================================
+   ATUALIZAR - SOMENTE ÍCONE
+   Abrange classes atuais e ícones Refresh / Rotate.
+========================================================= */
+.compras-action-refresh,
+.estoque-action-refresh,
+.financeiro-icon-refresh,
+.relatorios-action-refresh,
+button[title^="Atualizar" i],
+button[aria-label^="Atualizar" i],
+button:has(svg.lucide-refresh-cw),
+button:has(svg.lucide-refresh-ccw),
+button:not(.vendas-btn):has(svg.lucide-rotate-cw),
+button:not(.vendas-btn):has(svg.lucide-rotate-ccw) {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  min-height: 58px !important;
+  max-width: 58px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  background: var(--erp-icon-atualizar-novo) !important;
+  color: #ffffff !important;
+  font-size: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease !important;
+}
+
+button[title^="Atualizar" i] > span,
+button[aria-label^="Atualizar" i] > span,
+button:has(svg.lucide-refresh-cw) > span,
+button:has(svg.lucide-refresh-ccw) > span,
+button:not(.vendas-btn):has(svg.lucide-rotate-cw) > span,
+button:not(.vendas-btn):has(svg.lucide-rotate-ccw) > span {
+  display: none !important;
+}
+
+.compras-action-refresh svg,
+.estoque-action-refresh svg,
+.financeiro-icon-refresh svg,
+.relatorios-action-refresh svg,
+button[title^="Atualizar" i] svg,
+button[aria-label^="Atualizar" i] svg,
+button:has(svg.lucide-refresh-cw) svg,
+button:has(svg.lucide-refresh-ccw) svg,
+button:not(.vendas-btn):has(svg.lucide-rotate-cw) svg,
+button:not(.vendas-btn):has(svg.lucide-rotate-ccw) svg {
+  width: 25px !important;
+  height: 25px !important;
+  min-width: 25px !important;
+  min-height: 25px !important;
+  stroke-width: 2.4 !important;
+  color: #ffffff !important;
+}
+
+.clientes-filter-btn:hover,
+.produtos-filter-btn:hover,
+.compras-filter-btn:hover,
+.estoque-filter-btn:hover,
+button[title="Adicionar filtro" i]:hover,
+button[aria-label="Adicionar filtro" i]:hover,
+button:has(svg.lucide-filter):hover,
+.compras-action-refresh:hover,
+.estoque-action-refresh:hover,
+.financeiro-icon-refresh:hover,
+.relatorios-action-refresh:hover,
+button[title^="Atualizar" i]:hover,
+button[aria-label^="Atualizar" i]:hover,
+button:has(svg.lucide-refresh-cw):hover,
+button:has(svg.lucide-refresh-ccw):hover,
+button:not(.vendas-btn):has(svg.lucide-rotate-cw):hover,
+button:not(.vendas-btn):has(svg.lucide-rotate-ccw):hover {
+  filter: brightness(0.94) !important;
+  transform: translateY(-2px) !important;
+}
+
+
+/* V80 - Atualizar amarelo em todo o ERP */
+.compras-action-refresh:hover,
+.estoque-action-refresh:hover,
+.financeiro-icon-refresh:hover,
+.relatorios-action-refresh:hover,
+.produtos-action-refresh:hover,
+button[title^="Atualizar" i]:hover,
+button[aria-label^="Atualizar" i]:hover,
+button:has(svg.lucide-refresh-cw):hover,
+button:has(svg.lucide-refresh-ccw):hover,
+button:not(.vendas-btn):has(svg.lucide-rotate-cw):hover,
+button:not(.vendas-btn):has(svg.lucide-rotate-ccw):hover {
+  background: var(--erp-icon-atualizar-hover) !important;
+}
+
+.produtos-action-refresh:disabled,
+button[title^="Atualizando" i]:disabled,
+button[aria-label^="Atualizando" i]:disabled {
+  cursor: wait !important;
+  opacity: 0.78 !important;
+}
+
+.produtos-action-refresh.atualizando svg {
+  animation: synergias-refresh-spin 0.8s linear infinite;
+}
+
+@keyframes synergias-refresh-spin {
+  to { transform: rotate(360deg); }
+}

@@ -1,0 +1,24 @@
+.page-header{
+    margin-bottom:30px;
+}
+
+.page-header span{
+    color:#22c55e;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    font-size:13px;
+    font-weight:700;
+}
+
+.page-header h1{
+    margin-top:8px;
+    font-size:46px;
+    font-weight:800;
+    color:white;
+}
+
+.page-header p{
+    margin-top:6px;
+    font-size:18px;
+    color:#94a3b8;
+}
