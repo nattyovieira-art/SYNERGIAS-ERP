@@ -23,7 +23,10 @@ import {
   gerarNumeroCompraStorage,
   listarComprasStorage,
   salvarCompraStorage,
+  salvarCompraStorageConfirmado,
+  encontrarCompraComNotaDuplicada,
 } from '../../services/comprasStorage'
+import { aguardarSincronizacaoCentral } from '../../services/erpApi'
 import {
   listarProdutosStorage,
   salvarProdutoStorage,
@@ -31,6 +34,7 @@ import {
 import { parseNFeCompraXml } from '../../services/nfeCompraXml'
 import {
   confirmarEntradaCompraComCustoMedioStorage,
+  movimentarEstoqueStorage,
 } from '../../services/estoqueStorage'
 
 import '../../styles/compras.css'
@@ -154,6 +158,8 @@ function CompraForm({ modo }: CompraFormProps) {
   const produtosDisponiveis = useMemo(() => listarProdutosStorage(), [])
   const [buscasProduto, setBuscasProduto] = useState<Record<string, string>>({})
   const [produtoBuscaAberta, setProdutoBuscaAberta] = useState<string | null>(null)
+  const [processandoRecebimento, setProcessandoRecebimento] = useState(false)
+  const [indiceSugestaoProduto, setIndiceSugestaoProduto] = useState<Record<string, number>>({})
   const [mostrarFiltrosFormulario, setMostrarFiltrosFormulario] = useState(false)
   const [filtroFormulario, setFiltroFormulario] = useState<'todos' | 'fornecedor' | 'produtos' | 'pagamento'>('todos')
 
@@ -427,11 +433,19 @@ function CompraForm({ modo }: CompraFormProps) {
   function produtosSugeridos(busca: string) {
     const termo = normalizarBuscaProduto(busca)
     if (!termo) return []
-    return produtosDisponiveis.filter((produto) =>
-      normalizarBuscaProduto(
-        `${produto.codigo} ${produto.codigoBarras || ''} ${produto.descricao} ${produto.nome || ''}`,
-      ).includes(termo),
-    ).slice(0, 10)
+    const palavras = termo.split(/\s+/).filter((palavra) => palavra.length > 1)
+    return produtosDisponiveis
+      .map((produto) => {
+        const texto = normalizarBuscaProduto(`${produto.codigo} ${produto.codigoBarras || ''} ${produto.descricao} ${produto.nome || ''}`)
+        const correspondencias = palavras.filter((palavra) => texto.includes(palavra)).length
+        const cobertura = palavras.length ? correspondencias / palavras.length : 0
+        const exato = texto.includes(termo)
+        return { produto, pontos: exato ? 1000 : cobertura * 100 + correspondencias }
+      })
+      .filter(({ pontos }) => pontos >= 45)
+      .sort((a, b) => b.pontos - a.pontos)
+      .slice(0, 10)
+      .map(({ produto }) => produto)
   }
 
   function prepararNovoProduto(itemId: string) {
@@ -493,7 +507,24 @@ function CompraForm({ modo }: CompraFormProps) {
     }
   }
 
-  function salvarCompra(voltar = false) {
+  function cadastrarProdutosPendentes(compraBase: Compra) {
+    compraBase.itens.forEach((item) => {
+      if (item.incluidoNoSistema === false || !item.novoProdutoPendente) return
+      salvarProdutoStorage({
+        codigo: item.produtoCodigo,
+        codigoBarras: item.eanTributavel || item.eanComercial,
+        descricao: item.novoProdutoNome || item.descricao,
+        nome: item.novoProdutoNome || item.descricao,
+        unidade: item.unidadeControle || 'UN',
+        ncm: item.ncm,
+        tipoItem: 'Produto',
+        tipoFiscal: 'Mercadoria para Revenda',
+        movimentarEstoque: true,
+      })
+    })
+  }
+
+  async function salvarCompra(voltar = false) {
     if (!compra.fornecedorNome.trim()) {
       alert('Informe o fornecedor.')
       return
@@ -517,20 +548,14 @@ function CompraForm({ modo }: CompraFormProps) {
       return
     }
 
-    compra.itens.forEach((item) => {
-      if (item.incluidoNoSistema === false || !item.novoProdutoPendente) return
-      salvarProdutoStorage({
-        codigo: item.produtoCodigo,
-        codigoBarras: item.eanTributavel || item.eanComercial,
-        descricao: item.novoProdutoNome || item.descricao,
-        nome: item.novoProdutoNome || item.descricao,
-        unidade: item.unidadeControle || 'UN',
-        ncm: item.ncm,
-        tipoItem: 'Produto',
-        tipoFiscal: 'Mercadoria para Revenda',
-        movimentarEstoque: true,
-      })
-    })
+    const compraAtualizada = compraAtualizadaParaSalvar()
+    const notaDuplicada = encontrarCompraComNotaDuplicada(compraAtualizada)
+    if (notaDuplicada) {
+      alert(`Esta nota fiscal já está cadastrada na compra ${notaDuplicada.numeroCompra}.`)
+      return
+    }
+
+    cadastrarProdutosPendentes(compraAtualizada)
 
     produtosDisponiveis.forEach((produto) => {
       const item = compra.itens.find((atual) =>
@@ -541,9 +566,13 @@ function CompraForm({ modo }: CompraFormProps) {
       if (item) salvarProdutoStorage({ ...produto, ncm: item.ncm })
     })
 
-    const compraAtualizada = compraAtualizadaParaSalvar()
-
-    salvarCompraStorage(compraAtualizada)
+    try {
+      await aguardarSincronizacaoCentral('produtos')
+      await salvarCompraStorageConfirmado(compraAtualizada)
+    } catch (erro) {
+      alert(erro instanceof Error ? erro.message : 'Não foi possível salvar a compra.')
+      return
+    }
     sincronizarContasPagarCompra(compraAtualizada)
     setCompra(compraAtualizada)
 
@@ -566,12 +595,85 @@ function CompraForm({ modo }: CompraFormProps) {
     }))
   }
 
-  function confirmarRecebimentoEstoque() {
+  function devolverItemCompra(item: ItemCompra) {
+    if (!compra.movimentouEstoque) return alert('Confirme primeiro o recebimento da compra para devolver itens.')
+    const recebida = numero(item.quantidadeConvertida || item.quantidade)
+    const jaDevolvida = numero(item.quantidadeDevolvida)
+    const disponivel = Math.max(0, recebida - jaDevolvida)
+    if (disponivel <= 0) return alert('Este item já foi devolvido integralmente.')
+
+    const informada = window.prompt(`Quantidade a devolver (máximo ${disponivel}):`, String(disponivel))
+    if (informada === null) return
+    const quantidade = numero(informada)
+    if (quantidade <= 0 || quantidade > disponivel) return alert(`Informe uma quantidade entre 0 e ${disponivel}.`)
+    const motivo = window.prompt('Motivo da devolução:')?.trim() || ''
+    if (!motivo) return alert('Informe o motivo da devolução.')
+    if (!window.confirm(`Confirmar devolução de ${quantidade} unidade(s) de ${item.descricao}?`)) return
+
+    const resultado = movimentarEstoqueStorage({
+      produtoCodigo: item.produtoCodigo,
+      tipo: 'saida',
+      quantidade,
+      origem: 'devolucao_compra',
+      motivo: `Devolução da NF ${compra.numeroNFe || compra.numeroCompra}: ${motivo}`,
+      documentoOrigem: compra.numeroNFe || compra.numeroCompra,
+      usuario: 'Synergias',
+    })
+    if (!resultado.ok) return alert(resultado.mensagem)
+
+    const agora = new Date().toISOString()
+    const itens = compra.itens.map((atual) => atual.id === item.id ? {
+      ...atual,
+      quantidadeDevolvida: numero(atual.quantidadeDevolvida) + quantidade,
+      devolucoes: [...(atual.devolucoes || []), {
+        id: criarId(), quantidade, motivo, data: agora,
+        idMovimentacaoEstoque: resultado.movimentacao?.id,
+      }],
+    } : atual)
+    const todosDevolvidos = itens.filter((atual) => atual.incluidoNoSistema !== false)
+      .every((atual) => numero(atual.quantidadeDevolvida) >= numero(atual.quantidadeConvertida || atual.quantidade))
+    const atualizada: Compra = { ...compra, itens, status: todosDevolvidos ? 'Devolvido' : 'Devolvido Parcial', atualizadoEm: agora }
+    salvarCompraStorage(atualizada)
+    setCompra(atualizada)
+    alert('Devolução registrada e estoque atualizado.')
+  }
+
+  async function confirmarRecebimentoEstoque() {
+    if (processandoRecebimento) return
+    setProcessandoRecebimento(true)
+    try {
     if (!compra.movimentarEstoque) {
-      alert(
-        'Esta compra está marcada como NÃO MOVIMENTAR ESTOQUE.\n\n' +
-          'Selecione MOVIMENTAR ESTOQUE antes de confirmar o recebimento.',
+      if (!compra.fornecedorNome.trim() || compra.itens.length === 0) {
+        alert('Informe o fornecedor e adicione pelo menos um item antes de confirmar o recebimento.')
+        return
+      }
+
+      const confirmar = window.confirm(
+        `Confirmar o recebimento da compra ${
+          compra.numeroNFe ? `NF-e ${compra.numeroNFe}` : `#${compra.numeroCompra}`
+        } sem movimentar o estoque?\n\nNenhum saldo ou custo de produto será alterado.`,
       )
+
+      if (!confirmar) return
+
+      const compraRecebida: Compra = {
+        ...compraAtualizadaParaSalvar(),
+        status: 'Recebido',
+        movimentarEstoque: false,
+        movimentouEstoque: false,
+      }
+
+      const duplicada = encontrarCompraComNotaDuplicada(compraRecebida)
+      if (duplicada) {
+        alert(`Esta nota fiscal já está cadastrada na compra ${duplicada.numeroCompra}.`)
+        return
+      }
+      cadastrarProdutosPendentes(compraRecebida)
+      await aguardarSincronizacaoCentral('produtos')
+      await salvarCompraStorageConfirmado(compraRecebida)
+      sincronizarContasPagarCompra(compraRecebida)
+      setCompra(compraRecebida)
+      alert('Recebimento confirmado sem movimentar o estoque.')
       return
     }
 
@@ -586,6 +688,12 @@ function CompraForm({ modo }: CompraFormProps) {
     }
 
     const itensNormalizados = compra.itens.map(normalizarItem)
+    const compraParaConfirmar: Compra = { ...compra, itens: itensNormalizados }
+    const duplicada = encontrarCompraComNotaDuplicada(compraParaConfirmar)
+    if (duplicada) {
+      alert(`Esta nota fiscal já está cadastrada na compra ${duplicada.numeroCompra}.`)
+      return
+    }
 
     const itemInvalido = itensNormalizados.find(
       (item) =>
@@ -610,6 +718,9 @@ function CompraForm({ modo }: CompraFormProps) {
     )
 
     if (!confirmar) return
+
+    cadastrarProdutosPendentes(compraParaConfirmar)
+    await aguardarSincronizacaoCentral('produtos')
 
     const resultadoEntrada = confirmarEntradaCompraComCustoMedioStorage({
       itens: itensNormalizados.filter((item) => item.incluidoNoSistema !== false).map((item) => ({
@@ -659,7 +770,9 @@ function CompraForm({ modo }: CompraFormProps) {
       atualizadoEm: new Date().toISOString(),
     }
 
-    salvarCompraStorage(compraRecebida)
+    await aguardarSincronizacaoCentral('produtos')
+    await aguardarSincronizacaoCentral('movimentacoesEstoque')
+    await salvarCompraStorageConfirmado(compraRecebida)
     setCompra(compraRecebida)
 
     const resumoCustos = resultadoEntrada.resultados
@@ -684,6 +797,11 @@ function CompraForm({ modo }: CompraFormProps) {
         }\n\n` +
         `Esta compra não poderá movimentar o estoque novamente.`,
     )
+    } catch (erro) {
+      alert(erro instanceof Error ? erro.message : 'Não foi possível concluir o recebimento com segurança.')
+    } finally {
+      setProcessandoRecebimento(false)
+    }
   }
 
   const compraImportada = compra.origem === 'SEFAZ_DFE' || compra.origem === 'XML_NFE'
@@ -1069,6 +1187,12 @@ function CompraForm({ modo }: CompraFormProps) {
                         Item {index + 1} — {item.descricao || 'Produto sem descrição'}
                       </strong>
 
+                      {compra.movimentouEstoque && item.incluidoNoSistema !== false && (
+                        <button type="button" className="compras-acao devolucao" onClick={() => devolverItemCompra(item)} disabled={numero(item.quantidadeDevolvida) >= numero(item.quantidadeConvertida || item.quantidade)}>
+                          DEVOLVER ITEM
+                        </button>
+                      )}
+
                       {compra.origem === 'XML_NFE' ? (
                         <div className="compras-item-decisoes">
                           <button type="button" className={item.incluidoNoSistema !== false ? 'incluir ativo' : 'incluir'} onClick={() => definirInclusaoItem(item.id, true)}>INSERIR NO SISTEMA</button>
@@ -1083,6 +1207,10 @@ function CompraForm({ modo }: CompraFormProps) {
 
                     {item.incluidoNoSistema === false && (
                       <div className="compras-item-descartado-aviso">Não inserido no sistema — {item.motivoDescarte}</div>
+                    )}
+
+                    {numero(item.quantidadeDevolvida) > 0 && (
+                      <div className="compras-item-descartado-aviso">Devolvido: {numero(item.quantidadeDevolvida)} de {numero(item.quantidadeConvertida || item.quantidade)}</div>
                     )}
 
                     <div className="compras-item-identificacao">
@@ -1126,17 +1254,41 @@ function CompraForm({ modo }: CompraFormProps) {
                             value={buscasProduto[item.id] ?? (item.produtoCodigo && !item.novoProdutoPendente ? item.produtoCodigo : '')}
                             onChange={(event) => {
                               setBuscasProduto((atual) => ({ ...atual, [item.id]: event.target.value }))
+                              setIndiceSugestaoProduto((atual) => ({ ...atual, [item.id]: 0 }))
                               setProdutoBuscaAberta(item.id)
                             }}
-                            onFocus={() => setProdutoBuscaAberta(item.id)}
+                            onFocus={() => {
+                              setProdutoBuscaAberta(item.id)
+                              setIndiceSugestaoProduto((atual) => ({ ...atual, [item.id]: atual[item.id] || 0 }))
+                            }}
+                            onKeyDown={(event) => {
+                              const sugestoes = produtosSugeridos(buscasProduto[item.id] || item.descricao)
+                              if (event.key === 'Escape') {
+                                setProdutoBuscaAberta(null)
+                                return
+                              }
+                              if (!sugestoes.length) return
+                              const indiceAtual = indiceSugestaoProduto[item.id] || 0
+                              if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                                event.preventDefault()
+                                const direcao = event.key === 'ArrowDown' ? 1 : -1
+                                const proximo = (indiceAtual + direcao + sugestoes.length) % sugestoes.length
+                                setIndiceSugestaoProduto((atual) => ({ ...atual, [item.id]: proximo }))
+                              }
+                              if (event.key === 'Enter') {
+                                event.preventDefault()
+                                const selecionado = sugestoes[Math.min(indiceAtual, sugestoes.length - 1)]
+                                if (selecionado) vincularProduto(item.id, selecionado.codigo)
+                              }
+                            }}
                             onBlur={() => window.setTimeout(() => setProdutoBuscaAberta(null), 150)}
                             disabled={compra.movimentouEstoque}
                             placeholder="Digite o código, código de barras ou nome"
                           />
-                          {produtoBuscaAberta === item.id && produtosSugeridos(buscasProduto[item.id] || '').length > 0 && (
+                          {produtoBuscaAberta === item.id && produtosSugeridos(buscasProduto[item.id] || item.descricao).length > 0 && (
                             <div className="compras-produto-sugestoes">
-                              {produtosSugeridos(buscasProduto[item.id] || '').map((produto) => (
-                                <button key={produto.codigo} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => vincularProduto(item.id, produto.codigo)}>
+                              {produtosSugeridos(buscasProduto[item.id] || item.descricao).map((produto, indice) => (
+                                <button key={produto.codigo} type="button" className={indice === (indiceSugestaoProduto[item.id] || 0) ? 'selecionado' : ''} onMouseEnter={() => setIndiceSugestaoProduto((atual) => ({ ...atual, [item.id]: indice }))} onMouseDown={(event) => event.preventDefault()} onClick={() => vincularProduto(item.id, produto.codigo)}>
                                   <strong>{produto.descricao}</strong>
                                   <span>Código: {produto.codigo} · EAN: {produto.codigoBarras || 'não informado'} · Estoque: {numero(produto.estoqueAtual)}</span>
                                 </button>
@@ -1382,15 +1534,35 @@ function CompraForm({ modo }: CompraFormProps) {
           </label>
         </section>
 
-        {compra.movimentarEstoque && !compra.movimentouEstoque && (
+        <div className="compras-form-footer">
+          <button
+            type="button"
+            className="compras-salvar-secundario"
+            onClick={() => salvarCompra(false)}
+          >
+            <Save size={19} />
+            Salvar
+          </button>
+          <button
+            type="button"
+            className="compras-salvar-button"
+            onClick={() => salvarCompra(true)}
+          >
+            <Save size={19} />
+            Salvar e voltar
+          </button>
+        </div>
+
+        {!compra.movimentouEstoque && compra.status !== 'Recebido' && (
           <section className="compras-confirmar-recebimento-card">
             <div>
               <PackageCheck size={26} />
               <div>
                 <strong>Mercadoria chegou e foi conferida?</strong>
                 <span>
-                  Confirme somente depois de revisar os códigos dos produtos e a
-                  conversão CX → UN de cada item.
+                  {compra.movimentarEstoque
+                    ? 'Confirme somente depois de revisar os códigos dos produtos e a conversão CX → UN de cada item.'
+                    : 'Confirme o recebimento da compra sem alterar saldos ou custos do estoque.'}
                 </span>
               </div>
             </div>
@@ -1399,9 +1571,14 @@ function CompraForm({ modo }: CompraFormProps) {
               type="button"
               className="compras-confirmar-recebimento-button"
               onClick={confirmarRecebimentoEstoque}
+              disabled={processandoRecebimento}
             >
               <PackageCheck size={19} />
-              Confirmar Recebimento e Dar Entrada no Estoque
+              {processandoRecebimento
+                ? 'Processando com segurança...'
+                : compra.movimentarEstoque
+                ? 'Confirmar Recebimento e Dar Entrada no Estoque'
+                : 'Confirmar Recebimento sem Movimentar Estoque'}
             </button>
           </section>
         )}

@@ -173,6 +173,13 @@ try {
     $apiMovimentosStage = Join-Path $stage 'api\estoque-movimentacoes.php'
     $apiStorageLocal = Join-Path $dist 'api\storage.php'
     $apiStorageStage = Join-Path $stage 'api\storage.php'
+    $apiBootstrapLocal = Join-Path $dist 'api\bootstrap.php'
+    $apiBootstrapStage = Join-Path $stage 'api\bootstrap.php'
+    $apiEmailLocal = Join-Path $dist 'api\enviar-nota-boleto-cliente.php'
+    $apiEmailStage = Join-Path $stage 'api\enviar-nota-boleto-cliente.php'
+    $apiDanfeLocal = Join-Path $dist 'api\fiscal\nfe-danfe-pdf.php'
+    $apiDanfeStageDir = Join-Path $stage 'api\fiscal'
+    $apiDanfeStage = Join-Path $apiDanfeStageDir 'nfe-danfe-pdf.php'
     if (-not (Test-Path -LiteralPath $apiNumeracaoLocal -PathType Leaf)) {
         throw 'A API api\numeracao-fiscal.php não foi encontrada no dist.'
     }
@@ -189,6 +196,15 @@ try {
         throw 'A API api\storage.php não foi encontrada no dist.'
     }
     Copy-Item -LiteralPath $apiStorageLocal -Destination $apiStorageStage -Force
+    foreach ($apiObrigatoria in @($apiBootstrapLocal, $apiEmailLocal, $apiDanfeLocal)) {
+        if (-not (Test-Path -LiteralPath $apiObrigatoria -PathType Leaf)) {
+            throw "API de segurança não encontrada no build: $apiObrigatoria"
+        }
+    }
+    New-Item -ItemType Directory -Path $apiDanfeStageDir -Force | Out-Null
+    Copy-Item -LiteralPath $apiBootstrapLocal -Destination $apiBootstrapStage -Force
+    Copy-Item -LiteralPath $apiEmailLocal -Destination $apiEmailStage -Force
+    Copy-Item -LiteralPath $apiDanfeLocal -Destination $apiDanfeStage -Force
 
     $lines = @(
         'option batch abort',
@@ -202,6 +218,9 @@ try {
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/pedido-entrega.php"' -f $apiEntregaStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/estoque-movimentacoes.php"' -f $apiMovimentosStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/storage.php"' -f $apiStorageStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/bootstrap.php"' -f $apiBootstrapStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/enviar-nota-boleto-cliente.php"' -f $apiEmailStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/fiscal/nfe-danfe-pdf.php"' -f $apiDanfeStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/index.html"' -f $indexStage, $remoteBase),
         'exit'
     )

@@ -74,7 +74,7 @@ import {
   type CobrancaInterApi,
 } from '../../services/interCobrancaApi'
 import { carregarConfiguracaoFiscalServidor, obterConfiguracaoFiscalStorage } from '../../services/configuracaoFiscalStorage'
-import { ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
+import { carregarColecaoCentral, ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
 import { boletoEstaUtilizado, contarBoletosUtilizadosPorBanco } from '../../services/boletosCounter'
 import { assinarETransmitirNFeHomologacao, gerarRascunhoXmlNFe, manterNumeracaoNFeRejeitada, registrarNumeracaoNFeAutorizada, validarPreEmissaoNFe } from '../../services/nfePreflightService'
 
@@ -124,12 +124,9 @@ const FORMAS_PAGAMENTO_PADRAO = [
 ]
 
 const OPCOES_COBRANCA_POR_FORMA: Record<string, string[]> = {
-  BOLETO: ['BOLETO BANCO INTER', 'BOLETO BANCO CORA'],
-  PIX: ['PIX BANCO CORA', 'PIX BANCO INTER'],
-  TRANSFERÊNCIA: [
-    'TRANSFERÊNCIA BANCO INTER',
-    'TRANSFERÊNCIA BANCO CORA',
-  ],
+  BOLETO: ['BOLETO BANCO INTER'],
+  PIX: ['PIX BANCO INTER'],
+  TRANSFERÊNCIA: ['TRANSFERÊNCIA BANCO INTER'],
   DINHEIRO: ['DINHEIRO'],
   CARTÃO: ['CARTÃO CRÉDITO SUMUP', 'CARTÃO DÉBITO SUMUP'],
 }
@@ -159,21 +156,6 @@ const DADOS_PAGAMENTO: Record<string, Record<string, string>> = {
     banco: 'Inter',
     observacao: 'Boleto será gerado dentro do sistema futuramente.',
   },
-  'BOLETO BANCO CORA': {
-    tipo: 'Boleto',
-    banco: 'Cora',
-    observacao: 'Boleto será gerado dentro do sistema futuramente.',
-  },
-  'PIX BANCO CORA': {
-    tipo: 'PIX',
-    banco: 'Cora',
-    instituicao: '403 - Cora SCFI',
-    agencia: '0001',
-    conta: '4969198-5',
-    chavePix: '50.432.175/0001-46',
-    nomeEmpresa: 'SYNERGIAS',
-    cnpj: '50.432.175/0001-46',
-  },
   'PIX BANCO INTER': {
     tipo: 'PIX',
     banco: 'Inter',
@@ -191,15 +173,6 @@ const DADOS_PAGAMENTO: Record<string, Record<string, string>> = {
     agencia: '0001',
     conta: '28738442-0',
     nomeEmpresa: 'SYNERGIAS SL COMERCIO LTDA',
-    cnpj: '50.432.175/0001-46',
-  },
-  'TRANSFERÊNCIA BANCO CORA': {
-    tipo: 'Transferência',
-    banco: 'Cora',
-    instituicao: '403 - Cora SCFI',
-    agencia: '0001',
-    conta: '4969198-5',
-    nomeEmpresa: 'SYNERGIAS',
     cnpj: '50.432.175/0001-46',
   },
   DINHEIRO: {
@@ -230,7 +203,7 @@ const API_ENVIO_NOTA_BOLETO = '/api/enviar-nota-boleto-cliente.php'
 const STORAGE_VENDAS_CREDITO = 'synergias_vendas'
 const LIMITE_BOLETOS_GRATUITOS_POR_BANCO = 100
 
-type BancoBoletoGratuito = 'Inter' | 'Cora'
+type BancoBoletoGratuito = 'Inter'
 
 type ResumoBoletosGratuitos = {
   banco: BancoBoletoGratuito
@@ -358,8 +331,6 @@ function identificarBancoBoleto(valor?: string): BancoBoletoGratuito | null {
   const texto = String(valor || '').toUpperCase()
 
   if (texto.includes('INTER')) return 'Inter'
-  if (texto.includes('CORA')) return 'Cora'
-
   return null
 }
 
@@ -562,10 +533,6 @@ function extrairBancoDaOpcao(opcao?: string): Venda['bancoCobranca'] {
     return 'Inter' as Venda['bancoCobranca']
   }
 
-  if (texto.includes('CORA')) {
-    return 'Cora' as Venda['bancoCobranca']
-  }
-
   return undefined
 }
 
@@ -574,10 +541,6 @@ function normalizarBanco(valor?: string): Venda['bancoCobranca'] {
 
   if (texto === 'INTER') {
     return 'Inter' as Venda['bancoCobranca']
-  }
-
-  if (texto === 'CORA') {
-    return 'Cora' as Venda['bancoCobranca']
   }
 
   return undefined
@@ -611,9 +574,6 @@ function normalizarTipoCobranca(
       return 'BOLETO BANCO INTER' as Venda['tipoCobranca']
     }
 
-    if (banco.includes('CORA')) {
-      return 'BOLETO BANCO CORA' as Venda['tipoCobranca']
-    }
   }
 
   if (forma === 'PIX') {
@@ -621,9 +581,6 @@ function normalizarTipoCobranca(
       return 'PIX BANCO INTER' as Venda['tipoCobranca']
     }
 
-    if (banco.includes('CORA')) {
-      return 'PIX BANCO CORA' as Venda['tipoCobranca']
-    }
   }
 
   if (forma === 'TRANSFERÊNCIA') {
@@ -631,9 +588,6 @@ function normalizarTipoCobranca(
       return 'TRANSFERÊNCIA BANCO INTER' as Venda['tipoCobranca']
     }
 
-    if (banco.includes('CORA')) {
-      return 'TRANSFERÊNCIA BANCO CORA' as Venda['tipoCobranca']
-    }
   }
 
   if (forma === 'DINHEIRO') {
@@ -667,6 +621,28 @@ function normalizarEnderecoTexto(valor?: string) {
     .replace(/\t/g, ' ')
     .replace(/\s*\n\s*/g, '\n')
     .trim()
+}
+
+function formatarCepPedido(valor?: string | number) {
+  const digitos = String(valor || '').replace(/\D/g, '').slice(0, 8)
+  return digitos.length > 5 ? `${digitos.slice(0, 5)}-${digitos.slice(5)}` : digitos
+}
+
+function limparLogradouroEntregaComposto(
+  valor?: string | number,
+  numeroSeparado?: string | number,
+) {
+  const texto = limparParteEndereco(valor)
+  if (!texto) return ''
+
+  const numero = String(numeroSeparado || '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  if (numero) {
+    const antesDoNumero = texto.match(new RegExp(`^(.+?)(?=,?\\s*${numero}(?:\\b|\\s|,|-))`, 'i'))
+    if (antesDoNumero?.[1]) return limparParteEndereco(antesDoNumero[1])
+  }
+
+  const antesDosDadosComplementares = texto.split(/\s+-\s+(?=[^,]+(?:,|\s+-\s+).*(?:[A-Z]{2}|\d{5}-?\d{3}))/)[0]
+  return limparParteEndereco(antesDosDadosComplementares)
 }
 
 function separarEnderecoOrcamentoParaPedido(enderecoOrigem?: string) {
@@ -813,6 +789,39 @@ function montarEnderecoClienteSeparado(
     bairro: limparParteEndereco(clienteAny.bairro || enderecoClienteSeparado.bairro || enderecoFallback.bairro),
     cidade: limparParteEndereco(clienteAny.cidade || enderecoClienteSeparado.cidade || enderecoFallback.cidade),
     estado: limparParteEndereco(clienteAny.estado || enderecoClienteSeparado.estado || enderecoFallback.estado),
+  }
+}
+
+function montarEnderecoEntregaDoSnapshot(
+  snapshot: Record<string, any> | undefined,
+  fallback: ReturnType<typeof montarEnderecoClienteSeparado>,
+) {
+  if (!snapshot || typeof snapshot !== 'object') return fallback
+
+  const possuiEnderecoEstruturado = Boolean(
+    snapshot.logradouro ||
+      snapshot.endereco ||
+      snapshot.cep ||
+      snapshot.numero ||
+      snapshot.bairro ||
+      snapshot.cidade ||
+      snapshot.uf ||
+      snapshot.estado,
+  )
+
+  if (!possuiEnderecoEstruturado) return fallback
+
+  return {
+    cep: limparParteEndereco(snapshot.cep),
+    endereco: limparLogradouroEntregaComposto(
+      snapshot.logradouro || snapshot.endereco,
+      snapshot.numero,
+    ),
+    numero: limparParteEndereco(snapshot.numero),
+    complemento: limparParteEndereco(snapshot.complemento),
+    bairro: limparParteEndereco(snapshot.bairro),
+    cidade: limparParteEndereco(snapshot.cidade),
+    estado: limparParteEndereco(snapshot.uf || snapshot.estado).toUpperCase().slice(0, 2),
   }
 }
 
@@ -972,10 +981,13 @@ function criarPedidoAPartirDoOrcamento(
     enderecoFaturamento,
     'faturamento',
   )
-  const enderecoEntregaFinal = montarEnderecoClienteSeparado(
-    clienteBase,
-    enderecoEntrega,
-    'entrega',
+  const enderecoEntregaFinal = montarEnderecoEntregaDoSnapshot(
+    orcamentoOrigem.enderecoEntregaSnapshot,
+    montarEnderecoClienteSeparado(
+      clienteBase,
+      enderecoEntrega,
+      'entrega',
+    ),
   )
   const pagamentosOrigem = Array.isArray(orcamentoOrigem.pagamentos)
     ? orcamentoOrigem.pagamentos
@@ -1066,7 +1078,12 @@ function criarPedidoAPartirDoOrcamento(
     entregaBairro: enderecoEntregaFinal.bairro,
     entregaCidade: enderecoEntregaFinal.cidade,
     entregaEstado: enderecoEntregaFinal.estado,
-    entregaCodigoIbge: String((clienteBase as any)?.codigoIbgeMunicipioEntrega || (clienteBase as any)?.codigoIbgeMunicipio || ''),
+    entregaCodigoIbge: String(
+      orcamentoOrigem.enderecoEntregaSnapshot?.codigoIbgeMunicipio ||
+        (clienteBase as any)?.codigoIbgeMunicipioEntrega ||
+        (clienteBase as any)?.codigoIbgeMunicipio ||
+        '',
+    ),
 
     itens: montarItensPedidoAPartirDoOrcamento(orcamentoOrigem.itens),
     subtotal: Number(orcamentoOrigem.subtotal || 0),
@@ -1153,11 +1170,24 @@ function PedidoForm() {
   ;(window as any).__SYNERGIAS_TOTAL_PEDIDO__ = 'V208_TOTAL_PEDIDO_RECALCULADO'
   const navigate = useNavigate()
   const impressaoAutomaticaExecutada = useRef(false)
+  const envioEmailAutomaticoExecutado = useRef(false)
   const cancelamentosBoletoEmAndamento = useRef(new Set<string>())
   const { id } = useParams()
 
   const vendaEncontrada = id ? buscarVendaStorage(id) : undefined
   const recargaPedidoExecutada = useRef(false)
+
+  useEffect(() => {
+    if (!vendaEncontrada || envioEmailAutomaticoExecutado.current) return
+    const parametros = new URLSearchParams(window.location.search)
+    if (parametros.get('enviarEmail') !== '1') return
+
+    envioEmailAutomaticoExecutado.current = true
+    parametros.delete('enviarEmail')
+    const busca = parametros.toString()
+    window.history.replaceState(null, '', `${window.location.pathname}${busca ? `?${busca}` : ''}`)
+    void enviarNotaBoleto()
+  }, [vendaEncontrada])
 
   useEffect(() => {
     if (!id || vendaEncontrada) return
@@ -1225,6 +1255,8 @@ function PedidoForm() {
   const [mostrarEdicaoFiscal, setMostrarEdicaoFiscal] = useState(false)
   const [entregaEmProcessamento, setEntregaEmProcessamento] = useState(false)
   const entregaEmProcessamentoRef = useRef(false)
+  const salvamentoEmailsEmAndamentoRef = useRef<Promise<Venda | null> | null>(null)
+  const statusPedidoPersistidoRef = useRef(vendaInicial?.statusPedido || 'Aberto')
   const [buscasNcm, setBuscasNcm] = useState<Record<number, string>>({})
   const [sugestoesNcm, setSugestoesNcm] = useState<Record<number, SugestaoNcm[]>>({})
   const [buscandoNcmPorLinha, setBuscandoNcmPorLinha] = useState<Record<number, boolean>>({})
@@ -1296,8 +1328,11 @@ function PedidoForm() {
     faturamentoCodigoIbge: vendaInicial?.faturamentoCodigoIbge || '',
     faturamentoEstado: vendaInicial?.faturamentoEstado || '',
 
-    entregaCep: vendaInicial?.entregaCep || '',
-    entregaEndereco: vendaInicial?.entregaEndereco || '',
+    entregaCep: formatarCepPedido(vendaInicial?.entregaCep || ''),
+    entregaEndereco: limparLogradouroEntregaComposto(
+      vendaInicial?.entregaEndereco || '',
+      vendaInicial?.entregaNumero || '',
+    ),
     entregaNumero: vendaInicial?.entregaNumero || '',
     entregaComplemento: vendaInicial?.entregaComplemento || '',
     entregaBairro: vendaInicial?.entregaBairro || '',
@@ -1412,11 +1447,6 @@ function PedidoForm() {
 
   const resumoBoletosInter = useMemo(
     () => montarResumoBoletosGratuitos('Inter', mesAtualBoletos),
-    [mesAtualBoletos, venda.parcelas, venda.statusBoleto],
-  )
-
-  const resumoBoletosCora = useMemo(
-    () => montarResumoBoletosGratuitos('Cora', mesAtualBoletos),
     [mesAtualBoletos, venda.parcelas, venda.statusBoleto],
   )
 
@@ -1537,6 +1567,33 @@ function PedidoForm() {
       ...atual,
       [campo]: valor,
     }))
+  }
+
+  function chaveStatusPedido(status?: string) {
+    return String(status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+  }
+
+  function transicaoStatusPedidoPermitida(statusAtual?: string, proximoStatus?: string) {
+    const atual = chaveStatusPedido(statusAtual)
+    const proximo = chaveStatusPedido(proximoStatus)
+    if (atual === proximo) return true
+    if (atual === 'cancelado' || atual === 'entregue') return false
+    if (atual === 'concluido') return proximo === 'cancelado' || proximo === 'entregue'
+    return true
+  }
+
+  function alterarStatusPedido(proximoStatus: string) {
+    if (!transicaoStatusPedidoPermitida(venda.statusPedido, proximoStatus)) {
+      alert('Status bloqueado. Concluído só pode mudar para Cancelado ou Entregue; Cancelado e Entregue são estados finais.')
+      return
+    }
+    atualizarVenda('statusPedido', proximoStatus)
+  }
+
+  function validarStatusPedidoAntesDeSalvar(proximoStatus?: string) {
+    if (transicaoStatusPedidoPermitida(statusPedidoPersistidoRef.current, proximoStatus)) return true
+    alert('Status bloqueado. Recarregue o pedido: o estado atual não permite essa alteração.')
+    return false
   }
 
   // SYNERGIAS_WHATSAPP_EDITAVEL_SALVA_CLIENTE_V244
@@ -1669,7 +1726,7 @@ function PedidoForm() {
     )
   }
 
-  async function salvarEmailsFormaEnvioNoCliente(
+  async function salvarEmailsFormaEnvioNoClienteInterno(
     exibirAviso = false,
   ): Promise<Venda | null> {
     void SYNERGIAS_EMAILS_FORMA_ENVIO_CLIENTE_V241
@@ -1700,31 +1757,68 @@ function PedidoForm() {
       return null
     }
 
-    const locais = normalizarEnderecosEntrega(clienteAtual)
-    const enderecoId = String(vendaAtualizada.enderecoEntregaId || '')
-    const clienteAtualizado: Cliente = {
-      ...clienteAtual,
-      enderecosEntrega: enderecoId ? locais.map((local) => local.id === enderecoId ? { ...local, emailEnvio: emailPrincipal } : local) : locais,
-      emailsCopiaDocumentos: copias,
+    let clientesServidor: Cliente[]
+    try {
+      const resposta = await carregarColecaoCentral<Cliente>('clientes')
+      clientesServidor = Array.isArray(resposta.data) ? resposta.data : []
+    } catch (error) {
+      console.error('[Synergias ERP] Falha ao recarregar clientes antes de salvar e-mails.', error)
+      if (exibirAviso) alert('Não foi possível atualizar o cadastro do cliente. Tente novamente.')
+      return null
     }
-    vendaAtualizada.emailEnvio = emailPrincipal || clienteAtual.email || ''
 
-    const clientesAtualizados = clientes.map((cliente) =>
-      String(cliente.codigo) === String(clienteAtualizado.codigo)
-        ? clienteAtualizado
-        : cliente,
-    )
+    const enderecoId = String(vendaAtualizada.enderecoEntregaId || '')
+    const aplicarEmails = (lista: Cliente[]) => {
+      const clienteServidor = lista.find((cliente) =>
+        String(cliente.codigo || '') === String(clienteAtual.codigo || ''),
+      ) || clienteAtual
+      const locais = normalizarEnderecosEntrega(clienteServidor)
+      const clienteAtualizado: Cliente = {
+        ...clienteServidor,
+        enderecosEntrega: enderecoId
+          ? locais.map((local) => local.id === enderecoId
+            ? { ...local, emailEnvio: emailPrincipal }
+            : local)
+          : locais,
+        emailsCopiaDocumentos: copias,
+      }
+
+      return {
+        clienteAtualizado,
+        clientesAtualizados: lista.map((cliente) =>
+          String(cliente.codigo) === String(clienteAtualizado.codigo)
+            ? clienteAtualizado
+            : cliente,
+        ),
+      }
+    }
+
+    let { clienteAtualizado, clientesAtualizados } = aplicarEmails(clientesServidor)
+    vendaAtualizada.emailEnvio = emailPrincipal || clienteAtualizado.email || ''
 
     try {
       await salvarClientesStorageConfirmado(clientesAtualizados)
     } catch (error) {
-      console.error('[Synergias ERP] Falha ao salvar e-mails do cliente.', error)
-      if (exibirAviso) {
-        alert(
-          'Não foi possível confirmar os e-mails no cadastro central do cliente.',
-        )
+      // Reaplica somente os e-mails caso outro usuário tenha alterado clientes
+      // entre a leitura e a gravação, preservando a versão mais nova do servidor.
+      try {
+        const respostaAtual = await carregarColecaoCentral<Cliente>('clientes')
+        const clientesAtuais = Array.isArray(respostaAtual.data) ? respostaAtual.data : []
+        ;({ clienteAtualizado, clientesAtualizados } = aplicarEmails(clientesAtuais))
+        vendaAtualizada.emailEnvio = emailPrincipal || clienteAtualizado.email || ''
+        await salvarClientesStorageConfirmado(clientesAtualizados)
+      } catch (erroConfirmacao) {
+        console.error('[Synergias ERP] Falha ao salvar e-mails do cliente.', {
+          primeiraTentativa: error,
+          segundaTentativa: erroConfirmacao,
+        })
+        if (exibirAviso) {
+          alert(
+            'Não foi possível confirmar os e-mails no cadastro central do cliente.',
+          )
+        }
+        return null
       }
-      return null
     }
 
     salvarVendaStorage(vendaAtualizada)
@@ -1732,6 +1826,22 @@ function PedidoForm() {
     setVenda(vendaAtualizada)
     setEmailsCopiaTexto(copias.join('; '))
     return vendaAtualizada
+  }
+
+  function salvarEmailsFormaEnvioNoCliente(
+    exibirAviso = false,
+  ): Promise<Venda | null> {
+    const emAndamento = salvamentoEmailsEmAndamentoRef.current
+    if (emAndamento) return emAndamento
+
+    const tarefa = salvarEmailsFormaEnvioNoClienteInterno(exibirAviso)
+    salvamentoEmailsEmAndamentoRef.current = tarefa
+    void tarefa.finally(() => {
+      if (salvamentoEmailsEmAndamentoRef.current === tarefa) {
+        salvamentoEmailsEmAndamentoRef.current = null
+      }
+    })
+    return tarefa
   }
 
   function statusInterParaBoleto(status?: string): ParcelaVenda['statusBoleto'] {
@@ -2580,6 +2690,9 @@ function PedidoForm() {
       faturamentoCodigoIbge: primeiroTexto(venda.faturamentoCodigoIbge, (clienteAtual as any)?.codigoIbgeMunicipio),
       faturamentoEstado: primeiroTexto(venda.faturamentoEstado, clienteAtual?.estado, clienteAny?.uf).toUpperCase().slice(0, 2),
 
+      entregaCep: formatarCepPedido(venda.entregaCep),
+      entregaEndereco: limparLogradouroEntregaComposto(venda.entregaEndereco, venda.entregaNumero),
+
       subtotal: totalAtual.subtotal,
       totalFinal: totalAtual.totalFinal,
       valorPagamento: venda.valorPagamento || totalAtual.totalFinal,
@@ -2669,10 +2782,12 @@ function PedidoForm() {
 
   async function salvarPedido() {
     const vendaAtualizada = montarPedidoAtualizado()
+    if (!validarStatusPedidoAntesDeSalvar(vendaAtualizada.statusPedido)) return
 
     try {
       const vendaConfirmada = await salvarVendaStorageConfirmado(vendaAtualizada)
       setVenda(vendaConfirmada)
+      statusPedidoPersistidoRef.current = vendaConfirmada.statusPedido || 'Aberto'
       alert(`Pedido ${vendaConfirmada.numeroPedido} salvo com sucesso.`)
     } catch (erro) {
       console.error('[Synergias ERP] O MySQL não confirmou o pedido.', erro)
@@ -2686,10 +2801,12 @@ function PedidoForm() {
 
   async function salvarEVoltar() {
     const vendaAtualizada = montarPedidoAtualizado()
+    if (!validarStatusPedidoAntesDeSalvar(vendaAtualizada.statusPedido)) return
 
     try {
       const vendaConfirmada = await salvarVendaStorageConfirmado(vendaAtualizada)
       setVenda(vendaConfirmada)
+      statusPedidoPersistidoRef.current = vendaConfirmada.statusPedido || 'Aberto'
       alert(`Pedido ${vendaConfirmada.numeroPedido} salvo com sucesso.`)
       navigate('/vendas')
     } catch (erro) {
@@ -2703,6 +2820,11 @@ function PedidoForm() {
   }
 
   async function concluirPedido() {
+    if (!transicaoStatusPedidoPermitida(statusPedidoPersistidoRef.current, 'Concluído')) {
+      alert('Este pedido está em um estado final e não pode ser concluído novamente.')
+      return
+    }
+
     const confirmar = window.confirm('Deseja concluir este pedido?')
 
     if (!confirmar) return
@@ -2721,6 +2843,7 @@ function PedidoForm() {
     try {
       const vendaConfirmada = await salvarVendaStorageConfirmado(vendaAtualizada)
       setVenda(vendaConfirmada)
+      statusPedidoPersistidoRef.current = vendaConfirmada.statusPedido || 'Concluído'
       alert('Pedido concluído e confirmado no MySQL.')
     } catch (erro) {
       alert(erro instanceof Error ? `Não foi possível concluir o pedido: ${erro.message}` : 'O MySQL não confirmou a conclusão do pedido.')
@@ -2731,6 +2854,11 @@ function PedidoForm() {
     if (entregaEmProcessamentoRef.current || entregaEmProcessamento) return
 
     const numeroPedido = String(venda.numeroPedido || venda.id || '').trim()
+
+    if (String(venda.statusPedido || '').toLowerCase() === 'cancelado') {
+      alert('Pedido cancelado. A entrega está bloqueada.')
+      return
+    }
 
     if (!numeroPedido) {
       alert('Salve o pedido antes de confirmar a entrega.')
@@ -2889,6 +3017,8 @@ function PedidoForm() {
 
         return {
           ...item,
+          codigoProduto: String(item.codigoProduto || produto?.codigo || produto?.codigoInterno || ''),
+          codigoBarras: String(item.codigoBarras || produto?.codigoBarras || produto?.codigo || ''),
           ncm: ncmItem.length === 8 ? ncmItem : ncmProduto,
           ncmDescricao: item.ncmDescricao || produto?.ncmDescricao || '',
           cfop: cfopAutomatico || cfopItem,
@@ -2905,6 +3035,35 @@ function PedidoForm() {
           cstCofins: item.cstCofins || produto?.cstCofins || (possuiRegraEspecifica ? '' : '49'),
           aliquotaCofins: item.aliquotaCofins ?? produto?.aliquotaCofins ?? 0,
         }
+      }),
+    }
+  }
+
+  function ratearFreteNosItens(vendaAtual: Venda): Venda {
+    const freteTotalCentavos = Math.max(0, Math.round(Number(vendaAtual.frete || 0) * 100))
+    const itens = vendaAtual.itens || []
+    if (freteTotalCentavos === 0 || itens.length === 0) {
+      return {
+        ...vendaAtual,
+        itens: itens.map((item) => ({ ...item, frete: 0 })),
+      }
+    }
+
+    const valoresItens = itens.map((item) => Math.max(0, Number(recalcularItemPedido(item).valorTotal || 0)))
+    const subtotalCentavos = Math.round(valoresItens.reduce((total, valor) => total + valor, 0) * 100)
+    let freteRateadoCentavos = 0
+
+    return {
+      ...vendaAtual,
+      itens: itens.map((item, index) => {
+        const freteItemCentavos =
+          index === itens.length - 1
+            ? freteTotalCentavos - freteRateadoCentavos
+            : subtotalCentavos > 0
+              ? Math.floor((freteTotalCentavos * Math.round(valoresItens[index] * 100)) / subtotalCentavos)
+              : Math.floor(freteTotalCentavos / itens.length)
+        freteRateadoCentavos += freteItemCentavos
+        return { ...item, frete: freteItemCentavos / 100 }
       }),
     }
   }
@@ -3087,7 +3246,7 @@ function PedidoForm() {
     if (!confirmar) return
 
     try {
-      const pedidoAtual = enriquecerItensComDadosFiscais({ ...montarPedidoAtualizado(), observacoes: venda.observacoesNotaFiscal || venda.observacoes || '' })
+      const pedidoAtual = ratearFreteNosItens(enriquecerItensComDadosFiscais({ ...montarPedidoAtualizado(), observacoes: venda.observacoesNotaFiscal || venda.observacoes || '' }))
       const pendenciasFiscais = montarAjustesFiscais(pedidoAtual)
       if (pendenciasFiscais.length > 0) {
         setAjustesFiscais(pendenciasFiscais)
@@ -3321,13 +3480,9 @@ function PedidoForm() {
 
     if (totalAtual <= 0) return alert('Inclua itens no pedido antes de emitir boleto.')
     if (vendaBase.formaPagamento !== 'BOLETO') return alert('Selecione a forma de pagamento BOLETO.')
-    if (!vendaBase.tipoCobranca) return alert('Selecione BOLETO BANCO INTER ou BOLETO BANCO CORA.')
+    if (!vendaBase.tipoCobranca) return alert('Selecione BOLETO BANCO INTER.')
 
     const bancoSelecionado = identificarBancoBoleto(String(vendaBase.tipoCobranca || ''))
-    if (bancoSelecionado === 'Cora') {
-      alert('Banco Cora continua disponível no pedido, mas o conector automático Cora ainda não está configurado. Nenhum boleto fictício será criado.')
-      return
-    }
     if (bancoSelecionado !== 'Inter') return alert('Selecione um banco válido para emitir boleto.')
 
     const parcelasBase = vendaBase.parcelas.length > 0 ? vendaBase.parcelas : []
@@ -3432,7 +3587,7 @@ function PedidoForm() {
     if (parcela.statusBoleto === 'Cancelado') return alert('Esta cobrança já está cancelada.')
     if (cancelamentosBoletoEmAndamento.current.has(codigo)) return
     if (!codigo) return alert('Esta parcela não possui uma cobrança bancária real para cancelar.')
-    if (identificarBancoBoletoDaParcela(parcela, venda) !== 'Inter') return alert('O conector automático do Banco Cora ainda não está configurado.')
+    if (identificarBancoBoletoDaParcela(parcela, venda) !== 'Inter') return alert('Esta cobrança não pertence ao Banco Inter.')
     if (!window.confirm(`Cancelar a cobrança da parcela ${parcela.numero}?`)) return
 
     cancelamentosBoletoEmAndamento.current.add(codigo)
@@ -3537,11 +3692,7 @@ function PedidoForm() {
 
     const pagamento = identificarPagamentoEmail(vendaBase)
     const textoCandidatos = normalizarBuscaCredito(candidatos.join(' '))
-    const bancoPreferido = textoCandidatos.includes('cora')
-      ? 'cora'
-      : textoCandidatos.includes('inter')
-        ? 'inter'
-        : ''
+    const bancoPreferido = textoCandidatos.includes('inter') ? 'inter' : ''
 
     const chaveFallback = Object.keys(DADOS_PAGAMENTO).find((chave) => {
       const normalizada = normalizarBuscaCredito(chave)
@@ -5203,13 +5354,12 @@ Synergias Distribuidora`,
                     data-layout-fix="SYNERGIAS_STATUS_ORIGEM_LAYOUT_V243B"
                     data-status={venda.statusPedido || 'Aberto'}
                     value={venda.statusPedido || 'Aberto'}
-                    onChange={(e) =>
-                      atualizarVenda('statusPedido', e.target.value)
-                    }
+                    disabled={['cancelado', 'entregue'].includes(chaveStatusPedido(venda.statusPedido))}
+                    onChange={(e) => alterarStatusPedido(e.target.value)}
                   >
-                    <option style={{ color: '#0284c7', backgroundColor: '#ffffff' }}>Aberto</option>
-                    <option style={{ color: '#b45309', backgroundColor: '#ffffff' }}>Em separação</option>
-                    <option style={{ color: '#2563eb', backgroundColor: '#ffffff' }}>Faturado</option>
+                    <option disabled={chaveStatusPedido(venda.statusPedido) === 'concluido'} style={{ color: '#0284c7', backgroundColor: '#ffffff' }}>Aberto</option>
+                    <option disabled={chaveStatusPedido(venda.statusPedido) === 'concluido'} style={{ color: '#b45309', backgroundColor: '#ffffff' }}>Em separação</option>
+                    <option disabled={chaveStatusPedido(venda.statusPedido) === 'concluido'} style={{ color: '#2563eb', backgroundColor: '#ffffff' }}>Faturado</option>
                     <option style={{ color: '#15803d', backgroundColor: '#ffffff' }}>Concluído</option>
                     <option style={{ color: '#7c3aed', backgroundColor: '#ffffff' }}>Entregue</option>
                     <option style={{ color: '#dc2626', backgroundColor: '#ffffff' }}>Cancelado</option>
@@ -5812,7 +5962,7 @@ Synergias Distribuidora`,
                 <input
                   value={venda.entregaCep || ''}
                   onChange={(e) =>
-                    atualizarVenda('entregaCep', e.target.value)
+                    atualizarVenda('entregaCep', formatarCepPedido(e.target.value))
                   }
                 />
               </label>
@@ -6674,7 +6824,6 @@ Synergias Distribuidora`,
 
                 <div className="boleto-contadores">
                   <div><span>Banco Inter</span><strong>{resumoBoletosInter.usados}/{resumoBoletosInter.limite}</strong><small>{resumoBoletosInter.disponiveis} disponíveis</small></div>
-                  <div><span>Banco Cora</span><strong>{resumoBoletosCora.usados}/{resumoBoletosCora.limite}</strong><small>{resumoBoletosCora.disponiveis} disponíveis</small></div>
                 </div>
 
                 <div className="boleto-parcelas-lista">
@@ -6850,7 +6999,8 @@ Synergias Distribuidora`,
               </button>
 
               {venda.statusPedido !== 'Concluído' &&
-                venda.statusPedido !== 'Entregue' && (
+                venda.statusPedido !== 'Entregue' &&
+                venda.statusPedido !== 'Cancelado' && (
                   <button
                     type="button"
                     className="save-secondary-button"

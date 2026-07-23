@@ -1433,8 +1433,8 @@ function gerarEstoque(
           origem: item.origem,
           documento: item.documentoOrigem || '-',
           quantidade: decimal(numero(item.quantidade)),
-          anterior: decimal(numero(item.estoqueAnterior)),
-          atual: decimal(numero(item.estoqueAtual)),
+          anterior: item.estoqueAnterior == null ? '-' : decimal(numero(item.estoqueAnterior)),
+          atual: item.estoqueAtual == null ? '-' : decimal(numero(item.estoqueAtual)),
         })),
     }
   }

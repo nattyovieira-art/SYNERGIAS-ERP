@@ -92,7 +92,7 @@ const GRUPOS: GrupoConfiguracao[] = [
       },
       {
         titulo: 'Contas Bancárias',
-        descricao: 'Centralização das contas Banco Inter e Banco Cora.',
+        descricao: 'Centralização das contas bancárias do ERP.',
         rota: '/configuracoes/financeiro/contas-bancarias',
         icone: Landmark,
       },
@@ -177,7 +177,7 @@ const GRUPOS: GrupoConfiguracao[] = [
     icone: Plug,
     itens: [
       {
-        titulo: 'Banco Inter e Cora',
+        titulo: 'Banco Inter',
         descricao: 'Parâmetros e status das integrações bancárias.',
         rota: '/configuracoes/integracoes/bancos',
         icone: Plug,

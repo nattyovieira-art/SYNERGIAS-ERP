@@ -11,6 +11,7 @@ import {
   listarProdutosStorage,
   salvarProdutoStorage,
 } from '../../services/produtosStorage'
+import { listarComprasStorage } from '../../services/comprasStorage'
 import { obterConfiguracaoFiscalStorage } from '../../services/configuracaoFiscalStorage'
 
 import '../../styles/cliente-form.css'
@@ -362,6 +363,35 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
 
   function obterUltimoCustoReferencia() {
     return Number(produto.ultimoCustoCompra || 0)
+  }
+
+  function obterMediaHistoricaCompra() {
+    const codigo = String(produto.codigo || '').trim()
+    if (!codigo) return { media: 0, quantidade: 0, compras: 0 }
+
+    let quantidade = 0
+    let valor = 0
+    const compras = new Set<string>()
+
+    listarComprasStorage()
+      .filter((compra) => compra.status !== 'Cancelado')
+      .forEach((compra) => {
+        compra.itens.forEach((item) => {
+          if (item.incluidoNoSistema === false || String(item.produtoCodigo || '').trim() !== codigo) return
+          const quantidadeItem = Number(item.quantidadeConvertida || item.quantidade || 0)
+          const custoUnitario = Number(item.custoUnitarioConvertido || item.custoUnitario || 0)
+          if (quantidadeItem <= 0 || custoUnitario < 0) return
+          quantidade += quantidadeItem
+          valor += quantidadeItem * custoUnitario
+          compras.add(compra.id)
+        })
+      })
+
+    return {
+      media: quantidade > 0 ? valor / quantidade : 0,
+      quantidade,
+      compras: compras.size,
+    }
   }
 
   function calcularMarkup(custo: number, venda: number) {
@@ -986,6 +1016,14 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
               marginBottom: '18px',
             }}
           >
+            <div className="form-field">
+              <span>Média histórica de compra</span>
+              <strong>{dinheiro(obterMediaHistoricaCompra().media)}</strong>
+              <small>
+                {obterMediaHistoricaCompra().compras} compra(s) · {obterMediaHistoricaCompra().quantidade.toLocaleString('pt-BR')} unidade(s). Não altera o custo atual.
+              </small>
+            </div>
+
             <div className="form-field">
               <span>Custo médio atual</span>
               <strong>{dinheiro(obterCustoMedioReferencia())}</strong>

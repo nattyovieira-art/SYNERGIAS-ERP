@@ -143,6 +143,7 @@ $infCpl = $q($xp, '//*[local-name()="infAdic"]/*[local-name()="infCpl"]');
 // O cEAN fiscal aceita somente GTIN, mas o ERP tambem usa codigos internos
 // (por exemplo, codigos de 10 digitos). Recupera-os do cadastro para o DANFE.
 $codigosProdutosDanfe = [];
+$codigosItensVendaDanfe = [];
 try {
     $pdoProdutosDanfe = obterPdo();
     $stmtProdutosDanfe = $pdoProdutosDanfe->prepare('SELECT payload FROM erp_storage WHERE collection = :collection LIMIT 1');
@@ -151,15 +152,44 @@ try {
     $produtosDanfe = $registroProdutosDanfe ? json_decode((string)$registroProdutosDanfe['payload'], true) : [];
     foreach (is_array($produtosDanfe) ? $produtosDanfe : [] as $produtoDanfe) {
         if (!is_array($produtoDanfe)) continue;
-        $barrasDanfe = trim((string)($produtoDanfe['codigoBarras'] ?? $produtoDanfe['ean'] ?? $produtoDanfe['gtin'] ?? ''));
+        $barrasDanfe = trim((string)($produtoDanfe['codigoBarras'] ?? $produtoDanfe['codigoBarra'] ?? $produtoDanfe['codigo_barra'] ?? $produtoDanfe['ean'] ?? $produtoDanfe['gtin'] ?? ''));
+        if ($barrasDanfe === '') {
+            $codigoInternoDanfe = trim((string)($produtoDanfe['codigo'] ?? $produtoDanfe['codigoInterno'] ?? ''));
+            if (preg_match('/^\d{6,14}$/', $codigoInternoDanfe)) $barrasDanfe = $codigoInternoDanfe;
+        }
         if ($barrasDanfe === '') continue;
-        foreach (['id', 'codigo', 'codigoInterno', 'codigoProduto', 'codigoBarras'] as $campoDanfe) {
+        foreach (['id', 'codigo', 'codigoInterno', 'codigoProduto', 'codigoBarras', 'codigoBarra', 'codigo_barra', 'sku', 'referencia'] as $campoDanfe) {
             $referenciaDanfe = trim((string)($produtoDanfe[$campoDanfe] ?? ''));
             if ($referenciaDanfe !== '') $codigosProdutosDanfe[$referenciaDanfe] = $barrasDanfe;
         }
     }
 } catch (Throwable $erroProdutosDanfe) {
     error_log('[DANFE CODIGO PRODUTO] '.$erroProdutosDanfe->getMessage());
+}
+
+// Prioriza o retrato do item salvo no pedido que originou esta NF-e. Assim,
+// codigos internos (que corretamente ficam como SEM GTIN no XML) continuam
+// visiveis no DANFE mesmo depois da autorizacao.
+try {
+    $pdoVendaItensDanfe = $pdoProdutosDanfe ?? obterPdo();
+    $stmtVendaItensDanfe = $pdoVendaItensDanfe->prepare('SELECT payload FROM erp_storage WHERE collection = :collection LIMIT 1');
+    $stmtVendaItensDanfe->execute(['collection' => 'vendas']);
+    $registroVendaItensDanfe = $stmtVendaItensDanfe->fetch();
+    $vendasItensDanfe = $registroVendaItensDanfe ? json_decode((string)$registroVendaItensDanfe['payload'], true) : [];
+    foreach (is_array($vendasItensDanfe) ? $vendasItensDanfe : [] as $vendaItensDanfe) {
+        if (!is_array($vendaItensDanfe)) continue;
+        $chaveVendaDanfe = preg_replace('/\D+/', '', (string)($vendaItensDanfe['chaveAcessoNotaFiscal'] ?? $vendaItensDanfe['chaveAcesso'] ?? '')) ?: '';
+        if ($chaveVendaDanfe !== $chave) continue;
+        foreach (is_array($vendaItensDanfe['itens'] ?? null) ? $vendaItensDanfe['itens'] : [] as $indiceItemDanfe => $itemVendaDanfe) {
+            if (!is_array($itemVendaDanfe)) continue;
+            $barrasItemDanfe = trim((string)($itemVendaDanfe['codigoBarras'] ?? $itemVendaDanfe['ean'] ?? $itemVendaDanfe['gtin'] ?? ''));
+            if ($barrasItemDanfe === '') continue;
+            $codigosItensVendaDanfe[(int)$indiceItemDanfe + 1] = $barrasItemDanfe;
+        }
+        break;
+    }
+} catch (Throwable $erroVendaItensDanfe) {
+    error_log('[DANFE CODIGO ITEM PEDIDO] '.$erroVendaItensDanfe->getMessage());
 }
 
 // NF-es antigas podem ter sido autorizadas sem <cobr>/<dup>. Nesse caso,
@@ -437,7 +467,10 @@ body{font-size:7.8px}
           }
           if ($codigoBarrasDanfe === '' || strtoupper($codigoBarrasDanfe) === 'SEM GTIN') {
             $codigoProdutoDanfe = $q($xp,'.//*[local-name()="cProd"]',$prod);
-            $codigoBarrasDanfe = $codigosProdutosDanfe[$codigoProdutoDanfe] ?? $codigoProdutoDanfe;
+            $numeroItemDanfe = (int)($det instanceof DOMElement ? $det->getAttribute('nItem') : 0);
+            $codigoBarrasDanfe = $codigosItensVendaDanfe[$numeroItemDanfe]
+              ?? $codigosProdutosDanfe[$codigoProdutoDanfe]
+              ?? $codigoProdutoDanfe;
           }
           if ($codigoBarrasDanfe === '' || strtoupper($codigoBarrasDanfe) === 'SEM GTIN') {
             $codigoBarrasDanfe = '-';

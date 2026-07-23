@@ -11,6 +11,14 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((erro) => {
+      console.warn('[Synergias Logística] Não foi possível registrar o aplicativo.', erro)
+    })
+  })
+}
+
 
 
 
@@ -22,4 +30,3 @@ createRoot(document.getElementById('root')!).render(
 
 
 /* SYNERGIAS V233 - lucratividade renderizada somente na aba nativa de Relatorios de Vendas. */
-

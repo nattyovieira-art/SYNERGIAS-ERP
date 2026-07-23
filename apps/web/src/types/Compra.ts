@@ -7,6 +7,8 @@ export type StatusCompra =
   | 'Faturado'
   | 'Concluído'
   | 'Cancelado'
+  | 'Devolvido Parcial'
+  | 'Devolvido'
 
 export type ItemCompra = {
   id: string
@@ -50,6 +52,14 @@ export type ItemCompra = {
   correspondencia?: 'EAN_TRIBUTAVEL' | 'EAN_COMERCIAL' | 'DESCRICAO' | 'NAO_VINCULADO'
   novoProdutoNome?: string
   novoProdutoPendente?: boolean
+  quantidadeDevolvida?: number
+  devolucoes?: Array<{
+    id: string
+    quantidade: number
+    motivo: string
+    data: string
+    idMovimentacaoEstoque?: string
+  }>
 }
 
 export type OrigemCompra = 'MANUAL' | 'SEFAZ_DFE' | 'XML_NFE'

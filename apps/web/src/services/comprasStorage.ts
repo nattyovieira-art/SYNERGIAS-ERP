@@ -1,9 +1,17 @@
 import type { Compra } from '../types/Compra'
+import {
+  definirColecaoMemoria,
+  obterColecaoMemoria,
+  sincronizarColecaoCentral,
+  sincronizarColecaoCentralAgora,
+} from './erpApi'
 
 const CHAVE_COMPRAS = 'synergias_erp_compras'
 const CHAVE_ULT_NSU_DFE = 'synergias_erp_compras_dfe_ult_nsu'
 
 export function listarComprasStorage(): Compra[] {
+  const centrais = obterColecaoMemoria<Compra>('compras')
+  if (centrais.length > 0) return centrais
   try {
     const dados = localStorage.getItem(CHAVE_COMPRAS)
 
@@ -21,8 +29,56 @@ export function buscarCompraStorage(id: string): Compra | undefined {
   return listarComprasStorage().find((compra) => compra.id === id)
 }
 
+function somenteDigitos(valor: unknown): string {
+  return String(valor || '').replace(/\D/g, '')
+}
+
+function identificadorNota(compra: Compra): string {
+  const chave = somenteDigitos(compra.chaveAcessoNFe)
+  if (chave.length === 44) return `CHAVE:${chave}`
+
+  const numero = somenteDigitos(compra.numeroNFe)
+  if (!numero) return ''
+  const serie = somenteDigitos(compra.serieNFe)
+  const emitente = somenteDigitos(compra.fornecedorDocumento)
+  return `NOTA:${emitente}:${serie}:${numero}`
+}
+
+function mesmaNota(a: Compra, b: Compra): boolean {
+  const chaveA = somenteDigitos(a.chaveAcessoNFe)
+  const chaveB = somenteDigitos(b.chaveAcessoNFe)
+  if (chaveA.length === 44 && chaveB.length === 44) return chaveA === chaveB
+
+  const numeroA = somenteDigitos(a.numeroNFe)
+  const numeroB = somenteDigitos(b.numeroNFe)
+  if (!numeroA || !numeroB || numeroA !== numeroB) return false
+  const serieA = somenteDigitos(a.serieNFe)
+  const serieB = somenteDigitos(b.serieNFe)
+  const emitenteA = somenteDigitos(a.fornecedorDocumento)
+  const emitenteB = somenteDigitos(b.fornecedorDocumento)
+  return serieA === serieB && emitenteA === emitenteB
+}
+
+export function encontrarCompraComNotaDuplicada(compra: Compra): Compra | undefined {
+  const identificador = identificadorNota(compra)
+  if (!identificador) return undefined
+  return listarComprasStorage().find(
+    (existente) => existente.id !== compra.id && mesmaNota(existente, compra),
+  )
+}
+
+function persistirCompras(compras: Compra[]): void {
+  definirColecaoMemoria('compras', compras)
+  localStorage.setItem(CHAVE_COMPRAS, JSON.stringify(compras))
+  sincronizarColecaoCentral('compras', compras)
+}
+
 export function salvarCompraStorage(compra: Compra): void {
   const compras = listarComprasStorage()
+  const duplicada = encontrarCompraComNotaDuplicada(compra)
+  if (duplicada) {
+    throw new Error(`Nota fiscal já cadastrada na compra ${duplicada.numeroCompra}.`)
+  }
   const indice = compras.findIndex((item) => item.id === compra.id)
 
   if (indice >= 0) {
@@ -31,13 +87,27 @@ export function salvarCompraStorage(compra: Compra): void {
     compras.unshift(compra)
   }
 
-  localStorage.setItem(CHAVE_COMPRAS, JSON.stringify(compras))
+  persistirCompras(compras)
+}
+
+export async function salvarCompraStorageConfirmado(compra: Compra): Promise<void> {
+  salvarCompraStorage(compra)
+  await sincronizarColecaoCentralAgora('compras', listarComprasStorage())
 }
 
 export function excluirCompraStorage(id: string): void {
+  const existente = buscarCompraStorage(id)
+  if (existente?.movimentouEstoque) {
+    throw new Error('Compra com estoque movimentado não pode ser excluída. Registre uma devolução ou estorno auditado.')
+  }
   const compras = listarComprasStorage().filter((compra) => compra.id !== id)
 
-  localStorage.setItem(CHAVE_COMPRAS, JSON.stringify(compras))
+  persistirCompras(compras)
+}
+
+export async function excluirCompraStorageConfirmado(id: string): Promise<void> {
+  excluirCompraStorage(id)
+  await sincronizarColecaoCentralAgora('compras', listarComprasStorage(), true)
 }
 
 export function gerarNumeroCompraStorage(): string {
@@ -78,6 +148,7 @@ export function importarComprasDFeStorage(
   )
 
   const idsExistentes = new Set(comprasAtuais.map((compra) => compra.id))
+  const notasExistentes = new Set(comprasAtuais.map(identificadorNota).filter(Boolean))
 
   let importadas = 0
   let duplicadas = 0
@@ -86,6 +157,7 @@ export function importarComprasDFeStorage(
     const duplicada =
       (compraRecebida.chaveAcessoNFe &&
         chavesExistentes.has(compraRecebida.chaveAcessoNFe)) ||
+      (identificadorNota(compraRecebida) && notasExistentes.has(identificadorNota(compraRecebida))) ||
       idsExistentes.has(compraRecebida.id)
 
     if (duplicada) {
@@ -137,10 +209,12 @@ export function importarComprasDFeStorage(
     }
 
     idsExistentes.add(compraSegura.id)
+    const nota = identificadorNota(compraSegura)
+    if (nota) notasExistentes.add(nota)
     importadas += 1
   }
 
-  localStorage.setItem(CHAVE_COMPRAS, JSON.stringify(comprasAtuais))
+  persistirCompras(comprasAtuais)
 
   return {
     importadas,

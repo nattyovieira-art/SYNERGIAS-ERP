@@ -5,6 +5,7 @@ import { inserirMadison2371Pedido2434Nfe2334 } from './inserirMadison2371Pedido2
 import { migrarOrcamento2458RossiCaribeUmaVez } from './migrarOrcamento2458RossiCaribeUmaVez'
 import { aplicarOrcamento2462ParisiValidado } from './aplicarOrcamento2462ParisiValidado'
 import { aplicarOrcamento2405NiloProdutosCorretos } from './aplicarOrcamento2405NiloProdutosCorretos'
+import { sincronizarFinanceiroComOperacoes } from './sincronizarFinanceiro'
 import { garantirOrcamento2398 } from './importarOrcamento2398'
 import { garantirOrcamento2429 } from './importarOrcamento2429'
 // SYNERGIAS_V292A: rotinas legadas preservadas sem execução automática.
@@ -18,7 +19,7 @@ void garantirOrcamento2398
 void garantirOrcamento2429
 
 const API_STORAGE_URL = '/api/storage.php'
-export type ColecaoCentral = 'clientes' | 'produtos' | 'vendas'
+export type ColecaoCentral = 'clientes' | 'produtos' | 'vendas' | 'compras' | 'movimentacoesEstoque'
 
 type RespostaColecao<T> = {
   ok: boolean
@@ -32,7 +33,13 @@ type RespostaColecao<T> = {
   storage?: string
 }
 
-const memoria: Record<ColecaoCentral, unknown[]> = { clientes: [], produtos: [], vendas: [] }
+const memoria: Record<ColecaoCentral, unknown[]> = {
+  clientes: [],
+  produtos: [],
+  vendas: [],
+  compras: [],
+  movimentacoesEstoque: [],
+}
 const filas = new Map<ColecaoCentral, Promise<void>>()
 const versoesCentrais = new Map<ColecaoCentral, { hash: string; updatedAt: string }>()
 export const ERP_STORAGE_UPDATED_EVENT = 'synergias:storage-updated'
@@ -605,16 +612,444 @@ void garantirOrcamento2425
 void garantirOrcamento2454
 void sobreporProdutosDosOrcamentosPorNome
 
+const MARCADOR_ORCAMENTO_SUPREME = 'SYNERGIAS_ORCAMENTO_SUPREME_20260721'
+
+function normalizarBuscaSupreme(valor: unknown): string {
+  return String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function somarDiasUteisSupreme(dataIso: string, dias: number): string {
+  const data = new Date(`${dataIso}T12:00:00`)
+  let adicionados = 0
+  while (adicionados < dias) {
+    data.setDate(data.getDate() + 1)
+    const dia = data.getDay()
+    if (dia !== 0 && dia !== 6) adicionados += 1
+  }
+  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`
+}
+
+async function criarOrcamentoSupremeUmaVez(vendas: any[], produtos: any[], clientes: any[]): Promise<any[]> {
+  if (vendas.some((venda) => venda?.marcadorInstalacao === MARCADOR_ORCAMENTO_SUPREME)) return vendas
+
+  const clientesEncontrados = clientes.filter((cliente) => {
+    const codigo = String(cliente?.codigo || cliente?.id || cliente?.codigoSistema || '').replace(/\D/g, '')
+    const nome = normalizarBuscaSupreme(cliente?.nomeRazaoSocial || cliente?.razaoSocial || cliente?.nomeFantasia || cliente?.nome)
+    return codigo === '0233' && nome.includes('SUPREME ALTOS DO CENTRAL PARQUE')
+  })
+  if (clientesEncontrados.length !== 1) throw new Error(`Orçamento Supreme bloqueado: cliente 0233 retornou ${clientesEncontrados.length} correspondências.`)
+  const cliente = clientesEncontrados[0]
+
+  const especificacoes = [
+    ['7901211040', 12], ['7901211063', 20], ['7901211283', 10], ['7901211328', 2],
+    ['7901210926', 10], ['7901211317', 1], ['7901210368', 2], ['7901210028', 2],
+    ['7901211252', 2], ['7901210349', 1], ['7901210037', 2], ['7901210414', 4],
+    ['7901210529', 20], ['7901210989', 20], ['7901210552', 10], ['7901210945', 2],
+    ['7901210546', 10], ['7901210137', 12], ['7901210980', 20], ['7901210993', 10],
+    ['7901210265', 2], ['7901211351', 6], ['7901210730', 10], ['7901210756', 4],
+    ['7901210616', 2], ['7901210973', 2], ['7901210960', 5],
+  ] as const
+
+  const itens = especificacoes.map(([codigoBarras, quantidade], indice) => {
+    const encontrados = produtos.filter((produto) => String(produto?.codigoBarras || '').replace(/\D/g, '') === codigoBarras)
+    if (encontrados.length !== 1) throw new Error(`Orçamento Supreme bloqueado: código de barras ${codigoBarras} retornou ${encontrados.length} produtos.`)
+    const produto = encontrados[0]
+    if (!normalizarBuscaSupreme(produto?.situacao || produto?.status).includes('ATIVO')) throw new Error(`Orçamento Supreme bloqueado: produto ${codigoBarras} não está ativo.`)
+    const valorUnitario = Number(produto?.vendaVarejo || produto?.precoVenda || produto?.valorVenda || 0)
+    if (!(valorUnitario > 0)) throw new Error(`Orçamento Supreme bloqueado: produto ${codigoBarras} está sem preço de venda.`)
+    const custoUnitario = Number(produto?.custoMedioAtual || produto?.custo || produto?.ultimoCustoCompra || 0)
+    const codigoProduto = String(produto?.codigo || produto?.codigoInterno || produto?.id || '')
+    return {
+      id: `supreme-item-${indice + 1}-${Date.now()}`,
+      produtoId: String(produto?.id || ''), codigo: codigoProduto, codigoProduto, codigoBarras,
+      descricao: String(produto?.descricao || produto?.nome || ''), unidade: String(produto?.unidade || produto?.unidadeMedida || 'Unidade'),
+      quantidade, valorUnitario, desconto: 0, descontoValor: 0, descontoPercentual: 0,
+      valorTotal: Number((quantidade * valorUnitario).toFixed(2)), custoUnitario,
+      custoTotal: Number((quantidade * custoUnitario).toFixed(2)),
+      estoqueDisponivel: Number(produto?.estoqueAtual || produto?.estoque || produto?.quantidadeEstoque || 0),
+      produtoVinculado: true, vinculoProdutoOrigem: 'CODIGO_BARRAS_EXATO',
+    }
+  })
+
+  const ids = vendas.map((venda) => String(venda?.id || '')).filter(Boolean)
+  if (new Set(ids).size !== ids.length) throw new Error('Orçamento Supreme bloqueado: existem IDs duplicados na coleção vendas.')
+  const numeros = vendas.filter((venda) => normalizarBuscaSupreme(venda?.tipo).includes('ORCAMENTO')).map((venda) => Number(String(venda?.numeroOrcamento || '').replace(/\D/g, ''))).filter(Number.isFinite)
+  const numeroOrcamento = String((numeros.length ? Math.max(...numeros) : 0) + 1)
+  if (vendas.some((venda) => String(venda?.numeroOrcamento || '').replace(/\D/g, '') === numeroOrcamento)) throw new Error(`Orçamento Supreme bloqueado: número ${numeroOrcamento} já existe.`)
+
+  const hoje = new Date()
+  const dataEmissao = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
+  const subtotal = Number(itens.reduce((soma, item) => soma + item.valorTotal, 0).toFixed(2))
+  const custoTotal = Number(itens.reduce((soma, item) => soma + item.custoTotal, 0).toFixed(2))
+  const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `orcamento-supreme-${Date.now()}`
+  const endereco = [cliente?.endereco, cliente?.numero].filter(Boolean).join(', ')
+  const agora = new Date().toISOString()
+  const orcamento = {
+    id, tipo: 'Orçamento', numeroOrcamento, vendedor: 'Natália Vieira',
+    clienteId: String(cliente?.id || cliente?.codigo || ''), clienteCodigo: String(cliente?.codigo || cliente?.id || ''),
+    clienteNome: String(cliente?.nomeRazaoSocial || cliente?.razaoSocial || cliente?.nomeFantasia || cliente?.nome || ''),
+    clienteDocumento: String(cliente?.cnpj || cliente?.documento || ''), clienteEmailNotaFiscal: String(cliente?.emailNotaFiscal || cliente?.email || ''),
+    clienteInscricaoEstadual: String(cliente?.inscricaoEstadual || cliente?.ie || ''),
+    dataEmissao, dataEntrega: somarDiasUteisSupreme(dataEmissao, 2), dataValidade: somarDiasUteisSupreme(dataEmissao, 5),
+    enderecoFaturamento: endereco, enderecoEntrega: String(cliente?.enderecoEntrega || endereco),
+    itens, itensEditadosManual: true, tipoDesconto: 'valor', descontoInformado: 0, descontoCalculado: 0,
+    descontoValor: 0, frete: 0, outrosCustos: 0, subtotal, totalFinal: subtotal, valorTotal: subtotal,
+    custoTotal, margemValor: Number((subtotal - custoTotal).toFixed(2)), pagamentos: [], parcelas: [], observacoes: '',
+    status: 'ABERTO', statusOrcamento: 'Aberto', criadoEm: agora, atualizadoEm: agora, marcadorInstalacao: MARCADOR_ORCAMENTO_SUPREME,
+  }
+
+  await atualizarRegistroColecaoCentral('vendas', orcamento)
+  const confirmacao = await carregarColecaoCentral<any>('vendas')
+  const atualizadas = Array.isArray(confirmacao.data) ? confirmacao.data : []
+  const gravado = atualizadas.find((venda) => String(venda?.id) === id && String(venda?.numeroOrcamento) === numeroOrcamento)
+  if (!gravado || !Array.isArray(gravado.itens) || gravado.itens.length !== 27 || Number(gravado.totalFinal) !== subtotal) throw new Error('O MySQL não confirmou integralmente o orçamento Supreme.')
+  console.info('[Synergias ERP] Orçamento Supreme criado e validado.', { id, numeroOrcamento, subtotal })
+  return atualizadas
+}
+
+async function criarOrcamentoSistemaUmaVez(vendas: any[], produtos: any[], clientes: any[]): Promise<any[]> {
+  const marcador = 'SYNERGIAS_ORCAMENTO_SISTEMA_20260721'
+  if (vendas.some((venda) => venda?.marcadorInstalacao === marcador)) return vendas
+  const encontradosCliente = clientes.filter((cliente) => {
+    const codigo = String(cliente?.codigo || cliente?.id || cliente?.codigoSistema || '').replace(/\D/g, '')
+    const nome = normalizarBuscaSupreme(cliente?.nomeRazaoSocial || cliente?.razaoSocial || cliente?.nomeFantasia || cliente?.nome)
+    return codigo === '0231' && nome.includes('SISTEMA EDUCACIONAL BOA VISTA')
+  })
+  if (encontradosCliente.length !== 1) throw new Error(`Orçamento Sistema bloqueado: cliente 0231 retornou ${encontradosCliente.length} correspondências.`)
+  const cliente = encontradosCliente[0]
+  const especificacoes = [
+    ['7901210028', 6], ['7901210038', 3], ['7901210405', 20], ['7901210381', 2], ['7901210339', 2],
+    ['7901210524', 4], ['7901211354', 8], ['7901210529', 40], ['7901211200', 4], ['7901210006', 10],
+  ] as const
+  const itens = especificacoes.map(([codigoBarras, quantidade], indice) => {
+    const encontrados = produtos.filter((produto) => String(produto?.codigoBarras || '').replace(/\D/g, '') === codigoBarras)
+    if (encontrados.length !== 1) throw new Error(`Orçamento Sistema bloqueado: código ${codigoBarras} retornou ${encontrados.length} produtos.`)
+    const produto = encontrados[0]
+    if (!normalizarBuscaSupreme(produto?.situacao || produto?.status).includes('ATIVO')) throw new Error(`Orçamento Sistema bloqueado: produto ${codigoBarras} não está ativo.`)
+    const valorUnitario = Number(produto?.vendaVarejo || produto?.precoVenda || produto?.valorVenda || 0)
+    if (!(valorUnitario > 0)) throw new Error(`Orçamento Sistema bloqueado: produto ${codigoBarras} está sem preço.`)
+    const custoUnitario = Number(produto?.custoMedioAtual || produto?.custo || produto?.ultimoCustoCompra || 0)
+    const codigoProduto = String(produto?.codigo || produto?.codigoInterno || produto?.id || '')
+    return {
+      id: `sistema-item-${indice + 1}-${Date.now()}`, produtoId: String(produto?.id || ''), codigo: codigoProduto,
+      codigoProduto, codigoBarras, descricao: String(produto?.descricao || produto?.nome || ''),
+      unidade: String(produto?.unidade || produto?.unidadeMedida || 'Unidade'), quantidade, valorUnitario,
+      desconto: 0, descontoValor: 0, descontoPercentual: 0, valorTotal: Number((quantidade * valorUnitario).toFixed(2)),
+      custoUnitario, custoTotal: Number((quantidade * custoUnitario).toFixed(2)),
+      estoqueDisponivel: Number(produto?.estoqueAtual || produto?.estoque || produto?.quantidadeEstoque || 0),
+      produtoVinculado: true, vinculoProdutoOrigem: 'CODIGO_BARRAS_EXATO',
+    }
+  })
+  const ids = vendas.map((venda) => String(venda?.id || '')).filter(Boolean)
+  if (new Set(ids).size !== ids.length) throw new Error('Orçamento Sistema bloqueado: existem IDs duplicados em vendas.')
+  const numeros = vendas.filter((venda) => normalizarBuscaSupreme(venda?.tipo).includes('ORCAMENTO')).map((venda) => Number(String(venda?.numeroOrcamento || '').replace(/\D/g, ''))).filter(Number.isFinite)
+  const numeroOrcamento = String((numeros.length ? Math.max(...numeros) : 0) + 1)
+  const hoje = new Date()
+  const dataEmissao = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
+  const subtotal = Number(itens.reduce((soma, item) => soma + item.valorTotal, 0).toFixed(2))
+  const custoTotal = Number(itens.reduce((soma, item) => soma + item.custoTotal, 0).toFixed(2))
+  if (subtotal !== 665.98) throw new Error(`Orçamento Sistema bloqueado: total atual ${subtotal} diverge de 665,98.`)
+  const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `orcamento-sistema-${Date.now()}`
+  const endereco = [cliente?.endereco, cliente?.numero].filter(Boolean).join(', ')
+  const agora = new Date().toISOString()
+  const orcamento = {
+    id, tipo: 'Orçamento', numeroOrcamento, vendedor: 'Natália Vieira',
+    clienteId: String(cliente?.id || cliente?.codigo || ''), clienteCodigo: String(cliente?.codigo || cliente?.id || ''),
+    clienteNome: String(cliente?.nomeRazaoSocial || cliente?.razaoSocial || cliente?.nomeFantasia || cliente?.nome || ''),
+    clienteDocumento: String(cliente?.cnpj || cliente?.documento || ''), clienteEmailNotaFiscal: String(cliente?.emailNotaFiscal || cliente?.email || ''),
+    clienteInscricaoEstadual: String(cliente?.inscricaoEstadual || cliente?.ie || ''), dataEmissao,
+    dataEntrega: somarDiasUteisSupreme(dataEmissao, 2), dataValidade: somarDiasUteisSupreme(dataEmissao, 5),
+    enderecoFaturamento: endereco, enderecoEntrega: String(cliente?.enderecoEntrega || endereco), itens, itensEditadosManual: true,
+    tipoDesconto: 'valor', descontoInformado: 0, descontoCalculado: 0, descontoValor: 0, frete: 0, outrosCustos: 0,
+    subtotal, totalFinal: subtotal, valorTotal: subtotal, custoTotal, margemValor: Number((subtotal - custoTotal).toFixed(2)),
+    pagamentos: [], parcelas: [], observacoes: '', status: 'ABERTO', statusOrcamento: 'Aberto',
+    criadoEm: agora, atualizadoEm: agora, marcadorInstalacao: marcador,
+  }
+  await atualizarRegistroColecaoCentral('vendas', orcamento)
+  const confirmacao = await carregarColecaoCentral<any>('vendas')
+  const atualizadas = Array.isArray(confirmacao.data) ? confirmacao.data : []
+  const gravado = atualizadas.find((venda) => String(venda?.id) === id && String(venda?.numeroOrcamento) === numeroOrcamento)
+  if (!gravado || !Array.isArray(gravado.itens) || gravado.itens.length !== 10 || Number(gravado.totalFinal) !== subtotal) throw new Error('O MySQL não confirmou integralmente o orçamento Sistema.')
+  console.info('[Synergias ERP] Orçamento Sistema criado e validado.', { id, numeroOrcamento, subtotal })
+  return atualizadas
+}
+
+async function criarOrcamentoMoinhosUmaVez(vendas: any[], produtos: any[], clientes: any[]): Promise<any[]> {
+  const marcador = 'SYNERGIAS_ORCAMENTO_MOINHOS_20260721'
+  if (vendas.some((venda) => venda?.marcadorInstalacao === marcador)) return vendas
+  const clientesEncontrados = clientes.filter((cliente) => {
+    const codigo = String(cliente?.codigo || cliente?.id || cliente?.codigoSistema || '').replace(/\D/g, '')
+    const nome = normalizarBuscaSupreme(cliente?.nomeRazaoSocial || cliente?.razaoSocial || cliente?.nomeFantasia || cliente?.nome)
+    return codigo === '0064' && nome.includes('CONDOMINIO EDIFICIO MOINHOS DE VENTO')
+  })
+  if (clientesEncontrados.length !== 1) throw new Error(`Orçamento Moinhos bloqueado: cliente 0064 retornou ${clientesEncontrados.length} correspondências.`)
+  const cliente = clientesEncontrados[0]
+  const especificacoes = [
+    ['7901210028', 3], ['7901210369', 2], ['7901210376', 2], ['7901210953', 3], ['7901210738', 2],
+    ['7901210037', 12], ['7901210529', 2], ['7901210850', 2], ['7901211354', 2], ['7901210931', 1],
+  ] as const
+  const itens = especificacoes.map(([codigoBarras, quantidade], indice) => {
+    const encontrados = produtos.filter((produto) => String(produto?.codigoBarras || '').replace(/\D/g, '') === codigoBarras)
+    if (encontrados.length !== 1) throw new Error(`Orçamento Moinhos bloqueado: código ${codigoBarras} retornou ${encontrados.length} produtos.`)
+    const produto = encontrados[0]
+    if (!normalizarBuscaSupreme(produto?.situacao || produto?.status).includes('ATIVO')) throw new Error(`Orçamento Moinhos bloqueado: produto ${codigoBarras} não está ativo.`)
+    const valorUnitarioCadastro = Number(produto?.vendaVarejo || produto?.precoVenda || produto?.valorVenda || 0)
+    const valorUnitario = codigoBarras === '7901210850' ? 8.39 : valorUnitarioCadastro
+    if (!(valorUnitario > 0)) throw new Error(`Orçamento Moinhos bloqueado: produto ${codigoBarras} está sem preço.`)
+    const custoUnitario = Number(produto?.custoMedioAtual || produto?.custo || produto?.ultimoCustoCompra || 0)
+    const codigoProduto = String(produto?.codigo || produto?.codigoInterno || produto?.id || '')
+    return {
+      id: `moinhos-item-${indice + 1}-${Date.now()}`, produtoId: String(produto?.id || ''), codigo: codigoProduto,
+      codigoProduto, codigoBarras, descricao: String(produto?.descricao || produto?.nome || ''),
+      unidade: String(produto?.unidade || produto?.unidadeMedida || 'Unidade'), quantidade, valorUnitario,
+      desconto: 0, descontoValor: 0, descontoPercentual: 0, valorTotal: Number((quantidade * valorUnitario).toFixed(2)),
+      custoUnitario, custoTotal: Number((quantidade * custoUnitario).toFixed(2)),
+      estoqueDisponivel: Number(produto?.estoqueAtual || produto?.estoque || produto?.quantidadeEstoque || 0),
+      produtoVinculado: true, vinculoProdutoOrigem: 'CODIGO_BARRAS_EXATO',
+    }
+  })
+  const numeros = vendas.filter((venda) => normalizarBuscaSupreme(venda?.tipo).includes('ORCAMENTO'))
+    .map((venda) => Number(String(venda?.numeroOrcamento || '').replace(/\D/g, ''))).filter(Number.isFinite)
+  const numeroOrcamento = String((numeros.length ? Math.max(...numeros) : 0) + 1)
+  if (vendas.some((venda) => String(venda?.numeroOrcamento || '').replace(/\D/g, '') === numeroOrcamento)) throw new Error(`Orçamento Moinhos bloqueado: número ${numeroOrcamento} já existe.`)
+  const hoje = new Date()
+  const dataEmissao = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
+  const subtotal = Number(itens.reduce((soma, item) => soma + item.valorTotal, 0).toFixed(2))
+  if (subtotal !== 276.31) throw new Error(`Orçamento Moinhos bloqueado: total atual ${subtotal} diverge de 276,31.`)
+  const custoTotal = Number(itens.reduce((soma, item) => soma + item.custoTotal, 0).toFixed(2))
+  const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `orcamento-moinhos-${Date.now()}`
+  const endereco = [cliente?.endereco, cliente?.numero].filter(Boolean).join(', ')
+  const agora = new Date().toISOString()
+  const orcamento = {
+    id, tipo: 'Orçamento', numeroOrcamento, vendedor: 'Natália Vieira',
+    clienteId: String(cliente?.id || cliente?.codigo || ''), clienteCodigo: String(cliente?.codigo || cliente?.id || ''),
+    clienteNome: String(cliente?.nomeRazaoSocial || cliente?.razaoSocial || cliente?.nomeFantasia || cliente?.nome || ''),
+    clienteDocumento: String(cliente?.cnpj || cliente?.documento || ''), clienteEmailNotaFiscal: String(cliente?.emailNotaFiscal || cliente?.email || ''),
+    clienteInscricaoEstadual: String(cliente?.inscricaoEstadual || cliente?.ie || ''), dataEmissao,
+    dataEntrega: somarDiasUteisSupreme(dataEmissao, 2), dataValidade: somarDiasUteisSupreme(dataEmissao, 5),
+    enderecoFaturamento: endereco, enderecoEntrega: String(cliente?.enderecoEntrega || endereco), itens, itensEditadosManual: true,
+    tipoDesconto: 'valor', descontoInformado: 0, descontoCalculado: 0, descontoValor: 0, frete: 0, outrosCustos: 0,
+    subtotal, totalFinal: subtotal, valorTotal: subtotal, custoTotal, margemValor: Number((subtotal - custoTotal).toFixed(2)),
+    pagamentos: [], parcelas: [], observacoes: '', status: 'ABERTO', statusOrcamento: 'Aberto',
+    criadoEm: agora, atualizadoEm: agora, marcadorInstalacao: marcador,
+  }
+  await atualizarRegistroColecaoCentral('vendas', orcamento)
+  const confirmacao = await carregarColecaoCentral<any>('vendas')
+  const atualizadas = Array.isArray(confirmacao.data) ? confirmacao.data : []
+  const gravado = atualizadas.find((venda) => String(venda?.id) === id && String(venda?.numeroOrcamento) === numeroOrcamento)
+  if (!gravado || !Array.isArray(gravado.itens) || gravado.itens.length !== 10 || Number(gravado.totalFinal) !== subtotal) throw new Error('O MySQL não confirmou integralmente o orçamento Moinhos.')
+  console.info('[Synergias ERP] Orçamento Moinhos criado e validado.', { id, numeroOrcamento, subtotal })
+  return atualizadas
+}
+
+async function corrigirClientesOrcamentos2422e2423UmaVez(vendas: any[], clientes: any[]): Promise<any[]> {
+  const marcador = 'SYNERGIAS_CLIENTE_HOM_LINDOIA_ORCAMENTOS_2422_2423_20260721'
+  const clienteEncontrados = clientes.filter((cliente) => {
+    const codigo = String(cliente?.codigo || cliente?.id || cliente?.codigoSistema || '').replace(/\D/g, '')
+    const nome = normalizarBuscaSupreme(cliente?.nomeRazaoSocial || cliente?.razaoSocial || cliente?.nomeFantasia || cliente?.nome)
+    return codigo === '0090' && nome === 'CONDOMINIO HOM LINDOIA'
+  })
+  if (clienteEncontrados.length !== 1) throw new Error(`Correção 2422/2423 bloqueada: cliente HOM LINDOIA retornou ${clienteEncontrados.length} correspondências.`)
+  const cliente = clienteEncontrados[0]
+  let atuais = vendas
+
+  // Restaura o orçamento 2413 da Rossi Florida, identificado pelo valor histórico exato.
+  const jaExiste2413 = atuais.some((venda) => {
+    const numeroAtual = String(venda?.numeroOrcamento || '').replace(/\D/g, '').replace(/^0+/, '')
+    return numeroAtual === '2413' && !normalizarBuscaSupreme(venda?.tipo).includes('PEDIDO')
+  })
+  const candidato2413Em2423 = atuais.filter((venda) => {
+    const numeroAtual = String(venda?.numeroOrcamento || '').replace(/\D/g, '').replace(/^0+/, '')
+    const totalAtual = Number(venda?.totalFinal ?? venda?.valorTotal ?? 0)
+    return numeroAtual === '2423'
+      && !normalizarBuscaSupreme(venda?.tipo).includes('PEDIDO')
+      && Math.abs(totalAtual - 2149.47) < 0.01
+  })
+  if (!jaExiste2413 && candidato2413Em2423.length === 1) {
+    const restaurado2413 = {
+      ...candidato2413Em2423[0],
+      tipo: 'Orçamento',
+      numeroOrcamento: '2413',
+      correcaoNumeroOrcamento: 'SYNERGIAS_RESTAURA_ROSSI_FLORIDA_2413_20260721',
+      atualizadoEm: new Date().toISOString(),
+    }
+    await atualizarRegistroColecaoCentral('vendas', restaurado2413)
+    const confirmacao2413 = await carregarColecaoCentral<any>('vendas')
+    atuais = Array.isArray(confirmacao2413.data) ? confirmacao2413.data : []
+    const confirmado2413 = atuais.find((venda) => String(venda?.id || '') === String(restaurado2413.id || ''))
+    if (!confirmado2413 || String(confirmado2413.numeroOrcamento) !== '2413' || Math.abs(Number(confirmado2413.totalFinal ?? confirmado2413.valorTotal ?? 0) - 2149.47) >= 0.01) {
+      throw new Error('O MySQL não confirmou a restauração do orçamento 2413 da Rossi Florida.')
+    }
+  }
+
+  for (const numero of ['2422', '2423']) {
+    const candidatos = atuais.filter((venda) => {
+      const numeroAtual = String(venda?.numeroOrcamento || '').replace(/\D/g, '').replace(/^0+/, '')
+      return numeroAtual === numero && !normalizarBuscaSupreme(venda?.tipo).includes('PEDIDO')
+    })
+    const totalEsperado = numero === '2422' ? 539.99 : 730.15
+    const candidatosPeloTotal = candidatos.filter((venda) => Math.abs(Number(venda?.totalFinal ?? venda?.valorTotal ?? 0) - totalEsperado) < 0.01)
+    const candidatosHom = candidatos.filter((venda) => normalizarBuscaSupreme(venda?.clienteNome || venda?.cliente) === 'CONDOMINIO HOM LINDOIA')
+    const selecionados = numero === '2423'
+      ? candidatos
+      : candidatosPeloTotal.length === 1
+        ? candidatosPeloTotal
+        : candidatosHom.length === 1
+          ? candidatosHom
+          : candidatos
+    if (selecionados.length === 0 || (numero !== '2423' && selecionados.length !== 1)) {
+      console.warn(`[Synergias ERP] Correção ${numero} ignorada: foram encontrados ${candidatos.length} orçamentos e nenhum candidato único.`)
+      continue
+    }
+    const enderecoFaturamento = [
+      [cliente?.endereco, cliente?.numero].filter(Boolean).join(', '),
+      [cliente?.bairro, [cliente?.cidade, cliente?.estado].filter(Boolean).join(' / '), cliente?.cep ? `CEP: ${cliente.cep}` : ''].filter(Boolean).join(' - '),
+    ].filter(Boolean).join('\n')
+    for (const atual of selecionados) {
+      const jaCorreto = normalizarBuscaSupreme(atual?.clienteNome || atual?.cliente) === 'CONDOMINIO HOM LINDOIA'
+        && Math.abs(Number(atual?.totalFinal ?? atual?.valorTotal ?? 0) - totalEsperado) < 0.01
+      if (jaCorreto) continue
+      const corrigido = {
+        ...atual,
+        tipo: 'Orçamento',
+        totalFinal: totalEsperado,
+        valorTotal: totalEsperado,
+        clienteId: String(cliente?.id || cliente?.codigo || ''),
+        clienteCodigo: String(cliente?.codigo || cliente?.id || ''),
+        clienteNome: String(cliente?.nomeRazaoSocial || cliente?.razaoSocial || cliente?.nomeFantasia || cliente?.nome || ''),
+        clienteDocumento: String(cliente?.cnpj || cliente?.documento || ''),
+        clienteEmail: String(cliente?.email || ''),
+        clienteEmailNotaFiscal: String(cliente?.emailNotaFiscal || cliente?.email || ''),
+        clienteInscricaoEstadual: String(cliente?.inscricaoEstadual || cliente?.ie || ''),
+        enderecoFaturamento,
+        enderecoEntrega: String(cliente?.enderecoEntrega || enderecoFaturamento),
+        correcaoCliente: marcador,
+        atualizadoEm: new Date().toISOString(),
+      }
+      await atualizarRegistroColecaoCentral('vendas', corrigido)
+      const confirmacao = await carregarColecaoCentral<any>('vendas')
+      atuais = Array.isArray(confirmacao.data) ? confirmacao.data : []
+      const confirmado = atuais.find((venda) => String(venda?.id || '') === String(corrigido.id || ''))
+      if (!confirmado || normalizarBuscaSupreme(confirmado.clienteNome) !== 'CONDOMINIO HOM LINDOIA' || Number(confirmado.totalFinal) !== totalEsperado) {
+        throw new Error(`O MySQL não confirmou o cliente do orçamento ${numero}.`)
+      }
+    }
+  }
+  return atuais
+}
+
+async function restaurarVinculoDoPedido2505UmaVez(vendas: any[]): Promise<any[]> {
+  const numeroLimpo = (valor: unknown) => String(valor || '').replace(/\D/g, '').replace(/^0+/, '')
+  const vinculos = [
+    { orcamento: '2423', pedido: '2505', nfe: '2426' },
+  ]
+  let atuais = vendas
+  for (const vinculo of vinculos) {
+    const orcamentos = atuais.filter((venda) =>
+      numeroLimpo(venda?.numeroOrcamento) === vinculo.orcamento
+      && normalizarBuscaSupreme(venda?.tipo).includes('ORCAMENTO')
+      && (vinculo.orcamento !== '2423' || (
+        normalizarBuscaSupreme(venda?.clienteNome || venda?.cliente) === 'CONDOMINIO HOM LINDOIA'
+        && Math.abs(Number(venda?.totalFinal ?? venda?.valorTotal ?? 0) - 730.15) < 0.01
+      )))
+    if (orcamentos.length !== 1) {
+      throw new Error(`Vínculo ${vinculo.orcamento}/${vinculo.pedido} bloqueado: encontrados ${orcamentos.length} orçamentos.`)
+    }
+    const pedidos = atuais.filter((venda) => {
+      const numeroNfe = numeroLimpo(
+        venda?.numeroNotaFiscal || venda?.numeroNfe || venda?.numeroNFe || venda?.numeroNF
+        || venda?.notaFiscalNumero || venda?.nfeNumero || venda?.notaFiscal?.numero || venda?.nfe?.numero,
+      )
+      const numeroPedido = numeroLimpo(venda?.numeroPedido)
+      return numeroNfe === vinculo.nfe || numeroPedido === vinculo.pedido
+    })
+    if (pedidos.length === 0) {
+      throw new Error(`Vínculo ${vinculo.orcamento}/${vinculo.pedido} bloqueado: pedido da NF-e ${vinculo.nfe} não encontrado.`)
+    }
+    const orcamento = orcamentos[0]
+    const pedido = [...pedidos].sort((a, b) => {
+      const pontos = (registro: any) =>
+        (numeroLimpo(registro?.numeroNotaFiscal || registro?.numeroNfe || registro?.numeroNFe || registro?.numeroNF || registro?.notaFiscalNumero || registro?.nfeNumero) === vinculo.nfe ? 100 : 0)
+        + (String(registro?.chaveAcessoNotaFiscal || '').replace(/\D/g, '').length === 44 ? 40 : 0)
+        + (Array.isArray(registro?.itens) ? registro.itens.length : 0)
+        + (registro?.registroDuplicadoTecnico ? 0 : 10)
+      return pontos(b) - pontos(a)
+    })[0]
+    const pedidoJaVinculado = String(pedido?.orcamentoOrigemId || '') === String(orcamento?.id || '')
+      && numeroLimpo(pedido?.orcamentoOrigemNumero) === vinculo.orcamento
+    const orcamentoJaGerado = orcamento?.pedidoGerado === true
+      && String(orcamento?.pedidoGeradoId || '') === String(pedido?.id || '')
+      && normalizarBuscaSupreme(orcamento?.statusOrcamento) === 'GERADO'
+    if (pedidoJaVinculado && orcamentoJaGerado) continue
+
+    const agora = new Date().toISOString()
+    const pedidoCorrigido = {
+      ...pedido, tipo: 'Pedido', numeroPedido: vinculo.pedido,
+      ocultoListagem: false, registroDuplicadoTecnico: false,
+      orcamentoOrigemId: String(orcamento.id || ''), orcamentoOrigemNumero: vinculo.orcamento,
+      correcaoVinculoOrcamento: `SYNERGIAS_VINCULO_${vinculo.orcamento}_PEDIDO_${vinculo.pedido}_NFE_${vinculo.nfe}_20260721`,
+      atualizadoEm: agora,
+    }
+    await atualizarRegistroColecaoCentral('vendas', pedidoCorrigido)
+    const orcamentoCorrigido = {
+      ...orcamento, tipo: 'Orçamento', status: 'APROVADO', statusOrcamento: 'GERADO',
+      aprovado: true, reprovado: false, convertido: true, pedidoGerado: true,
+      pedidoId: String(pedido.id || ''), pedidoGeradoId: String(pedido.id || ''),
+      pedidoGeradoEm: String(pedido?.criadoEm || pedido?.dataEmissao || agora), atualizadoEm: agora,
+    }
+    await atualizarRegistroColecaoCentral('vendas', orcamentoCorrigido)
+    const confirmacao = await carregarColecaoCentral<any>('vendas')
+    atuais = Array.isArray(confirmacao.data) ? confirmacao.data : []
+    const pedidoConfirmado = atuais.find((venda) => String(venda?.id || '') === String(pedido.id || ''))
+    const orcamentoConfirmado = atuais.find((venda) => String(venda?.id || '') === String(orcamento.id || ''))
+    if (!pedidoConfirmado || String(pedidoConfirmado.orcamentoOrigemId || '') !== String(orcamento.id || '')
+      || !orcamentoConfirmado || orcamentoConfirmado.pedidoGerado !== true || String(orcamentoConfirmado.pedidoGeradoId || '') !== String(pedido.id || '')) {
+      throw new Error(`O MySQL não confirmou o vínculo do orçamento ${vinculo.orcamento} com o pedido ${vinculo.pedido}.`)
+    }
+  }
+  return atuais
+}
+
 export async function inicializarArmazenamentoCentral(): Promise<void> {
   const timeout = new Promise<never>((_, rejeitar) => setTimeout(() => rejeitar(new Error('Tempo limite ao carregar dados do servidor.')), 30000))
   const carregar = Promise.all([
     carregarColecaoCentral<unknown>('clientes'),
     carregarColecaoCentral<unknown>('produtos'),
     carregarColecaoCentral<unknown>('vendas'),
+    carregarColecaoCentral<unknown>('compras'),
+    carregarColecaoCentral<unknown>('movimentacoesEstoque'),
   ])
-  const [clientes, produtos, vendas] = await Promise.race([carregar, timeout])
+  const [clientes, produtos, vendas, compras, movimentacoesEstoque] = await Promise.race([carregar, timeout])
   definirColecaoMemoria('clientes', Array.isArray(clientes.data) ? clientes.data : [])
   definirColecaoMemoria('produtos', Array.isArray(produtos.data) ? produtos.data : [])
+  let comprasIniciais = Array.isArray(compras.data) ? compras.data : []
+  let movimentosIniciais = Array.isArray(movimentacoesEstoque.data) ? movimentacoesEstoque.data : []
+  if (comprasIniciais.length === 0) {
+    try {
+      const locais = JSON.parse(localStorage.getItem('synergias_erp_compras') || '[]')
+      if (Array.isArray(locais) && locais.length > 0) {
+        comprasIniciais = locais
+        definirColecaoMemoria('compras', locais)
+        await sincronizarColecaoCentralAgora('compras', locais)
+      }
+    } catch (erro) {
+      console.warn('[Synergias ERP] Migração inicial de compras locais não concluída.', erro)
+    }
+  }
+  if (movimentosIniciais.length === 0) {
+    try {
+      const locais = JSON.parse(localStorage.getItem('synergias_estoque_movimentacoes') || '[]')
+      if (Array.isArray(locais) && locais.length > 0) {
+        movimentosIniciais = locais
+        definirColecaoMemoria('movimentacoesEstoque', locais)
+        await sincronizarColecaoCentralAgora('movimentacoesEstoque', locais)
+      }
+    } catch (erro) {
+      console.warn('[Synergias ERP] Migração inicial de movimentações locais não concluída.', erro)
+    }
+  }
+  definirColecaoMemoria('compras', comprasIniciais)
+  definirColecaoMemoria('movimentacoesEstoque', movimentosIniciais)
 
   const vendasServidor = Array.isArray(vendas.data) ? vendas.data : []
   let vendasLocais: unknown[] = []
@@ -631,9 +1066,25 @@ export async function inicializarArmazenamentoCentral(): Promise<void> {
   // SYNERGIAS_V292A: a coleção central do MySQL é a única fonte de vendas.
   // Nenhuma importação, reconstrução, mesclagem com cache local ou correção pontual
   // pode regravar a coleção completa durante a abertura do ERP.
-  const vendasEstaveis = vendasServidor as any[]
+  let vendasEstaveis = vendasServidor as any[]
+  vendasEstaveis = await criarOrcamentoSupremeUmaVez(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [])
+  vendasEstaveis = await criarOrcamentoSistemaUmaVez(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [])
+  vendasEstaveis = await criarOrcamentoMoinhosUmaVez(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [])
+  try {
+    vendasEstaveis = await corrigirClientesOrcamentos2422e2423UmaVez(vendasEstaveis, Array.isArray(clientes.data) ? clientes.data : [])
+  } catch (erro) {
+    // Uma correção pontual nunca deve impedir o carregamento de toda a coleção.
+    console.warn('[Synergias ERP] Correção 2422/2423 ignorada durante a inicialização.', erro)
+  }
+  try {
+    vendasEstaveis = await restaurarVinculoDoPedido2505UmaVez(vendasEstaveis)
+  } catch (erro) {
+    console.warn('[Synergias ERP] Restauração do vínculo 2423/2505 ignorada durante a inicialização.', erro)
+  }
   definirColecaoMemoria('clientes', Array.isArray(clientes.data) ? clientes.data : [])
   definirColecaoMemoria('vendas', vendasEstaveis)
+
+  sincronizarFinanceiroComOperacoes(vendasEstaveis, comprasIniciais as any[])
 
   try { localStorage.removeItem('synergias_vendas') } catch {}
   try { localStorage.removeItem('synergias_clientes') } catch {}

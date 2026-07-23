@@ -14,13 +14,14 @@ import {
   Trash2,
   Handshake,
   CheckCircle2,
+  Mail,
   Printer,
 } from 'lucide-react'
 
 import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import { listarContasReceberStorage } from '../../services/financeiroStorage'
-import { excluirVendaStorageConfirmado, listarVendasStorage as listarVendasCentral, salvarVendasStorage as salvarVendasCentral } from '../../services/vendasStorage'
+import { excluirVendaStorageConfirmado, listarVendasStorage as listarVendasCentral, salvarVendaStorageConfirmado, salvarVendasStorage as salvarVendasCentral } from '../../services/vendasStorage'
 import { ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
 import { determinarEstadoRealOrcamento } from '../../services/orcamentoEstado'
 
@@ -169,7 +170,7 @@ function obterStatus(venda: VendaLista): StatusVenda {
   if (ehOrcamentoNovoVazio(venda)) return 'NOVO'
 
   const status = String(
-    venda.status || venda.statusOrcamento || 'ABERTO',
+    venda.statusOrcamento || venda.status || 'ABERTO',
   )
     .toUpperCase()
     .trim()
@@ -205,9 +206,13 @@ function ehPedido(venda: VendaLista) {
   const possuiNfe = Boolean(somenteDigitosV306D(obterNumeroNfe(venda)))
   const possuiStatusPedido = Boolean(String(venda.statusPedido || '').trim())
 
-  if (possuiNfe || possuiStatusPedido) return true
+  // O tipo explícito é soberano. Orçamentos históricos podem carregar campos
+  // fiscais copiados e nunca devem virar Pedido apenas por possuírem NF-e.
+  if (tipo.includes('orcamento')) return false
+  if (tipo.includes('pedido')) return true
+  if (possuiStatusPedido) return true
 
-  return tipo.includes('pedido') || status === 'PEDIDO'
+  return status === 'PEDIDO' || (!tipo && possuiNfe)
 }
 
 function normalizarPedidoFiscalV306D(venda: VendaLista): VendaLista {
@@ -388,6 +393,7 @@ function obterInscricaoEstadual(venda: VendaLista) {
 
 
 function obterStatusPagamento(venda: VendaLista) {
+  if (pedidoFoiCancelado(venda)) return 'CANCELADO'
   const parcelas = Array.isArray(venda.parcelas) ? venda.parcelas : []
   if (parcelas.length === 0) return 'PENDENTE'
   return parcelas.every((parcela) => {
@@ -399,10 +405,18 @@ function obterStatusPagamento(venda: VendaLista) {
 function pedidoTemBoletoEmitido(venda: VendaLista) {
   return Array.isArray(venda.parcelas) && venda.parcelas.length > 0
 }
+function pedidoFoiCancelado(venda: VendaLista) {
+  return [venda.statusPedido, venda.status]
+    .some((status) => normalizarTexto(status).includes('cancel'))
+}
 function pedidoFoiEntregue(venda: VendaLista) {
   return normalizarTexto(venda.statusPedido) === 'entregue' || Boolean(venda.estoqueBaixado) || Boolean(venda.dataEntregaRealizada)
 }
 function obterStatusVisualPedido(venda: VendaLista) {
+  if (pedidoFoiCancelado(venda)) {
+    return { rotulo: 'CANCELADO', classe: 'cancelado' }
+  }
+
   const nfeEmitida = Boolean(obterNumeroNfe(venda))
   const boletoEmitido = pedidoTemBoletoEmitido(venda)
   const entregue = pedidoFoiEntregue(venda)
@@ -718,6 +732,11 @@ function Vendas() {
     event.preventDefault()
     event.stopPropagation()
 
+    if (pedidoFoiCancelado(venda)) {
+      alert('Pedido cancelado. A ação de entrega/conciliação está bloqueada.')
+      return
+    }
+
     if (venda.conciliado) return
 
     const statusPagamento = obterStatusPagamento(venda)
@@ -792,7 +811,16 @@ function Vendas() {
     abrirRegistro(venda)
   }
 
-  function aprovarVenda(
+  function enviarEmailPedido(event: MouseEvent<HTMLButtonElement>, venda: VendaLista) {
+    pararEvento(event)
+    if (!venda.id) {
+      alert('Este pedido não possui ID para envio por e-mail.')
+      return
+    }
+    navigate(`/vendas/pedidos/editar/${encodeURIComponent(venda.id)}?enviarEmail=1`)
+  }
+
+  async function aprovarVenda(
     event: MouseEvent<HTMLButtonElement>,
     vendaAlvo: VendaLista,
   ) {
@@ -808,24 +836,26 @@ function Vendas() {
       return
     }
 
-    const vendasAtualizadas = vendas.map((venda) => {
-      if (venda.id !== vendaAlvo.id) return venda
-
-      return {
-        ...venda,
-        status: 'APROVADO',
-        statusOrcamento: 'Aprovado',
-        aprovadoEm: new Date().toISOString(),
-      }
-    })
-
-    salvarVendasStorage(vendasAtualizadas)
-    setVendas(vendasAtualizadas)
-
-    alert('Orçamento aprovado com sucesso.')
+    const atualizada = {
+      ...vendaAlvo,
+      status: 'APROVADO',
+      statusOrcamento: 'Aprovado',
+      aprovado: true,
+      reprovado: false,
+      aprovadoEm: new Date().toISOString(),
+      reprovadoEm: undefined,
+    }
+    try {
+      await salvarVendaStorageConfirmado(atualizada as any)
+      setVendas(carregarVendasStorage())
+      alert('Orçamento aprovado e confirmado no MySQL.')
+    } catch (erro) {
+      console.error('[Synergias ERP] Falha ao persistir aprovação.', erro)
+      alert(erro instanceof Error ? erro.message : 'Não foi possível gravar a aprovação no MySQL.')
+    }
   }
 
-  function reprovarVenda(
+  async function reprovarVenda(
     event: MouseEvent<HTMLButtonElement>,
     vendaAlvo: VendaLista,
   ) {
@@ -841,21 +871,23 @@ function Vendas() {
       return
     }
 
-    const vendasAtualizadas = vendas.map((venda) => {
-      if (venda.id !== vendaAlvo.id) return venda
-
-      return {
-        ...venda,
-        status: 'REPROVADO',
-        statusOrcamento: 'Reprovado',
-        reprovadoEm: new Date().toISOString(),
-      }
-    })
-
-    salvarVendasStorage(vendasAtualizadas)
-    setVendas(vendasAtualizadas)
-
-    alert('Orçamento reprovado com sucesso.')
+    const atualizada = {
+      ...vendaAlvo,
+      status: 'REPROVADO',
+      statusOrcamento: 'Reprovado',
+      aprovado: false,
+      reprovado: true,
+      aprovadoEm: undefined,
+      reprovadoEm: new Date().toISOString(),
+    }
+    try {
+      await salvarVendaStorageConfirmado(atualizada as any)
+      setVendas(carregarVendasStorage())
+      alert('Orçamento reprovado e confirmado no MySQL.')
+    } catch (erro) {
+      console.error('[Synergias ERP] Falha ao persistir reprovação.', erro)
+      alert(erro instanceof Error ? erro.message : 'Não foi possível gravar a reprovação no MySQL.')
+    }
   }
 
   function gerarPedido(
@@ -1119,8 +1151,13 @@ function Vendas() {
                 vendasFiltradasOrdenadas.map((venda) => {
                   const estadoOrcamento = determinarEstadoRealOrcamento(venda, vendas)
                   const status = abaAtiva === 'orcamentos'
-                    ? estadoOrcamento.situacao.toUpperCase()
+                    ? estadoOrcamento.convertido
+                      ? 'GERADO'
+                      : estadoOrcamento.situacao.toUpperCase()
                     : obterStatus(venda)
+                  const classeStatusOrcamento = estadoOrcamento.convertido
+                    ? 'convertido'
+                    : status.toLowerCase()
                   const numeroNfe = obterNumeroNfe(venda)
                   const dataEmissaoNfe = obterDataEmissaoNfe(venda)
                   const ieCliente = obterInscricaoEstadual(venda)
@@ -1147,7 +1184,7 @@ function Vendas() {
                         {abaAtiva === 'orcamentos' ? (
                           <button
                             type="button"
-                            className={`vendas-orcamento-status status-${status.toLowerCase()}`}
+                            className={`vendas-orcamento-status status-${classeStatusOrcamento}`}
                             title="Abrir orçamento"
                             onClick={() => abrirRegistro(venda)}
                           >
@@ -1214,7 +1251,7 @@ function Vendas() {
                       {abaAtiva === 'pedidos' && (() => {
                         const statusPagamento = obterStatusPagamento(venda)
                         return (
-                          <span className={`vendas-pagamento-status ${statusPagamento === 'PAGO' ? 'pago' : 'pendente'}`}>
+                          <span className={`vendas-pagamento-status ${statusPagamento === 'PAGO' ? 'pago' : statusPagamento === 'CANCELADO' ? 'cancelado' : 'pendente'}`}>
                             {statusPagamento}
                           </span>
                         )
@@ -1226,9 +1263,10 @@ function Vendas() {
                         ) : (
                           <button
                             type="button"
-                            className="vendas-action-btn vendas-action-reconcile"
-                            title="CONCILIAR PEDIDO"
-                            aria-label="Conciliar pedido"
+                            className={`vendas-action-btn vendas-action-reconcile ${pedidoFoiCancelado(venda) ? 'is-disabled' : ''}`}
+                            title={pedidoFoiCancelado(venda) ? 'PEDIDO CANCELADO — AÇÃO BLOQUEADA' : 'CONCILIAR PEDIDO'}
+                            aria-label={pedidoFoiCancelado(venda) ? 'Pedido cancelado — ação bloqueada' : 'Conciliar pedido'}
+                            disabled={pedidoFoiCancelado(venda)}
                             onClick={(event) => conciliarPedido(event, venda)}
                           >
                             <Handshake size={20} />
@@ -1250,6 +1288,22 @@ function Vendas() {
                         >
                           <Edit size={22} />
                         </button>
+
+                        {abaAtiva === 'pedidos' && (
+                          <button
+                            type="button"
+                            className="vendas-action-btn vendas-action-email"
+                            title="ENVIAR NF-E E BOLETO POR E-MAIL"
+                            aria-label="Enviar NF-e e boleto por e-mail"
+                            onMouseDown={(event) => {
+                              event.preventDefault()
+                              event.stopPropagation()
+                            }}
+                            onClickCapture={(event) => enviarEmailPedido(event, venda)}
+                          >
+                            <Mail size={22} />
+                          </button>
+                        )}
 
                         <button
                           type="button"

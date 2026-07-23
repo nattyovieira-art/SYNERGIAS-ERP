@@ -11,8 +11,11 @@
 
 .dashboard-sidebar {
   height: 100vh;
+  height: 100dvh;
   position: sticky;
   top: 0;
+  display: flex;
+  flex-direction: column;
   padding: 24px 62px 24px 24px;
   box-sizing: border-box;
   background: linear-gradient(180deg, #0f2747 0%, #13345f 46%, #17436f 100%);
@@ -22,6 +25,7 @@
 }
 
 .sidebar-brand {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -53,12 +57,33 @@
 }
 
 .sidebar-menu {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(147, 197, 253, 0.45) transparent;
+}
+
+.sidebar-menu::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(147, 197, 253, 0.45);
 }
 
 .sidebar-menu button {
+  flex: 0 0 46px;
   height: 46px;
   border: none;
   border-radius: 14px;

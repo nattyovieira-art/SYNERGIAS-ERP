@@ -17,7 +17,7 @@ import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import type { Compra, StatusCompra } from '../../types/Compra'
 import {
-  excluirCompraStorage,
+  excluirCompraStorageConfirmado,
   importarComprasDFeStorage,
   listarComprasStorage,
   obterUltNSUDFeStorage,
@@ -129,15 +129,23 @@ function Compras() {
     setEstoque('Todos')
   }
 
-  function excluirCompra(compra: Compra) {
+  async function excluirCompra(compra: Compra) {
+    if (compra.movimentouEstoque) {
+      alert('Esta compra movimentou estoque e não pode ser excluída. Registre uma devolução ou estorno auditado.')
+      return
+    }
     const confirmar = window.confirm(
       `Deseja excluir a compra nº ${compra.numeroCompra}?`,
     )
 
     if (!confirmar) return
 
-    excluirCompraStorage(compra.id)
-    setCompras(listarComprasStorage())
+    try {
+      await excluirCompraStorageConfirmado(compra.id)
+      setCompras(listarComprasStorage())
+    } catch (erro) {
+      alert(erro instanceof Error ? erro.message : 'Não foi possível excluir a compra.')
+    }
   }
 
   function abrirCompra(id: string) {
@@ -519,21 +527,23 @@ function Compras() {
                       </td>
 
                       <td>
-                        <span className="compras-status">{compra.status}</span>
+                        <div className="compras-status-group">
+                          <span className="compras-status">{compra.status}</span>
 
-                        {compra.movimentouEstoque ? (
-                          <span className="compras-historico-badge">
-                            Estoque lançado
-                          </span>
-                        ) : compra.movimentarEstoque ? (
-                          <span className="compras-historico-badge">
-                            Aguardando recebimento
-                          </span>
-                        ) : (
-                          <span className="compras-historico-badge">
-                            Sem estoque
-                          </span>
-                        )}
+                          {compra.movimentouEstoque ? (
+                            <span className="compras-historico-badge">
+                              Estoque lançado
+                            </span>
+                          ) : compra.movimentarEstoque ? (
+                            <span className="compras-historico-badge">
+                              Aguardando recebimento
+                            </span>
+                          ) : (
+                            <span className="compras-historico-badge">
+                              Sem estoque
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td>
@@ -561,6 +571,7 @@ function Compras() {
                             className="compras-acao excluir"
                             onClick={() => excluirCompra(compra)}
                             title="Excluir"
+                            disabled={compra.movimentouEstoque}
                           >
                             <Trash2 size={17} />
                           </button>

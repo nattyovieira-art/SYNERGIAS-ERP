@@ -3,7 +3,7 @@ declare(strict_types=1);
 require __DIR__ . '/bootstrap.php';
 exigirAutenticacao();
 
-$collectionsPermitidas = ['clientes', 'produtos', 'vendas'];
+$collectionsPermitidas = ['clientes', 'produtos', 'vendas', 'compras', 'movimentacoesEstoque'];
 $collection = trim((string)($_GET['collection'] ?? ''));
 if (!in_array($collection, $collectionsPermitidas, true)) {
     responder(400, ['ok' => false, 'error' => 'Coleção inválida.']);
@@ -91,6 +91,60 @@ function validarReducaoAnormal(string $collection, array $atual, array $nova): v
     }
 }
 
+function compraDigitos(mixed $valor): string {
+    return preg_replace('/\D+/', '', trim((string)($valor ?? ''))) ?: '';
+}
+
+function compraNotaId(array $compra): string {
+    $chave = compraDigitos($compra['chaveAcessoNFe'] ?? '');
+    if (strlen($chave) === 44) return 'CHAVE:' . $chave;
+    $numero = compraDigitos($compra['numeroNFe'] ?? '');
+    if ($numero === '') return '';
+    return 'NOTA:' . compraDigitos($compra['fornecedorDocumento'] ?? '') . ':' . compraDigitos($compra['serieNFe'] ?? '') . ':' . $numero;
+}
+
+function compraNotaComposta(array $compra): string {
+    $numero = compraDigitos($compra['numeroNFe'] ?? '');
+    if ($numero === '') return '';
+    return 'NOTA:' . compraDigitos($compra['fornecedorDocumento'] ?? '') . ':' . compraDigitos($compra['serieNFe'] ?? '') . ':' . $numero;
+}
+
+function validarIntegridadeCompras(array $atual, array $nova): void {
+    $ids = []; $notas = []; $novasPorId = [];
+    foreach ($nova as $compra) {
+        if (!is_array($compra)) responder(422, ['ok'=>false,'error'=>'Compra inválida na coleção.']);
+        $id = trim((string)($compra['id'] ?? ''));
+        if ($id === '') responder(422, ['ok'=>false,'error'=>'Toda compra precisa possuir ID.']);
+        if (isset($ids[$id])) responder(409, ['ok'=>false,'error'=>'Compra duplicada pelo ID: '.$id]);
+        $ids[$id] = true; $novasPorId[$id] = $compra;
+        $identificadores = array_values(array_unique(array_filter([compraNotaId($compra), compraNotaComposta($compra)])));
+        foreach ($identificadores as $nota) {
+            if (isset($notas[$nota])) responder(409, ['ok'=>false,'error'=>'NF-e duplicada na coleção de compras.']);
+            $notas[$nota] = true;
+        }
+    }
+    foreach ($atual as $compra) {
+        if (!is_array($compra) || empty($compra['movimentouEstoque'])) continue;
+        $id = trim((string)($compra['id'] ?? ''));
+        if ($id === '' || !isset($novasPorId[$id])) responder(409, ['ok'=>false,'error'=>'Compra com estoque movimentado não pode ser excluída.']);
+        if (empty($novasPorId[$id]['movimentouEstoque'])) responder(409, ['ok'=>false,'error'=>'O vínculo de estoque de uma compra não pode ser removido.']);
+    }
+}
+
+function validarIntegridadeMovimentacoes(array $nova): void {
+    $ids = []; $entradasCompra = [];
+    foreach ($nova as $movimento) {
+        if (!is_array($movimento)) responder(422, ['ok'=>false,'error'=>'Movimentação de estoque inválida.']);
+        $id = trim((string)($movimento['id'] ?? ''));
+        if ($id === '' || isset($ids[$id])) responder(409, ['ok'=>false,'error'=>'Movimentação sem ID ou com ID duplicado.']);
+        $ids[$id] = true;
+        if (($movimento['origem'] ?? '') !== 'compra') continue;
+        $assinatura = trim((string)($movimento['documentoOrigem'] ?? '')).'::'.trim((string)($movimento['produtoCodigo'] ?? ''));
+        if ($assinatura !== '::' && isset($entradasCompra[$assinatura])) responder(409, ['ok'=>false,'error'=>'Entrada de compra duplicada para o mesmo documento e produto.']);
+        if ($assinatura !== '::') $entradasCompra[$assinatura] = true;
+    }
+}
+
 
 function vendaDigitos(mixed $v): string {
     $n = preg_replace('/\D+/', '', trim((string)($v ?? ''))) ?: '';
@@ -121,6 +175,26 @@ function vendaChave(array $v): string {
     return '';
 }
 function vendaId(array $v): string { return trim((string)($v['id'] ?? '')); }
+
+function statusPedidoNormalizado(mixed $valor): string {
+    $texto = mb_strtolower(trim((string)($valor ?? '')), 'UTF-8');
+    $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texto);
+    return trim($ascii !== false ? $ascii : $texto);
+}
+
+function validarTransicaoStatusPedido(array $atual, array $novo): void {
+    $tipo = mb_strtolower(trim((string)($atual['tipo'] ?? $novo['tipo'] ?? '')), 'UTF-8');
+    if (!str_contains($tipo, 'pedido')) return;
+    $origem = statusPedidoNormalizado($atual['statusPedido'] ?? $atual['status'] ?? '');
+    $destino = statusPedidoNormalizado($novo['statusPedido'] ?? $novo['status'] ?? '');
+    if ($origem === $destino) return;
+    if (in_array($origem, ['cancelado', 'entregue'], true)) {
+        responder(409, ['ok' => false, 'error' => 'Status bloqueado: Cancelado e Entregue são estados finais.']);
+    }
+    if ($origem === 'concluido' && !in_array($destino, ['cancelado', 'entregue'], true)) {
+        responder(409, ['ok' => false, 'error' => 'Status bloqueado: Concluído só pode mudar para Cancelado ou Entregue.']);
+    }
+}
 
 function vendaOrcamento(array $v): string {
     $tipo = mb_strtolower(trim((string)($v['tipo'] ?? '')), 'UTF-8');
@@ -273,6 +347,10 @@ function lerRegistro(PDO $pdo, string $collection): ?array {
 }
 
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+$maxPayloadBytes = 32 * 1024 * 1024;
+if (!in_array($method, ['GET', 'HEAD'], true) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > $maxPayloadBytes) {
+    responder(413, ['ok' => false, 'error' => 'Payload excede o limite de 32 MB.']);
+}
 
 if ($method === 'GET') {
     $registro = lerRegistro($pdo, $collection);
@@ -369,6 +447,7 @@ if ($method === 'PATCH') {
                     responder(409, ['ok' => false, 'error' => "A atualização criaria ID duplicado ({$recordId})."]);
                 }
             }
+            validarTransicaoStatusPedido($atual[$indiceAlvo], $record);
             $atual[$indiceAlvo] = $record;
         }
 
@@ -464,6 +543,16 @@ if ($method === 'PUT') {
         $registroAtual = $stmt->fetch();
         $atual = $registroAtual ? decodificarLista((string)$registroAtual['payload']) : [];
 
+        if (is_array($registroAtual) && ($expectedHash === '' || $expectedUpdatedAt === '')) {
+            $pdo->rollBack();
+            responder(428, [
+                'ok' => false,
+                'conflict' => true,
+                'reloadRequired' => true,
+                'error' => 'Versão esperada ausente. Recarregue os dados antes de salvar.',
+            ]);
+        }
+
         if ($collection === 'vendas' && is_array($registroAtual)) {
             $hashAtual = strtolower((string)($registroAtual['payload_hash'] ?? ''));
             $updatedAtAtual = (string)($registroAtual['updated_at'] ?? '');
@@ -501,8 +590,20 @@ if ($method === 'PUT') {
             }
         }
 
+        if ($collection !== 'vendas' && is_array($registroAtual)) {
+            $hashAtual = strtolower((string)($registroAtual['payload_hash'] ?? ''));
+            $updatedAtAtual = (string)($registroAtual['updated_at'] ?? '');
+            if (($expectedHash !== '' && !hash_equals($hashAtual, $expectedHash))
+                || ($expectedUpdatedAt !== '' && $updatedAtAtual !== $expectedUpdatedAt)) {
+                $pdo->rollBack();
+                responder(409, ['ok'=>false,'conflict'=>true,'reloadRequired'=>true,'error'=>'Conflito de versão: os dados mudaram no servidor. Recarregue o ERP antes de salvar novamente.']);
+            }
+        }
+
         validarReducaoAnormal($collection, $atual, $data);
         if ($collection === 'vendas') validarIntegridadeVendas($atual, $data);
+        if ($collection === 'compras') validarIntegridadeCompras($atual, $data);
+        if ($collection === 'movimentacoesEstoque') validarIntegridadeMovimentacoes($data);
 
         if (count($data) === 0 && count($atual) > 0 && !$allowEmpty) {
             $pdo->rollBack();

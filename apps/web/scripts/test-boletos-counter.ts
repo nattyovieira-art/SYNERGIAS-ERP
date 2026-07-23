@@ -12,14 +12,12 @@ const pedido = (id: string, parcelas: ParcelaVenda[]): Venda => ({
 
 const interAtivo = parcela({ bancoCobranca: 'Inter', statusBoleto: 'Gerado', idCobrancaApi: 'inter-1' })
 const interCancelado = parcela({ bancoCobranca: 'Inter', statusBoleto: 'Cancelado', idCobrancaApi: 'inter-2', numeroBoleto: '2' })
-const coraAtivo = parcela({ bancoCobranca: 'Cora', statusBoleto: 'Gerado', idCobrancaBanco: 'cora-1' })
 const copiaInter = parcela({ bancoCobranca: 'Inter', statusBoleto: 'Pago', nossoNumero: 'duplicado', idCobrancaApi: 'inter-1' })
 const rascunho = parcela({ bancoCobranca: 'Inter', statusBoleto: 'Pendente', numeroBoleto: 'local-1' })
 
-const vendas = [pedido('1', [interAtivo, interCancelado, coraAtivo]), pedido('2', [copiaInter, rascunho])]
+const vendas = [pedido('1', [interAtivo, interCancelado]), pedido('2', [copiaInter, rascunho])]
 
 assert.equal(contarBoletosUtilizadosPorBanco(vendas, 'Inter', mes), 1, 'deduplica e ignora cancelado/rascunho')
-assert.equal(contarBoletosUtilizadosPorBanco(vendas, 'Cora', mes), 1, 'Cora e Inter são independentes')
 assert.equal(boletoEstaUtilizado(interCancelado), false, 'cancelamento repetido não reduz novamente')
 assert.equal(boletoEstaUtilizado(parcela({ statusBoleto: 'Erro', idCobrancaApi: 'falha' })), false, 'falha de API/emissão não ocupa posição')
 assert.equal(boletoEstaUtilizado(parcela({ statusBoleto: 'Pago', nossoNumero: 'pago-1' })), true, 'pago preserva a regra atual')

@@ -435,7 +435,6 @@ function ReceberConta() {
               >
                 <option>CAIXA / DINHEIRO</option>
                 <option>BANCO INTER</option>
-                <option>BANCO CORA</option>
                 <option>SUMUP</option>
                 <option>OUTRA CONTA</option>
               </select>

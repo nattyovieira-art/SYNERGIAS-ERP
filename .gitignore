@@ -11,6 +11,7 @@ dist-ssr/
 *.local
 synergias_private/
 .synergias-secrets/
+apps/web/.private/
 apps/web/public/api/auth-config.php
 apps/web/public/api/email-config.php
 apps/web/public/api/inter.local.php

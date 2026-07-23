@@ -9,8 +9,8 @@ header('X-Content-Type-Options: nosniff');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Referrer-Policy: no-referrer');
 
-const NFE_XML_PREVIEW_VERSION = 'V154';
-const NFE_VERPROC = 'SYNERGIAS-ERP-140';
+const NFE_XML_PREVIEW_VERSION = 'V155';
+const NFE_VERPROC = 'SYNERGIAS-ERP-155';
 const NFE_NS = 'http://www.portalfiscal.inf.br/nfe';
 
 function sxV62Responder(int $status, array $payload): never {
@@ -46,6 +46,21 @@ function sxV62Numero(mixed $v): float {
     return is_numeric($s) ? (float)$s : 0.0;
 }
 function sxV62Moeda(float $v): string { return number_format(round($v + 0.00000001, 2), 2, '.', ''); }
+function sxV62RatearValor(float $total, array $bases): array {
+    $centavos = (int)round(max(0, $total) * 100);
+    $quantidade = count($bases);
+    if ($quantidade === 0 || $centavos === 0) return array_fill(0, $quantidade, 0.0);
+    $somaBases = array_sum(array_map(static fn($base) => max(0, (float)$base), $bases));
+    $rateio = []; $distribuido = 0;
+    foreach ($bases as $indice => $base) {
+        $parte = $indice === $quantidade - 1
+            ? $centavos - $distribuido
+            : (int)floor($centavos * ($somaBases > 0 ? max(0, (float)$base) / $somaBases : 1 / $quantidade));
+        $rateio[] = $parte / 100;
+        $distribuido += $parte;
+    }
+    return $rateio;
+}
 function sxV62FormatarQuantidade(float $v): string { return number_format($v, 4, '.', ''); }
 function sxV62FormatarAliquota(float $v): string { return number_format($v, 4, '.', ''); }
 function sxV62DataIso(mixed $v): string { $s=sxV62Texto($v); if($s==='') return ''; try{$d=new DateTimeImmutable($s); return $d->format('Y-m-d');}catch(Throwable){return preg_match('/^\d{4}-\d{2}-\d{2}$/',$s)?$s:'';} }
@@ -172,15 +187,18 @@ try {
     $dest=$doc->createElement('dest'); $inf->appendChild($dest); sxV62Add($doc,$dest,strlen($destDoc)===14?'CNPJ':'CPF',$destDoc); sxV62Add($doc,$dest,'xNome',$destNome);
     $enderD=$doc->createElement('enderDest'); $dest->appendChild($enderD); sxV62Add($doc,$enderD,'xLgr',sxV62NormalizarTexto(sxV62Texto($venda['faturamentoEndereco'] ?? ''),60)); sxV62Add($doc,$enderD,'nro',sxV62NormalizarTexto(sxV62Texto($venda['faturamentoNumero'] ?? 'S/N'),60)); if(sxV62Texto($venda['faturamentoComplemento'] ?? '')!=='') sxV62Add($doc,$enderD,'xCpl',sxV62NormalizarTexto(sxV62Texto($venda['faturamentoComplemento']),60)); sxV62Add($doc,$enderD,'xBairro',sxV62NormalizarTexto(sxV62Texto($venda['faturamentoBairro'] ?? ''),60)); sxV62Add($doc,$enderD,'cMun',$cMunDest); sxV62Add($doc,$enderD,'xMun',sxV62NormalizarTexto(sxV62Texto($venda['faturamentoCidade'] ?? ''),60)); sxV62Add($doc,$enderD,'UF',$ufDest); sxV62Add($doc,$enderD,'CEP',$cepDest); sxV62Add($doc,$enderD,'cPais','1058'); sxV62Add($doc,$enderD,'xPais','BRASIL'); if(sxV62Digitos($venda['clienteTelefone'] ?? '')!=='') sxV62Add($doc,$enderD,'fone',sxV62Digitos($venda['clienteTelefone'])); $indIEDest=sxV62Digitos($venda['clienteIndicadorIE'] ?? ''); if(!in_array($indIEDest,['1','2','9'],true)) $indIEDest=sxV62Digitos($venda['clienteIeRg'] ?? '')!==''?'1':'9'; sxV62Add($doc,$dest,'indIEDest',$indIEDest); if($indIEDest!=='9' && sxV62Digitos($venda['clienteIeRg'] ?? '')!=='') sxV62Add($doc,$dest,'IE',sxV62Digitos($venda['clienteIeRg'])); if(filter_var(sxV62Texto($venda['clienteEmailNotaFiscal'] ?? $venda['clienteEmail'] ?? ''),FILTER_VALIDATE_EMAIL)) sxV62Add($doc,$dest,'email',sxV62Texto($venda['clienteEmailNotaFiscal'] ?? $venda['clienteEmail']));
 
+    $frete=sxV62Numero($venda['frete'] ?? 0); $desc=sxV62Numero($venda['descontoValor'] ?? 0); $outros=sxV62Numero($venda['outrosCustos'] ?? 0);
+    $basesRateio = array_map(static function($item): float { return is_array($item) ? round(sxV62Numero($item['quantidade'] ?? 0) * sxV62Numero($item['valorUnitario'] ?? 0), 2) : 0.0; }, $itens);
+    $fretesItens = sxV62RatearValor($frete, $basesRateio); $descontosItens = sxV62RatearValor($desc, $basesRateio); $outrosItens = sxV62RatearValor($outros, $basesRateio);
     foreach($itens as $i=>$item){
         $q=sxV62Numero($item['quantidade'] ?? $item['qtd'] ?? $item['quantity'] ?? $item['quantidadeProduto'] ?? 0);
         $vUn=sxV62Numero($item['valorUnitario'] ?? $item['precoUnitario'] ?? $item['unitPrice'] ?? $item['preco'] ?? 0);
         $vTotalInformado=sxV62Numero($item['valorTotal'] ?? $item['total'] ?? $item['subtotal'] ?? 0);
         if($q<=0 && $vUn>0 && $vTotalInformado>0){$q=$vTotalInformado/$vUn;}
-        $vProd=round($q*$vUn,2); $det=$doc->createElement('det'); $det->setAttribute('nItem',(string)($i+1)); $inf->appendChild($det); $prod=$doc->createElement('prod'); $det->appendChild($prod); sxV62Add($doc,$prod,'cProd',sxV62NormalizarTexto(sxV62Texto($item['codigoProduto'] ?? ($i+1)),60)); $cEAN=sxV62CodigoBarrasItem($item); sxV62Add($doc,$prod,'cEAN',$cEAN!==''?$cEAN:'SEM GTIN'); sxV62Add($doc,$prod,'xProd',sxV62NormalizarTexto(sxV62Texto($item['descricao']),120)); sxV62Add($doc,$prod,'NCM',sxV62Digitos($item['ncm'])); if(strlen(sxV62Digitos($item['cest'] ?? ''))===7) sxV62Add($doc,$prod,'CEST',sxV62Digitos($item['cest'])); sxV62Add($doc,$prod,'CFOP',sxV62Digitos($item['cfop'])); $un=sxV62NormalizarTexto(sxV62Texto($item['unidade'] ?? 'UN'),6); sxV62Add($doc,$prod,'uCom',$un); sxV62Add($doc,$prod,'qCom',sxV62FormatarQuantidade($q)); sxV62Add($doc,$prod,'vUnCom',number_format($vUn,10,'.','')); sxV62Add($doc,$prod,'vProd',sxV62Moeda($vProd)); sxV62Add($doc,$prod,'cEANTrib',$cEAN!==''?$cEAN:'SEM GTIN'); sxV62Add($doc,$prod,'uTrib',sxV62NormalizarTexto(sxV62Texto($item['unidadeTributavel'] ?? $un),6)); sxV62Add($doc,$prod,'qTrib',sxV62FormatarQuantidade($q)); sxV62Add($doc,$prod,'vUnTrib',number_format($vUn,10,'.','')); sxV62Add($doc,$prod,'indTot','1');
+        $vProd=round($q*$vUn,2); $det=$doc->createElement('det'); $det->setAttribute('nItem',(string)($i+1)); $inf->appendChild($det); $prod=$doc->createElement('prod'); $det->appendChild($prod); sxV62Add($doc,$prod,'cProd',sxV62NormalizarTexto(sxV62Texto($item['codigoProduto'] ?? ($i+1)),60)); $cEAN=sxV62CodigoBarrasItem($item); sxV62Add($doc,$prod,'cEAN',$cEAN!==''?$cEAN:'SEM GTIN'); sxV62Add($doc,$prod,'xProd',sxV62NormalizarTexto(sxV62Texto($item['descricao']),120)); sxV62Add($doc,$prod,'NCM',sxV62Digitos($item['ncm'])); if(strlen(sxV62Digitos($item['cest'] ?? ''))===7) sxV62Add($doc,$prod,'CEST',sxV62Digitos($item['cest'])); sxV62Add($doc,$prod,'CFOP',sxV62Digitos($item['cfop'])); $un=sxV62NormalizarTexto(sxV62Texto($item['unidade'] ?? 'UN'),6); sxV62Add($doc,$prod,'uCom',$un); sxV62Add($doc,$prod,'qCom',sxV62FormatarQuantidade($q)); sxV62Add($doc,$prod,'vUnCom',number_format($vUn,10,'.','')); sxV62Add($doc,$prod,'vProd',sxV62Moeda($vProd)); sxV62Add($doc,$prod,'cEANTrib',$cEAN!==''?$cEAN:'SEM GTIN'); sxV62Add($doc,$prod,'uTrib',sxV62NormalizarTexto(sxV62Texto($item['unidadeTributavel'] ?? $un),6)); sxV62Add($doc,$prod,'qTrib',sxV62FormatarQuantidade($q)); sxV62Add($doc,$prod,'vUnTrib',number_format($vUn,10,'.','')); if(($fretesItens[$i]??0)>0)sxV62Add($doc,$prod,'vFrete',sxV62Moeda($fretesItens[$i])); if(($descontosItens[$i]??0)>0)sxV62Add($doc,$prod,'vDesc',sxV62Moeda($descontosItens[$i])); if(($outrosItens[$i]??0)>0)sxV62Add($doc,$prod,'vOutro',sxV62Moeda($outrosItens[$i])); sxV62Add($doc,$prod,'indTot','1');
       $imposto=$doc->createElement('imposto'); $det->appendChild($imposto); $icms=$doc->createElement('ICMS'); $imposto->appendChild($icms); $g=$doc->createElement('ICMSSN102'); $icms->appendChild($g); sxV62Add($doc,$g,'orig','0'); sxV62Add($doc,$g,'CSOSN','102'); $pis=$doc->createElement('PIS'); $imposto->appendChild($pis); $p=$doc->createElement('PISOutr'); $pis->appendChild($p); sxV62Add($doc,$p,'CST','49'); sxV62Add($doc,$p,'vBC','0.00'); sxV62Add($doc,$p,'pPIS','0.0000'); sxV62Add($doc,$p,'vPIS','0.00'); $cof=$doc->createElement('COFINS'); $imposto->appendChild($cof); $c=$doc->createElement('COFINSOutr'); $cof->appendChild($c); sxV62Add($doc,$c,'CST','49'); sxV62Add($doc,$c,'vBC','0.00'); sxV62Add($doc,$c,'pCOFINS','0.0000'); sxV62Add($doc,$c,'vCOFINS','0.00'); }
 
-    $frete=sxV62Numero($venda['frete'] ?? 0); $desc=sxV62Numero($venda['descontoValor'] ?? 0); $outros=sxV62Numero($venda['outrosCustos'] ?? 0); $vNF=round($totalProdutos+$frete+$outros-$desc,2);
+    $vNF=round($totalProdutos+$frete+$outros-$desc,2);
     $total=$doc->createElement('total'); $inf->appendChild($total); $icmst=$doc->createElement('ICMSTot'); $total->appendChild($icmst); foreach(['vBC'=>0,'vICMS'=>0,'vICMSDeson'=>0,'vFCPUFDest'=>0,'vICMSUFDest'=>0,'vICMSUFRemet'=>0,'vFCP'=>0,'vBCST'=>0,'vST'=>0,'vFCPST'=>0,'vFCPSTRet'=>0] as $k=>$v) sxV62Add($doc,$icmst,$k,sxV62Moeda((float)$v)); sxV62Add($doc,$icmst,'vProd',sxV62Moeda($totalProdutos)); sxV62Add($doc,$icmst,'vFrete',sxV62Moeda($frete)); sxV62Add($doc,$icmst,'vSeg','0.00'); sxV62Add($doc,$icmst,'vDesc',sxV62Moeda($desc)); sxV62Add($doc,$icmst,'vII','0.00'); sxV62Add($doc,$icmst,'vIPI','0.00'); sxV62Add($doc,$icmst,'vIPIDevol','0.00'); sxV62Add($doc,$icmst,'vPIS','0.00'); sxV62Add($doc,$icmst,'vCOFINS','0.00'); sxV62Add($doc,$icmst,'vOutro',sxV62Moeda($outros)); sxV62Add($doc,$icmst,'vNF',sxV62Moeda($vNF));
     $modalidadeFrete = (string)($venda['modalidadeFrete'] ?? '0'); if(!in_array($modalidadeFrete,['0','1','2'],true)) $modalidadeFrete='0'; $transp=$doc->createElement('transp'); $inf->appendChild($transp); sxV62Add($doc,$transp,'modFrete',$modalidadeFrete);
 

@@ -22,8 +22,9 @@ export type EstoqueMovimentacao = {
   tipo: TipoMovimentacaoEstoque
   origem: OrigemMovimentacaoEstoque
   quantidade: number
-  estoqueAnterior: number
-  estoqueAtual: number
+  estoqueAnterior: number | null
+  estoqueAtual: number | null
+  saldoHistoricoDisponivel?: boolean
   motivo: string
   observacao?: string
   usuario?: string

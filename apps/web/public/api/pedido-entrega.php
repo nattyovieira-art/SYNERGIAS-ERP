@@ -132,6 +132,12 @@ try {
     foreach ($vendas as $indice => $venda) if (is_array($venda) && textoEntrega($venda['id'] ?? '') === $pedidoId) $indicesPedido[] = $indice;
     if ($indicesPedido === []) responder(404, ['ok' => false, 'error' => 'Pedido não encontrado.']);
     $pedido = $vendas[$indicesPedido[0]];
+    foreach ($indicesPedido as $indice) {
+        $statusPedido = mb_strtolower(textoEntrega($vendas[$indice]['statusPedido'] ?? $vendas[$indice]['status'] ?? ''), 'UTF-8');
+        if (str_contains($statusPedido, 'cancel')) {
+            responder(409, ['ok' => false, 'cancelled' => true, 'error' => 'Pedido cancelado. A entrega está bloqueada.']);
+        }
+    }
     if (!is_array($pedido) || !str_contains(mb_strtolower(textoEntrega($pedido['tipo'] ?? ''), 'UTF-8'), 'pedido')) responder(422, ['ok' => false, 'error' => 'O registro informado não é um Pedido.']);
     foreach ($indicesPedido as $indice) {
         $registro = $vendas[$indice];

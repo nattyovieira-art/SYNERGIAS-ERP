@@ -282,7 +282,6 @@ function NovaContaReceber() {
               >
                 <option value="">Selecione</option>
                 <option value="Inter">Banco Inter</option>
-                <option value="Cora">Banco Cora</option>
                 <option value="SumUp">SumUp</option>
                 <option value="Outro">Outro</option>
               </select>

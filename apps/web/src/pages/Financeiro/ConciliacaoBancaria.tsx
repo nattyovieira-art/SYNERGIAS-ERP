@@ -1233,7 +1233,6 @@ function ConciliacaoBancaria() {
             <select className="financeiro-banco-select" value={bancoSelecionado} onChange={(e) => setBancoSelecionado(e.target.value)}>
               <option value="">Banco não informado</option>
               <option value="Banco Inter">Banco Inter</option>
-              <option value="Banco Cora">Banco Cora</option>
             </select>
           </div>
           <div className="financeiro-toolbar-right-actions">

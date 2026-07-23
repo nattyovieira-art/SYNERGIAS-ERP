@@ -11,7 +11,6 @@ import { enderecoEntregaVazio, formatarEnderecoEntrega, normalizarEnderecosEntre
 import {
   buscarClienteStorage,
   listarClientesStorage,
-  salvarClienteStorage,
   salvarClienteStorageConfirmado,
 } from '../../services/clientesStorage'
 
@@ -243,6 +242,8 @@ function ClienteForm({ modo }: ClienteFormProps) {
   }, [c.cidadeEntrega, c.estadoEntrega, c.cidade, c.estado, c.codigoIbgeMunicipioEntrega])
 
   function atualizarCliente(campo: string, valor: any) {
+    if (campo === 'cnpj') valor = String(valor || '').replace(/\D/g, '').slice(0, 14)
+    if (campo === 'cpf') valor = String(valor || '').replace(/\D/g, '').slice(0, 11)
     setCliente((atual) => {
       const proximo = { ...(atual as any), [campo]: valor } as any
       if (campo === 'cidade' || campo === 'estado') {
@@ -368,37 +369,39 @@ function ClienteForm({ modo }: ClienteFormProps) {
 
   async function prepararClienteComCodigoIbge(clienteAtual: Cliente): Promise<Cliente> {
     const atual: any = clienteAtual
+    const cnpj = String(atual.cnpj || '').replace(/\D/g, '')
+    if (String(atual.tipoPessoa || '') === 'Jurídica' && cnpj.length !== 14) {
+      throw new Error('O CNPJ precisa conter exatamente 14 números.')
+    }
     const codigoFiscal = await resolverCodigoIbgeMunicipio(atual.cidade, atual.estado, atual.codigoIbgeMunicipio)
     const codigoEntrega = await resolverCodigoIbgeMunicipio(
       atual.cidadeEntrega || atual.cidade,
       atual.estadoEntrega || atual.estado,
       atual.codigoIbgeMunicipioEntrega || codigoFiscal,
     )
-    return { ...atual, consumidorFinal: atual.consumidorFinal ?? true, codigoIbgeMunicipio: codigoFiscal, codigoIbgeMunicipioEntrega: codigoEntrega } as Cliente
+    return { ...atual, cnpj, consumidorFinal: atual.consumidorFinal ?? true, codigoIbgeMunicipio: codigoFiscal, codigoIbgeMunicipioEntrega: codigoEntrega } as Cliente
   }
 
   async function salvarCliente() {
-    const clienteComIbge = await prepararClienteComCodigoIbge(cliente)
-    setCliente(clienteComIbge)
     try {
+      const clienteComIbge = await prepararClienteComCodigoIbge(cliente)
+      setCliente(clienteComIbge)
       await salvarClienteStorageConfirmado(clienteComIbge)
       alert('Cliente salvo com sucesso!')
-    } catch {
-      salvarClienteStorage(clienteComIbge)
-      alert('Cliente salvo localmente. A sincronização central será repetida automaticamente.')
+    } catch (erro) {
+      alert(erro instanceof Error ? erro.message : 'Não foi possível salvar o cliente no servidor.')
     }
   }
 
   async function salvarEFechar() {
-    const clienteComIbge = await prepararClienteComCodigoIbge(cliente)
-    setCliente(clienteComIbge)
     try {
+      const clienteComIbge = await prepararClienteComCodigoIbge(cliente)
+      setCliente(clienteComIbge)
       await salvarClienteStorageConfirmado(clienteComIbge)
       alert('Cliente salvo com sucesso!')
       navigate('/clientes')
-    } catch {
-      salvarClienteStorage(clienteComIbge)
-      alert('Cliente salvo localmente. A sincronização central será repetida automaticamente.')
+    } catch (erro) {
+      alert(erro instanceof Error ? erro.message : 'Não foi possível salvar o cliente no servidor.')
     }
   }
 
@@ -703,6 +706,8 @@ function ClienteForm({ modo }: ClienteFormProps) {
                   <input
                     value={c.cnpj || ''}
                     onChange={(e) => atualizarCliente('cnpj', e.target.value)}
+                    inputMode="numeric"
+                    maxLength={14}
                   />
                   <button type="button" onClick={buscarCnpj}>
                     {buscandoCnpj ? '...' : <Search size={18} />}

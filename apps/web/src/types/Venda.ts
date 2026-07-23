@@ -89,6 +89,7 @@ export type ItemVenda = {
   valorUnitario: number
   descontoValor?: number
   descontoPercentual?: number
+  frete?: number
   valorTotal: number
   custoUnitario?: number
   custoTotal?: number
@@ -194,6 +195,7 @@ export type Venda = {
   dataConversao?: string
   pedidoGeradoId?: string
   pedidoGeradoEm?: string
+  aprovadoEm?: string
 
   dataEmissao: string
   dataValidade?: string
@@ -263,6 +265,12 @@ export type Venda = {
   telefoneEntrega?: string
   celularEntrega?: string
   horarioEntrega?: string
+  logisticaStatus?: 'Aguardando separação' | 'Em separação' | 'Pronto para rota' | 'Em rota' | 'Entregue'
+  logisticaRotaOrdem?: number
+  logisticaMotorista?: string
+  logisticaIniciadaEm?: string
+  logisticaPrazoEm?: string
+  logisticaObservacao?: string
 
   statusNotaFiscal?: StatusNotaFiscal
   numeroNotaFiscal?: string

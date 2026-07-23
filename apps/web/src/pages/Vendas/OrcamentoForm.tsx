@@ -133,6 +133,7 @@ type VendaStorage = {
   itensEditadosManual?: boolean
   pedidoGeradoId?: string
   pedidoGeradoEm?: string
+  aprovadoEm?: string
 }
 
 const STORAGE_PRODUTOS = 'synergias_produtos'
@@ -149,12 +150,9 @@ const FORMAS_PAGAMENTO_PADRAO = [
 ]
 
 const OPCOES_COBRANCA_POR_FORMA: Record<string, string[]> = {
-  BOLETO: ['BOLETO BANCO INTER', 'BOLETO BANCO CORA'],
-  PIX: ['PIX BANCO CORA', 'PIX BANCO INTER'],
-  TRANSFERÊNCIA: [
-    'TRANSFERÊNCIA BANCO INTER',
-    'TRANSFERÊNCIA BANCO CORA',
-  ],
+  BOLETO: ['BOLETO BANCO INTER'],
+  PIX: ['PIX BANCO INTER'],
+  TRANSFERÊNCIA: ['TRANSFERÊNCIA BANCO INTER'],
   DINHEIRO: ['DINHEIRO'],
   CARTÃO: ['CARTÃO CRÉDITO SUMUP', 'CARTÃO DÉBITO SUMUP'],
 }
@@ -179,14 +177,6 @@ const PRAZOS_POR_FORMA: Record<string, string[]> = {
 }
 
 const DADOS_BANCARIOS_POR_BANCO: Record<string, string> = {
-  CORA: [
-    'Dados para transferência - Banco Cora',
-    'Instituição: 403 - Cora SCFI',
-    'Agência: 0001',
-    'Conta: 4969198-5',
-    'Nome da Empresa: SYNERGIAS',
-    'CNPJ: 50.432.175/0001-46',
-  ].join('\n'),
   INTER: [
     'Dados para transferência - Banco Inter',
     'Instituição: 077 - Inter',
@@ -858,10 +848,6 @@ function obterDadosBancariosPagamento(opcaoPagamento: string) {
     return ''
   }
 
-  if (texto.includes('cora')) {
-    return DADOS_BANCARIOS_POR_BANCO.CORA
-  }
-
   if (texto.includes('inter')) {
     return DADOS_BANCARIOS_POR_BANCO.INTER
   }
@@ -918,6 +904,7 @@ function OrcamentoForm() {
   const [enderecosEntregaDados, setEnderecosEntregaDados] = useState<EnderecoEntregaCliente[]>([])
   const [enderecoEntregaSelecionadoIndice, setEnderecoEntregaSelecionadoIndice] = useState(0)
   const [enderecoEntregaEditandoIndice, setEnderecoEntregaEditandoIndice] = useState<number | null>(null)
+  const [buscandoCepEntregaIndice, setBuscandoCepEntregaIndice] = useState<number | null>(null)
 
   const [cadastroClienteAberto, setCadastroClienteAberto] = useState(false)
   const [novoClienteNome, setNovoClienteNome] = useState('')
@@ -1383,34 +1370,67 @@ function OrcamentoForm() {
     setEditandoEntrega(false)
   }
 
-  function atualizarEnderecoEntregaItem(indice: number, valor: string) {
-    const listaAtualizada = enderecosEntregaLista.map((endereco, enderecoIndice) =>
-      enderecoIndice === indice ? valor : endereco
-    )
+  function atualizarEnderecoEntregaEstruturado(
+    indice: number,
+    campo: keyof EnderecoEntregaCliente,
+    valor: string,
+  ) {
+    const base = enderecosEntregaDados[indice] || {
+      ...enderecoEntregaVazio(),
+      nomeLocal: `Local ${indice + 1}`,
+    }
+    const atualizado = { ...base, [campo]: valor }
+    const dadosAtualizados = [...enderecosEntregaDados]
+    dadosAtualizados[indice] = atualizado
+    const enderecoFormatado = formatarEnderecoEntrega(atualizado)
+    const listaAtualizada = [...enderecosEntregaLista]
+    listaAtualizada[indice] = enderecoFormatado
 
+    setEnderecosEntregaDados(dadosAtualizados)
     setEnderecosEntregaLista(listaAtualizada)
-    setEnderecosEntregaDados((atuais) => {
-      const base = atuais[indice] || {
+    if (indice === enderecoEntregaSelecionadoIndice) setEnderecoEntrega(enderecoFormatado)
+  }
+
+  async function consultarCepEnderecoEntrega(indice: number) {
+    const local = enderecosEntregaDados[indice]
+    const cep = String(local?.cep || '').replace(/\D/g, '')
+    if (cep.length !== 8) {
+      alert('Informe um CEP com 8 dígitos.')
+      return
+    }
+
+    setBuscandoCepEntregaIndice(indice)
+    try {
+      const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      const dados = await resposta.json()
+      if (!resposta.ok || dados?.erro) throw new Error('CEP não encontrado')
+
+      const base = local || {
         ...enderecoEntregaVazio(),
         nomeLocal: `Local ${indice + 1}`,
       }
-      const atualizado = {
+      const atualizado: EnderecoEntregaCliente = {
         ...base,
-        logradouro: valor,
-        numero: '',
-        complemento: '',
-        bairro: '',
-        cidade: '',
-        uf: '',
-        cep: '',
+        cep: String(dados.cep || cep),
+        logradouro: String(dados.logradouro || base.logradouro || ''),
+        bairro: String(dados.bairro || base.bairro || ''),
+        cidade: String(dados.localidade || base.cidade || ''),
+        uf: String(dados.uf || base.uf || '').toUpperCase(),
+        codigoIbgeMunicipio: String(dados.ibge || base.codigoIbgeMunicipio || ''),
+        complemento: base.complemento || String(dados.complemento || ''),
       }
-      const lista = [...atuais]
-      lista[indice] = atualizado
-      return lista
-    })
-
-    if (indice === enderecoEntregaSelecionadoIndice) {
-      setEnderecoEntrega(valor)
+      const dadosAtualizados = [...enderecosEntregaDados]
+      dadosAtualizados[indice] = atualizado
+      const enderecoFormatado = formatarEnderecoEntrega(atualizado)
+      const listaAtualizada = [...enderecosEntregaLista]
+      listaAtualizada[indice] = enderecoFormatado
+      setEnderecosEntregaDados(dadosAtualizados)
+      setEnderecosEntregaLista(listaAtualizada)
+      if (indice === enderecoEntregaSelecionadoIndice) setEnderecoEntrega(enderecoFormatado)
+    } catch {
+      alert('Não foi possível localizar esse CEP. Confira o número e tente novamente.')
+    } finally {
+      setBuscandoCepEntregaIndice(null)
     }
   }
 
@@ -2061,6 +2081,9 @@ function OrcamentoForm() {
       pagamentos,
       observacoes,
       statusOrcamento: statusAtual,
+      aprovadoEm: statusAtual === 'Aprovado'
+        ? registroAtual?.aprovadoEm || new Date().toISOString()
+        : undefined,
       criadoEm: new Date().toISOString(),
       itensEditadosManual: true,
     }
@@ -2354,10 +2377,11 @@ function OrcamentoForm() {
 
         return `
           <tr>
+            <td class="item-codigo-barras">${escaparHtml(item.codigoBarras || item.codigo || '-')}</td>
             <td class="item-descricao">${escaparHtml(item.descricao)}${item.observacaoItem ? `<div class="item-observacao">${escaparHtml(item.observacaoItem)}</div>` : ''}</td>
-            <td class="right">${numeroParaMoeda(item.quantidade)}</td>
-            <td class="right">${formatarMoeda(item.valorUnitario)}</td>
-            <td class="right">${formatarMoeda(totalLinha)}</td>
+            <td class="item-quantidade right">${numeroParaMoeda(item.quantidade)}</td>
+            <td class="item-unitario right">${formatarMoeda(item.valorUnitario)}</td>
+            <td class="item-total right">${formatarMoeda(totalLinha)}</td>
           </tr>
         `
       })
@@ -2575,22 +2599,32 @@ function OrcamentoForm() {
     white-space: nowrap;
   }
 
-  /* SYNERGIAS_PDF_ORCAMENTO_SEM_CODIGO_DESCRICAO_14_V205 */
+  /* Fontes das colunas dos itens do PDF de orcamento */
   .itens-pdf-table {
     table-layout: fixed;
   }
 
   .itens-pdf-table th:nth-child(1),
-  .itens-pdf-table td:nth-child(1) { width: 64%; }
+  .itens-pdf-table td:nth-child(1) {
+    width: 10%;
+    padding-right: 0;
+    font-size: 8px;
+  }
   .itens-pdf-table th:nth-child(2),
-  .itens-pdf-table td:nth-child(2),
+  .itens-pdf-table td:nth-child(2) {
+    width: 54%;
+    padding-left: 0;
+    font-size: 12px;
+  }
   .itens-pdf-table th:nth-child(3),
-  .itens-pdf-table td:nth-child(3),
+  .itens-pdf-table td:nth-child(3) { width: 12%; font-size: 12px; }
   .itens-pdf-table th:nth-child(4),
-  .itens-pdf-table td:nth-child(4) { width: 12%; }
+  .itens-pdf-table td:nth-child(4),
+  .itens-pdf-table th:nth-child(5),
+  .itens-pdf-table td:nth-child(5) { width: 12%; font-size: 11px; }
 
   .itens-pdf-table td.item-descricao {
-    font-size: 12.5px;
+    font-size: 12px;
     line-height: 1.22;
     font-weight: 400;
     overflow-wrap: anywhere;
@@ -2870,6 +2904,7 @@ function OrcamentoForm() {
           <table class="itens-pdf-table" data-synergias-pdf-v205="1">
             <thead>
               <tr>
+                <th>Código</th>
                 <th>Descrição</th>
                 <th class="right">Quantidade</th>
                 <th class="right">Unitário</th>
@@ -2878,7 +2913,7 @@ function OrcamentoForm() {
             </thead>
 
             <tbody>
-              ${linhasItens || '<tr><td colspan="4">Nenhum item informado.</td></tr>'}
+              ${linhasItens || '<tr><td colspan="5">Nenhum item informado.</td></tr>'}
             </tbody>
           </table>
 
@@ -3664,21 +3699,58 @@ function abrirImpressaoOrcamento() {
                     return (
                       <div
                         key={`endereco-entrega-card-${indice}`}
-                        className={`endereco-entrega-opcao${enderecoAtivo ? ' ativo' : ''}${
+                        className={`endereco-entrega-opcao${enderecoAtivo ? ' ativo' : ''}${enderecoEmEdicao ? ' editando' : ''}${
                           endereco.trim() ? '' : ' vazio'
                         }`}
                       >
                         {enderecoEmEdicao ? (
-                          <textarea
-                            autoFocus
-                            value={endereco}
-                            onChange={(event) => atualizarEnderecoEntregaItem(indice, event.target.value)}
-                            onBlur={() => {
-                              setEnderecoEntregaEditandoIndice(null)
-                              setEditandoEntrega(false)
-                              void persistirEnderecosEntregaCliente(enderecosEntregaLista)
-                            }}
-                          />
+                          <div className="endereco-entrega-editor">
+                            <label className="campo-cep">
+                              <span>CEP</span>
+                              <div className="endereco-entrega-cep-linha">
+                                <input
+                                  autoFocus
+                                  inputMode="numeric"
+                                  value={enderecosEntregaDados[indice]?.cep || ''}
+                                  onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'cep', event.target.value)}
+                                  onBlur={() => {
+                                    if (String(enderecosEntregaDados[indice]?.cep || '').replace(/\D/g, '').length === 8) {
+                                      void consultarCepEnderecoEntrega(indice)
+                                    }
+                                  }}
+                                  placeholder="00000-000"
+                                />
+                                <button type="button" onClick={() => void consultarCepEnderecoEntrega(indice)} disabled={buscandoCepEntregaIndice === indice}>
+                                  {buscandoCepEntregaIndice === indice ? 'Buscando...' : 'Buscar'}
+                                </button>
+                              </div>
+                            </label>
+                            <label className="campo-logradouro"><span>Endereço</span><input value={enderecosEntregaDados[indice]?.logradouro || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'logradouro', event.target.value)} /></label>
+                            <label><span>Número</span><input value={enderecosEntregaDados[indice]?.numero || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'numero', event.target.value)} /></label>
+                            <label><span>Complemento</span><input value={enderecosEntregaDados[indice]?.complemento || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'complemento', event.target.value)} /></label>
+                            <label><span>Bairro</span><input value={enderecosEntregaDados[indice]?.bairro || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'bairro', event.target.value)} /></label>
+                            <label><span>Cidade</span><input value={enderecosEntregaDados[indice]?.cidade || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'cidade', event.target.value)} /></label>
+                            <label><span>UF</span><input maxLength={2} value={enderecosEntregaDados[indice]?.uf || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'uf', event.target.value.toUpperCase())} /></label>
+                            <label><span>Código IBGE</span><input value={enderecosEntregaDados[indice]?.codigoIbgeMunicipio || ''} readOnly /></label>
+                            <div className="endereco-entrega-editor-acoes">
+                              <button
+                                type="button"
+                                className="btn-primario"
+                                onClick={() => {
+                                  const local = enderecosEntregaDados[indice]
+                                  if (!local?.cep || !local?.logradouro || !local?.numero || !local?.bairro || !local?.cidade || !local?.uf) {
+                                    alert('Preencha CEP, endereço, número, bairro, cidade e UF.')
+                                    return
+                                  }
+                                  setEnderecoEntregaEditandoIndice(null)
+                                  setEditandoEntrega(false)
+                                  void persistirEnderecosEntregaCliente(enderecosEntregaLista)
+                                }}
+                              >
+                                <Save size={17} /> Salvar endereço
+                              </button>
+                            </div>
+                          </div>
                         ) : (
                           <button
                             type="button"

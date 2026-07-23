@@ -32,10 +32,16 @@ async function respostaJson<T>(response: Response): Promise<T> {
   return data as T
 }
 
-function atualizarCacheVisual(movimentos: MovimentoEntregaCentral[]) {
-  const ids = new Set(movimentos.map((item) => item.id))
-  const cache = listarMovimentacoesEstoque().filter((item) => !ids.has(item.id))
-  salvarMovimentacoesEstoque([...movimentos, ...cache].slice(0, 500))
+function chaveMovimento(item: EstoqueMovimentacao) {
+  const pedido = String(item.pedidoId || item.documentoOrigem || item.numeroPedido || '').trim()
+  const produto = String(item.produtoId || item.produtoCodigo || '').trim()
+  return pedido && produto ? `${pedido}|${produto}|${item.tipo}|${item.origem}` : `id:${item.id}`
+}
+
+function atualizarCacheVisual(movimentos: MovimentoEntregaCentral[], substituir = false) {
+  const chaves = new Set(movimentos.map(chaveMovimento))
+  const cache = substituir ? [] : listarMovimentacoesEstoque().filter((item) => !chaves.has(chaveMovimento(item)))
+  salvarMovimentacoesEstoque([...movimentos, ...cache])
 }
 
 export async function entregarPedidoCentral(pedidoId: string, usuario = 'Synergias') {
@@ -61,5 +67,5 @@ export async function carregarCacheMovimentacoesCentral() {
     method: 'GET', headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store',
   })
   const resultado = await respostaJson<{ ok: true; data: MovimentoEntregaCentral[] }>(response)
-  atualizarCacheVisual(resultado.data || [])
+  atualizarCacheVisual(resultado.data || [], true)
 }

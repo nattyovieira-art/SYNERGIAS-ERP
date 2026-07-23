@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import Login from './pages/Login/Login'
 import { authApi, type AuthUser } from './services/authApi'
 import { inicializarArmazenamentoCentral } from './services/erpApi'
@@ -14,6 +14,7 @@ import ProdutoForm from './pages/Produtos/ProdutoForm'
 import Vendas from './pages/Vendas/Vendas'
 import OrcamentoForm from './pages/Vendas/OrcamentoForm'
 import PedidoForm from './pages/Vendas/PedidoForm'
+import Logistica from './pages/Logistica/Logistica'
 
 import Estoque from './pages/Estoque/Estoque'
 
@@ -61,6 +62,11 @@ import HistoricoEstoque from './pages/Estoque/HistoricoEstoque'
 import RelatorioBrindes from './pages/Relatorios/RelatorioBrindes'
 
 import './App.css'
+
+function RedirecionarEdicaoPedidoLegado() {
+  const { id } = useParams()
+  return <Navigate to={`/vendas/pedidos/editar/${encodeURIComponent(id || '')}`} replace />
+}
 
 function App() {
   const [authLoading, setAuthLoading] = useState(true)
@@ -159,6 +165,7 @@ function App() {
         <Route path="/compras/editar/:id" element={<CompraForm modo="editar" />} />
 
         <Route path="/vendas" element={<Vendas />} />
+        <Route path="/logistica" element={<Logistica />} />
 
         <Route path="/vendas/orcamentos/novo" element={<OrcamentoForm />} />
         <Route path="/vendas/orcamentos/editar/:id" element={<OrcamentoForm />} />
@@ -178,7 +185,7 @@ function App() {
 
         <Route
           path="/vendas/pedido/editar/:id"
-          element={<Navigate to="/vendas/pedidos/editar/:id" replace />}
+          element={<RedirecionarEdicaoPedidoLegado />}
         />
 
         <Route path="/financeiro" element={<Financeiro />} />

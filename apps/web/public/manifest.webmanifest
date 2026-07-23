@@ -1,0 +1,16 @@
+{
+  "name": "Synergias ERP — Logística",
+  "short_name": "Synergias",
+  "description": "Entregas, rotas e SLA da Synergias Distribuidora.",
+  "start_url": "/logistica",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#13345f",
+  "icons": [
+    { "src": "/logo-synergias.png", "sizes": "any", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Entregas", "url": "/logistica", "icons": [{ "src": "/logo-synergias.png", "sizes": "any", "type": "image/png" }] }
+  ]
+}

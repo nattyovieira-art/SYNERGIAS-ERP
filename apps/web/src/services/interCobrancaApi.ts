@@ -41,8 +41,15 @@ async function lerResposta<T>(response: Response): Promise<T> {
       : payload?.details
         ? JSON.stringify(payload.details)
         : ''
+    const diagnostico = payload?.diagnostico
+      ? [
+          payload.diagnostico.codigo ? `Código: ${payload.diagnostico.codigo}` : '',
+          payload.diagnostico.descricao ? `Detalhe: ${payload.diagnostico.descricao}` : '',
+          payload.diagnostico.httpStatus ? `Status Banco Inter: ${payload.diagnostico.httpStatus}` : '',
+        ].filter(Boolean).join('\n')
+      : ''
     throw new Error(
-      [payload?.error || `Erro HTTP ${response.status}`, detalhes]
+      [payload?.error || `Erro HTTP ${response.status}`, diagnostico, detalhes]
         .filter(Boolean)
         .join('\n'),
     )

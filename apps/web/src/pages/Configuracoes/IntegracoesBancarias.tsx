@@ -207,7 +207,7 @@ export default function IntegracoesBancarias() {
       : 'Configuração incompleta ou indisponível'
 
   return (
-    <ConfiguracaoFormShell category="Configurações • Integrações" title="Banco Inter e Cora" subtitle="Configure e consulte o estado real das integrações bancárias do ERP." notice={msg || (carregando ? 'Consultando o backend bancário…' : 'Status lido diretamente da integração instalada no servidor.')}>
+    <ConfiguracaoFormShell category="Configurações • Integrações" title="Banco Inter" subtitle="Configure e consulte o estado real da integração bancária do ERP." notice={msg || (carregando ? 'Consultando o backend bancário…' : 'Status lido diretamente da integração instalada no servidor.')}>
       <section className="config-section">
         <h3>Configurar Banco Inter • Cobrança V3</h3>
         <p>Selecione o certificado .crt e a chave privada .key baixados juntos da mesma integração no portal do Banco Inter. As credenciais serão gravadas fora da raiz pública e não ficam salvas no navegador.</p>
@@ -264,7 +264,6 @@ export default function IntegracoesBancarias() {
         </div>
       </section>
 
-      <section className="config-section"><h3>Banco Cora</h3><p>Integração real ainda não identificada no backend desta versão.</p><div className="config-empty">Não conectado.</div></section>
     </ConfiguracaoFormShell>
   )
 }

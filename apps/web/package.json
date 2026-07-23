@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test:entrega": "node scripts/test-pedido-entrega-central.mjs",
+    "test:compras-seguranca": "node scripts/test-compras-seguranca.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -329,8 +329,15 @@
   color: var(--compras-gold-dark);
 }
 
+.compras-status-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
 .compras-historico-badge {
-  margin-left: 6px;
+  margin-left: 0;
   background: #eef2ff;
   color: #4f46e5;
 }
@@ -1391,6 +1398,66 @@
 .financeiro-fluxo-detalhado{margin:22px 0;padding:20px;border:1px solid #24415f;border-radius:18px;background:#071426}.financeiro-fluxo-header{display:flex;justify-content:space-between;align-items:end;gap:16px}.financeiro-fluxo-header h2{margin:0;color:#f8fafc}.financeiro-fluxo-header p{margin:5px 0 0;color:#8fa6bc}.financeiro-fluxo-periodo{display:flex;gap:10px}.financeiro-fluxo-periodo label{display:grid;gap:4px;color:#9fb3c8}.financeiro-fluxo-periodo input{padding:9px;border-radius:8px}.financeiro-fluxo-resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.financeiro-fluxo-resumo article{padding:14px;border-radius:12px;background:#0b1b30;border:1px solid #1e3a5f;display:grid;gap:5px}.financeiro-fluxo-resumo span{color:#8fa6bc}.financeiro-fluxo-resumo strong{font-size:20px}.financeiro-fluxo-linhas{display:grid;gap:4px}.financeiro-fluxo-grupo,.financeiro-fluxo-total{display:flex;justify-content:space-between;padding:14px;border:0;border-radius:9px;background:#10243d;color:#e2e8f0;font-weight:800}.financeiro-fluxo-grupo{cursor:pointer}.financeiro-fluxo-detalhes{display:grid;gap:2px;padding:0 10px 10px}.financeiro-fluxo-detalhes>div{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #18334f;color:#bdcce0}.financeiro-fluxo-item{font-size:13px}.financeiro-fluxo-total{margin-top:8px;background:#064e3b;color:#a7f3d0}
 .financeiro-conciliacao-filtros{display:grid;grid-template-columns:minmax(280px,1fr) auto auto auto;gap:10px;margin:18px 0}.financeiro-busca-conciliacao,.financeiro-modal-filtros>div{display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid #294764;border-radius:10px;background:#08182a}.financeiro-busca-conciliacao input,.financeiro-modal-filtros input{width:100%;min-height:42px;border:0;background:transparent;color:#e2e8f0;outline:0}.financeiro-conciliacao-filtros select,.financeiro-modal-filtros select{min-height:44px;border-radius:10px;padding:0 10px}.financeiro-conciliacao-acoes{display:flex;gap:6px}.financeiro-conciliacao-acoes button{padding:7px 9px;border-radius:8px;border:1px solid #31506f;background:#0b1b30;color:#dce7f2;cursor:pointer}.financeiro-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}.financeiro-modal-conciliacao{width:min(1100px,95vw);max-height:88vh;overflow:auto;background:#071426;border:1px solid #31506f;border-radius:18px;padding:20px}.financeiro-modal-header{display:flex;justify-content:space-between;align-items:start}.financeiro-modal-header h2{margin:0}.financeiro-modal-header button{font-size:28px;border:0;background:transparent;color:#e2e8f0;cursor:pointer}.financeiro-modal-filtros{display:grid;grid-template-columns:1fr auto;gap:10px;margin:18px 0}.financeiro-modal-lista{display:grid;gap:8px}.financeiro-conta-candidata{display:flex;justify-content:space-between;align-items:center;text-align:left;padding:14px;border-radius:12px;border:1px solid #24415f;background:#0b1b30;color:#e5edf7;cursor:pointer}.financeiro-conta-candidata:hover{border-color:#22c55e}.financeiro-conta-candidata div{display:grid;gap:4px}.financeiro-conta-candidata span{color:#93a8bd}
 @media(max-width:1100px){.pedido-brindes-grid{grid-template-columns:1fr 1fr}.financeiro-conciliacao-filtros{grid-template-columns:1fr 1fr}.financeiro-fluxo-resumo{grid-template-columns:1fr 1fr}}
+
+/* Autocomplete de produtos da compra — lista compacta em tons pastel. */
+.compras-vinculo-produto .compras-produto-autocomplete .compras-produto-sugestoes {
+  z-index: 120 !important;
+  max-height: 248px !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 14px !important;
+  background: #fffdf8 !important;
+  box-shadow: 0 14px 30px rgba(71, 85, 105, .16) !important;
+  padding: 6px !important;
+}
+
+.compras-vinculo-produto .compras-produto-autocomplete .compras-produto-sugestoes button {
+  width: 100% !important;
+  min-height: 58px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 9px 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-radius: 9px !important;
+  background: #f8fafc !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+  text-align: left !important;
+}
+
+.compras-vinculo-produto .compras-produto-autocomplete .compras-produto-sugestoes button:nth-child(even) {
+  background: #f0f9ff !important;
+}
+
+.compras-vinculo-produto .compras-produto-autocomplete .compras-produto-sugestoes button:hover,
+.compras-vinculo-produto .compras-produto-autocomplete .compras-produto-sugestoes button.selecionado,
+.compras-vinculo-produto .compras-produto-autocomplete .compras-produto-sugestoes button:focus-visible {
+  background: #dcfce7 !important;
+  color: #14532d !important;
+  outline: 1px solid #86efac !important;
+  transform: none !important;
+}
+
+.compras-vinculo-produto .compras-produto-autocomplete .compras-produto-sugestoes strong {
+  padding: 0 !important;
+  color: #1e3a5f !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
+
+.compras-vinculo-produto .compras-produto-autocomplete .compras-produto-sugestoes span {
+  padding: 0 !important;
+  color: #64748b !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
 
 /* SYNERGIAS STATUS PEDIDOS V191A - INICIO */
 

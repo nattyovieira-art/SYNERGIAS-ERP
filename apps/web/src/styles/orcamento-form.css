@@ -1468,6 +1468,58 @@
   background: #e5e7eb !important;
 }
 
+.endereco-entrega-opcao.editando {
+  grid-column: 1 / -1 !important;
+  background: #ffffff !important;
+  border-color: #7c3aed !important;
+  overflow: visible !important;
+}
+
+.endereco-entrega-editor {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(130px, 1fr)) !important;
+  gap: 12px !important;
+  padding: 16px !important;
+  color: #1e293b !important;
+}
+
+.endereco-entrega-editor label {
+  display: grid !important;
+  gap: 6px !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+}
+
+.endereco-entrega-editor input {
+  width: 100% !important;
+  height: 42px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 0 11px !important;
+  color: #0f172a !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
+  font-size: 14px !important;
+  text-transform: none !important;
+}
+
+.endereco-entrega-editor .campo-logradouro { grid-column: span 2 !important; }
+.endereco-entrega-editor .campo-cep { grid-column: span 1 !important; }
+.endereco-entrega-cep-linha { display: grid !important; grid-template-columns: minmax(105px, 1fr) auto !important; gap: 8px !important; }
+.endereco-entrega-cep-linha button { border: 0 !important; border-radius: 8px !important; padding: 0 14px !important; background: #7c3aed !important; color: #fff !important; font-weight: 900 !important; cursor: pointer !important; }
+.endereco-entrega-editor-acoes { grid-column: 1 / -1 !important; display: flex !important; justify-content: flex-end !important; }
+
+@media (max-width: 900px) {
+  .endereco-entrega-editor { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+@media (max-width: 560px) {
+  .endereco-entrega-editor { grid-template-columns: 1fr !important; }
+  .endereco-entrega-editor .campo-logradouro,
+  .endereco-entrega-editor .campo-cep { grid-column: auto !important; }
+}
+
 .endereco-entrega-opcao-botao {
   width: 100% !important;
   min-height: 72px !important;

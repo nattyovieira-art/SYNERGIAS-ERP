@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+/* eslint-disable react-hooks/use-memo */
 import { RotateCcw, Save } from 'lucide-react'
 import ModuloShell from '../../components/ModuloShell'
 import type { Venda, ItemVenda } from '../../types/Venda'

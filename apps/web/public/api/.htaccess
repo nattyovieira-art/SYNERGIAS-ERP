@@ -3,3 +3,4 @@ Options -Indexes
 <FilesMatch "^(config\.php|config\.local\.php|config\.local\.example\.php|bootstrap\.php|email-config\.php)$">
     Require all denied
 </FilesMatch>
+

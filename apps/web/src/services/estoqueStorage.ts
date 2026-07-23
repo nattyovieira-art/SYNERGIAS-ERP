@@ -1,4 +1,5 @@
 import type { Produto } from '../types/Produto'
+import { definirColecaoMemoria, obterColecaoMemoria, sincronizarColecaoCentral } from './erpApi'
 import {
   listarProdutosStorage,
   salvarProdutosStorage,
@@ -218,6 +219,8 @@ function localizarProduto(
 }
 
 export function listarMovimentacoesEstoque(): EstoqueMovimentacao[] {
+  const centrais = obterColecaoMemoria<EstoqueMovimentacao>('movimentacoesEstoque')
+  if (centrais.length > 0) return centrais
   try {
     const dados = localStorage.getItem(STORAGE_MOVIMENTACOES_ESTOQUE)
 
@@ -233,7 +236,9 @@ export function listarMovimentacoesEstoque(): EstoqueMovimentacao[] {
 }
 
 export function salvarMovimentacoesEstoque(movimentacoes: EstoqueMovimentacao[]) {
+  definirColecaoMemoria('movimentacoesEstoque', movimentacoes)
   localStorage.setItem(STORAGE_MOVIMENTACOES_ESTOQUE, JSON.stringify(movimentacoes))
+  sincronizarColecaoCentral('movimentacoesEstoque', movimentacoes)
   return movimentacoes
 }
 
@@ -263,6 +268,30 @@ export function confirmarEntradaCompraComCustoMedioStorage(
   movimentacoes: EstoqueMovimentacao[]
 } {
   const produtosAtuais = listarProdutosStorage()
+  const normalizarDocumento = (valor: unknown) => {
+    const texto = String(valor || '').trim()
+    const digitos = texto.replace(/\D/g, '')
+    return digitos || texto
+  }
+  const documentoOrigem =
+    normalizarDocumento(dados.chaveAcessoNFe) ||
+    normalizarDocumento(dados.numeroNFe) ||
+    normalizarDocumento(dados.numeroCompra)
+  const movimentosExistentes = listarMovimentacoesEstoque().filter(
+    (movimento) =>
+      movimento.origem === 'compra' &&
+      normalizarDocumento(movimento.documentoOrigem) === documentoOrigem,
+  )
+  if (documentoOrigem && movimentosExistentes.length > 0) {
+    return {
+      ok: true,
+      mensagem: 'A entrada desta compra já havia sido processada; nenhuma nova movimentação foi criada.',
+      resultados: [],
+      idsMovimentacoes: movimentosExistentes.map((movimento) => movimento.id),
+      produtos: produtosAtuais,
+      movimentacoes: listarMovimentacoesEstoque(),
+    }
+  }
   const itensValidos = dados.itens
     .map((item) => ({
       ...item,
@@ -356,10 +385,6 @@ export function confirmarEntradaCompraComCustoMedioStorage(
   }
 
   const agora = new Date().toISOString()
-  const documentoOrigem =
-    String(dados.chaveAcessoNFe || '').trim() ||
-    String(dados.numeroNFe || '').trim() ||
-    String(dados.numeroCompra || '').trim()
   const resultados: ResultadoCustoMedioProduto[] = []
   const novasMovimentacoes: EstoqueMovimentacao[] = []
   let produtosAtualizados = [...produtosAtuais]

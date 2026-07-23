@@ -1,6 +1,6 @@
 import type { Cliente } from '../types/Cliente'
 import { migrarClienteEnderecosEntrega } from './enderecosEntrega'
-import { definirColecaoMemoria, obterColecaoMemoria, sincronizarColecaoCentral, sincronizarColecaoCentralAgora } from './erpApi'
+import { carregarColecaoCentral, definirColecaoMemoria, obterColecaoMemoria, sincronizarColecaoCentral, sincronizarColecaoCentralAgora } from './erpApi'
 
 export function listarClientesStorage(): Cliente[] {
   return obterColecaoMemoria<Cliente>('clientes').map(migrarClienteEnderecosEntrega)
@@ -37,14 +37,32 @@ export function salvarClienteStorage(cliente: Cliente) {
 }
 
 export async function salvarClienteStorageConfirmado(cliente: Cliente) {
-  const clientes = listarClientesStorage()
   const clientePersistente = { ...cliente, atualizadoEm: new Date().toISOString() } as Cliente
-  const existe = clientes.some((item) => String(item.codigo) === String(cliente.codigo))
-  const atualizados = existe
-    ? clientes.map((item) => String(item.codigo) === String(cliente.codigo) ? clientePersistente : item)
-    : [...clientes, clientePersistente]
+
+  const mesclar = (clientes: Cliente[]) => {
+    const existe = clientes.some((item) => String(item.codigo) === String(cliente.codigo))
+    return existe
+      ? clientes.map((item) => String(item.codigo) === String(cliente.codigo) ? clientePersistente : item)
+      : [...clientes, clientePersistente]
+  }
+
+  let atualizados = mesclar(listarClientesStorage())
   definirColecaoMemoria('clientes', atualizados)
-  await sincronizarColecaoCentralAgora('clientes', atualizados)
+
+  try {
+    await sincronizarColecaoCentralAgora('clientes', atualizados)
+  } catch (erro) {
+    const central = await carregarColecaoCentral<Cliente>('clientes')
+    atualizados = mesclar(central.data)
+    definirColecaoMemoria('clientes', atualizados)
+    try {
+      await sincronizarColecaoCentralAgora('clientes', atualizados)
+    } catch {
+      definirColecaoMemoria('clientes', central.data)
+      throw erro
+    }
+  }
+
   return atualizados
 }
 

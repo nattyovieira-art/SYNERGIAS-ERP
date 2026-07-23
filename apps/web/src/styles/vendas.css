@@ -552,6 +552,12 @@
   background: #f5f3ff;
 }
 
+.vendas-action-email {
+  color: #0891b2;
+  border-color: #a5f3fc;
+  background: #ecfeff;
+}
+
 .vendas-action-delete {
   color: #e11d48;
   border-color: #fecdd3;
@@ -698,11 +704,14 @@
 /* SYA 2026-07-09 — situação financeira na listagem de pedidos */
 .vendas-lista-cabecalho,
 .vendas-documento-row {
-  grid-template-columns: minmax(150px,.85fr) minmax(250px,1.25fr) minmax(260px,1.65fr) minmax(130px,.8fr) minmax(125px,.75fr) minmax(110px,.7fr) minmax(145px,.9fr) minmax(110px,.65fr) !important;
+  grid-template-columns: minmax(150px,.85fr) minmax(250px,1.25fr) minmax(260px,1.65fr) minmax(130px,.8fr) minmax(125px,.75fr) minmax(110px,.7fr) minmax(145px,.9fr) minmax(165px,.85fr) !important;
 }
+.vendas-lista-cabecalho > span:last-child { text-align:center; justify-self:stretch; }
+.vendas-documento-acoes { justify-content:center; }
 .vendas-pagamento-status { justify-self:start; padding:7px 10px; border-radius:999px; font-size:12px; font-weight:900; }
 .vendas-pagamento-status.pago { background:#dcfce7; color:#166534; }
 .vendas-pagamento-status.pendente { background:#ffedd5; color:#c2410c; }
+.vendas-pagamento-status.cancelado { background:#fee2e2; color:#b91c1c; }
 .vendas-conciliar-btn,.vendas-conciliado { min-height:36px; border-radius:10px; padding:0 10px; display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:900; white-space:nowrap; }
 .vendas-conciliar-btn { border:1px solid #0ea5e9; background:#eff6ff; color:#0369a1; cursor:pointer; }
 .vendas-conciliado { background:#dcfce7; color:#166534; }

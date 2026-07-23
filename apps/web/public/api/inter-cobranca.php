@@ -296,6 +296,7 @@ try {
     }
 
     if ($method === 'POST' && $action === 'emitir') {
+        limitarTentativas('inter_emitir', 12, 300);
         [$payload, $pedido, $parcela, $seuNumero] = montarPayloadInter(corpoJson());
         removerChaveRecursiva($payload, 'desconto');
         error_log('[Synergias ERP Inter ' . SYNERGIAS_INTER_API_VERSION . '] emitir payload=' . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));

@@ -2,6 +2,16 @@
 /* SYNERGIAS_EMAIL_NFE_XML_VERSION = V310_MULTIPLOS_BOLETOS_PIX_TRANSFERENCIA */
 declare(strict_types=1);
 
+define('SYNERGIAS_AUTH_BOOTSTRAP', true);
+require __DIR__ . '/bootstrap.php';
+exigirAutenticacao();
+
+const EMAIL_REQUEST_MAX_BYTES = 15728640;
+const EMAIL_MAX_RECIPIENTS = 10;
+const EMAIL_MAX_ATTACHMENTS = 6;
+const EMAIL_MAX_ATTACHMENT_BYTES = 8388608;
+const EMAIL_MAX_SENDS_PER_HOUR = 30;
+
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('X-Synergias-Email-Version: V310');
@@ -27,17 +37,28 @@ function configEmail(): array {
     if (is_file($localProtegido)) {
         $config = require $localProtegido;
         if (!is_array($config)) throw new RuntimeException('Configuração protegida de e-mail inválida.');
-        foreach (['host','port','user','pass','from'] as $campo) {
-            if (!array_key_exists($campo, $config) || texto($config[$campo]) === '') {
-                throw new RuntimeException("Configuração SMTP incompleta: {$campo}.");
-            }
-        }
-        return $config;
+    } else {
+        $central = carregarConfigAuth();
+        $config = [
+            'host' => $central['smtp_host'] ?? '',
+            'port' => $central['smtp_port'] ?? 587,
+            'user' => $central['smtp_user'] ?? '',
+            'pass' => $central['smtp_pass'] ?? '',
+            'from' => $central['smtp_from'] ?? '',
+            'from_name' => $central['smtp_from_name'] ?? 'Synergias ERP',
+            'encryption' => $central['smtp_encryption'] ?? 'starttls',
+        ];
     }
-    throw new RuntimeException('Configuração protegida de e-mail não encontrada pelo endpoint.');
+
+    foreach (['host','port','user','pass','from'] as $campo) {
+        if (!array_key_exists($campo, $config) || texto($config[$campo]) === '') {
+            throw new RuntimeException("Configuração SMTP incompleta: {$campo}.");
+        }
+    }
+    return $config;
 }
 
-function smtpLer($socket): string {
+function emailSmtpLer($socket): string {
     $texto = '';
     while (($linha = fgets($socket, 8192)) !== false) {
         $texto .= $linha;
@@ -46,8 +67,8 @@ function smtpLer($socket): string {
     return $texto;
 }
 
-function smtpEsperar($socket, array $codigos): string {
-    $resposta = smtpLer($socket);
+function emailSmtpEsperar($socket, array $codigos): string {
+    $resposta = emailSmtpLer($socket);
     $codigo = (int)substr($resposta, 0, 3);
     if (!in_array($codigo, $codigos, true)) {
         throw new RuntimeException('Servidor SMTP recusou a operação: ' . trim($resposta));
@@ -55,9 +76,9 @@ function smtpEsperar($socket, array $codigos): string {
     return $resposta;
 }
 
-function smtpComando($socket, string $comando, array $codigos): string {
+function emailSmtpComando($socket, string $comando, array $codigos): string {
     fwrite($socket, $comando . "\r\n");
-    return smtpEsperar($socket, $codigos);
+    return emailSmtpEsperar($socket, $codigos);
 }
 
 function normalizarEmails(mixed $valor): array {
@@ -195,7 +216,8 @@ function montarMensagem(array $body, array $config, array $para, array $cc): str
     }
 
     $anexados = [];
-    foreach (($body['anexos'] ?? []) as $anexo) {
+    $anexos = is_array($body['anexos'] ?? null) ? array_slice($body['anexos'], 0, EMAIL_MAX_ATTACHMENTS) : [];
+    foreach ($anexos as $anexo) {
         if (!is_array($anexo)) continue;
         $tipo = texto($anexo['tipo'] ?? '');
         if (!in_array($tipo, ['notaFiscal', 'boleto'], true)) continue;
@@ -213,7 +235,7 @@ function montarMensagem(array $body, array $config, array $para, array $cc): str
                     $pedido['chaveAcessoNotaFiscal'] ?? $pedido['chaveAcesso'] ?? $body['chaveAcessoNotaFiscal'] ?? ''
                 )) ?: '';
                 if (preg_match('/^\d{44}$/', $chavePedido)) {
-                    $assinaturaInterna = hash_hmac('sha256', $chavePedido, 'synergias-danfe-internal-v231d-7f2c91');
+                    $assinaturaInterna = assinarAcessoDanfe($chavePedido);
                     $url = '/api/fiscal/nfe-danfe-pdf.php?chave='
                         . rawurlencode($chavePedido)
                         . '&layout=V231D&internal='
@@ -226,6 +248,9 @@ function montarMensagem(array $body, array $config, array $para, array $cc): str
             $binario = baixarUrlSegura($url);
         }
         if (!is_string($binario) || !str_starts_with($binario, '%PDF-')) continue;
+        if (strlen($binario) > EMAIL_MAX_ATTACHMENT_BYTES) {
+            throw new RuntimeException('Um dos anexos excede o limite permitido.');
+        }
         $partes[] = '--' . $boundary . "\r\nContent-Type: application/pdf; name=\"{$nome}\"\r\nContent-Disposition: attachment; filename=\"{$nome}\"\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($binario));
         $anexados[$tipo] = (int)($anexados[$tipo] ?? 0) + 1;
     }
@@ -298,14 +323,23 @@ function montarMensagem(array $body, array $config, array $para, array $cc): str
 
 try {
     if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') resposta(405, ['ok' => false, 'message' => 'Método não permitido.']);
+    if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0) > EMAIL_REQUEST_MAX_BYTES) resposta(413, ['ok' => false, 'message' => 'Solicitação de e-mail excede o limite permitido.']);
+    iniciarSessaoSegura();
+    $agora = time();
+    $enviosRecentes = array_values(array_filter((array)($_SESSION['email_send_times'] ?? []), static fn($timestamp): bool => is_int($timestamp) && $timestamp > $agora - 3600));
+    if (count($enviosRecentes) >= EMAIL_MAX_SENDS_PER_HOUR) resposta(429, ['ok' => false, 'message' => 'Limite temporário de envios atingido. Tente novamente mais tarde.']);
+    if ($enviosRecentes !== [] && end($enviosRecentes) > $agora - 5) resposta(429, ['ok' => false, 'message' => 'Aguarde alguns segundos antes de enviar outro e-mail.']);
+    $enviosRecentes[] = $agora;
+    $_SESSION['email_send_times'] = $enviosRecentes;
     $body = lerCorpo();
     $config = configEmail();
     $para = normalizarEmails($body['destinatario'] ?? $body['emailCliente'] ?? '');
     $cc = normalizarEmails($body['cc'] ?? $body['copia'] ?? []);
     if ($para === []) resposta(422, ['ok' => false, 'message' => 'E-mail principal do cliente inválido.']);
+    if (count(array_unique(array_merge($para, $cc))) > EMAIL_MAX_RECIPIENTS) resposta(422, ['ok' => false, 'message' => 'Quantidade de destinatários excede o limite permitido.']);
 
     $host = texto($config['host']);
-    $port = 587;
+    $port = (int)$config['port'];
     $contexto = stream_context_create([
         'ssl' => [
             'verify_peer' => true,
@@ -324,44 +358,45 @@ try {
         $contexto
     );
     if (!$socket) {
-        throw new RuntimeException("Conexão SMTP {$host}:587 falhou ({$errno}): {$errstr}");
+        throw new RuntimeException("Conexão SMTP {$host}:{$port} falhou ({$errno}): {$errstr}");
     }
 
     stream_set_timeout($socket, 30);
-    smtpEsperar($socket, [220]);
-    smtpComando($socket, 'EHLO erp.synergias.com.br', [250]);
-    smtpComando($socket, 'STARTTLS', [220]);
+    emailSmtpEsperar($socket, [220]);
+    emailSmtpComando($socket, 'EHLO erp.synergias.com.br', [250]);
+    emailSmtpComando($socket, 'STARTTLS', [220]);
 
     if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
         fclose($socket);
         throw new RuntimeException('Falha ao ativar STARTTLS na porta 587.');
     }
 
-    smtpComando($socket, 'EHLO erp.synergias.com.br', [250]);
+    emailSmtpComando($socket, 'EHLO erp.synergias.com.br', [250]);
 
     $usuario = texto($config['user']);
     $senha = (string)$config['pass'];
 
     try {
         $payload = base64_encode("\0" . $usuario . "\0" . $senha);
-        smtpComando($socket, 'AUTH PLAIN ' . $payload, [235]);
+        emailSmtpComando($socket, 'AUTH PLAIN ' . $payload, [235]);
     } catch (Throwable $erroPlain) {
-        smtpComando($socket, 'AUTH LOGIN', [334]);
-        smtpComando($socket, base64_encode($usuario), [334]);
-        smtpComando($socket, base64_encode($senha), [235]);
+        emailSmtpComando($socket, 'AUTH LOGIN', [334]);
+        emailSmtpComando($socket, base64_encode($usuario), [334]);
+        emailSmtpComando($socket, base64_encode($senha), [235]);
     }
-    smtpComando($socket, 'MAIL FROM:<' . texto($config['from']) . '>', [250]);
-    foreach (array_merge($para, $cc) as $email) smtpComando($socket, 'RCPT TO:<' . $email . '>', [250, 251]);
-    smtpComando($socket, 'DATA', [354]);
+    emailSmtpComando($socket, 'MAIL FROM:<' . texto($config['from']) . '>', [250]);
+    foreach (array_merge($para, $cc) as $email) emailSmtpComando($socket, 'RCPT TO:<' . $email . '>', [250, 251]);
+    emailSmtpComando($socket, 'DATA', [354]);
     $mensagem = montarMensagem($body, $config, $para, $cc);
     $mensagem = preg_replace('/(?m)^\./', '..', $mensagem) ?: $mensagem;
     fwrite($socket, $mensagem . "\r\n.\r\n");
-    smtpEsperar($socket, [250]);
-    smtpComando($socket, 'QUIT', [221]);
+    emailSmtpEsperar($socket, [250]);
+    emailSmtpComando($socket, 'QUIT', [221]);
     fclose($socket);
 
     resposta(200, ['ok' => true, 'message' => 'E-mail enviado pelo servidor do Synergias.', 'destinatarios' => $para, 'cc' => $cc]);
 } catch (Throwable $erro) {
-    error_log('[Synergias ERP Email] ' . $erro->getMessage());
-    resposta(500, ['ok' => false, 'message' => $erro->getMessage()]);
+    $id = bin2hex(random_bytes(6));
+    error_log('[Synergias ERP Email][' . $id . '] ' . $erro->getMessage());
+    resposta(500, ['ok' => false, 'message' => 'Falha ao enviar o e-mail. Informe o código ' . $id . ' ao suporte.']);
 }

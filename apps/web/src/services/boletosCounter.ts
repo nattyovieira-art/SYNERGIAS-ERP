@@ -1,6 +1,6 @@
 import type { ParcelaVenda, Venda } from '../types/Venda'
 
-export type BancoContadorBoleto = 'Inter' | 'Cora'
+export type BancoContadorBoleto = 'Inter'
 
 const STATUS_UTILIZADOS = new Set([
   'ATIVO', 'EM ABERTO', 'EMABERTO', 'ENVIADO', 'GERADO', 'PAGO', 'REGISTRADO', 'VENCIDO',
@@ -18,7 +18,6 @@ export function identificarBancoDaParcela(parcela: ParcelaVenda, venda?: Venda):
     parcela.tipoCobranca, parcela.bancoCobranca, venda?.tipoCobranca, venda?.bancoCobranca,
   ].join(' '))
   if (texto.includes('INTER')) return 'Inter'
-  if (texto.includes('CORA')) return 'Cora'
   return null
 }
 

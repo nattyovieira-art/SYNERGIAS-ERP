@@ -512,7 +512,7 @@ function Produtos() {
   }
 
   function importarProdutosComComparacao(linhas: any[]) {
-    let produtosAtualizados = [...listarProdutosStorage()]
+    const produtosAtualizados = [...listarProdutosStorage()]
     const ajustesEstoque: Array<{ codigo: string; estoque: number }> = []
     const detalhesAlterados: string[] = []
     const detalhesNovos: string[] = []
@@ -1408,8 +1408,37 @@ function Produtos() {
     leitor.readAsArrayBuffer(arquivo)
   }
 
-  function exportarExcel() {
-    const produtosParaExportar = produtosFiltrados.map((produto) => ({
+  async function exportarExcel() {
+    let produtosDaExportacao = produtosFiltrados
+
+    if (
+      produtosDaExportacao.length === 0 &&
+      produtos.length === 0 &&
+      !pesquisa.trim() &&
+      quantidadeFiltrosAtivos === 0
+    ) {
+      try {
+        await hidratarColecaoCentral('produtos', 'synergias_produtos')
+        const produtosAtualizados = listarProdutosStorage()
+        setProdutos(produtosAtualizados)
+        produtosDaExportacao = produtosAtualizados
+      } catch (erro) {
+        console.error('Falha ao carregar produtos para exportacao:', erro)
+        alert('Nao foi possivel carregar os produtos para exportacao. Tente novamente.')
+        return
+      }
+    }
+
+    if (produtosDaExportacao.length === 0) {
+      alert(
+        produtos.length > 0
+          ? 'Nenhum produto corresponde a pesquisa ou aos filtros atuais.'
+          : 'Nao ha produtos cadastrados para exportar.',
+      )
+      return
+    }
+
+    const produtosParaExportar = produtosDaExportacao.map((produto) => ({
       Código: produto.codigo,
       'Código de Barras': produto.codigoBarras || '',
       'Código Interno': produto.codigoInterno || '',
@@ -1469,10 +1498,18 @@ function Produtos() {
 
     const worksheet = XLSX.utils.json_to_sheet(produtosParaExportar)
 
-    const totalColunas = Object.keys(produtosParaExportar[0] || {}).length
-    worksheet['!cols'] = Array.from({ length: totalColunas }, (_, indice) => ({
-      hidden: indice >= totalColunas - 2,
-    }))
+    const cabecalhos = Object.keys(produtosParaExportar[0] || {})
+    const totalColunas = cabecalhos.length
+    worksheet['!cols'] = cabecalhos.map((cabecalho, indice) => {
+      if (indice >= totalColunas - 2) return { hidden: true }
+
+      const maiorConteudo = produtosParaExportar.reduce((maior, produto) => {
+        const valor = String(produto[cabecalho as keyof typeof produto] ?? '')
+        return Math.max(maior, valor.length)
+      }, cabecalho.length)
+
+      return { wch: Math.min(Math.max(maiorConteudo + 2, 12), 55) }
+    })
     const workbook = XLSX.utils.book_new()
 
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Produtos')

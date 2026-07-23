@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowRightLeft,
@@ -17,6 +17,7 @@ import {
 import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import FluxoCaixaPainel from './FluxoCaixaPainel'
+import { ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
 
 import '../../styles/financeiro.css'
 
@@ -94,8 +95,16 @@ function formatarData(data?: string) {
 function Financeiro() {
   const navigate = useNavigate()
 
-  const contas = useMemo(() => {
-    return listarContasReceberStorage()
+  const [contas, setContas] = useState<ContaReceber[]>(listarContasReceberStorage)
+
+  useEffect(() => {
+    const atualizar = () => setContas(listarContasReceberStorage())
+    window.addEventListener(ERP_STORAGE_UPDATED_EVENT, atualizar)
+    window.addEventListener('storage', atualizar)
+    return () => {
+      window.removeEventListener(ERP_STORAGE_UPDATED_EVENT, atualizar)
+      window.removeEventListener('storage', atualizar)
+    }
   }, [])
 
 
