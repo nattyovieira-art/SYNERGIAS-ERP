@@ -163,6 +163,12 @@ const GRUPOS: GrupoConfiguracao[] = [
     icone: UserRoundCog,
     itens: [
       {
+        titulo: 'Funcionários',
+        descricao: 'Cadastro dos funcionários usados nas diárias por turno.',
+        rota: '/configuracoes/funcionarios',
+        icone: Users,
+      },
+      {
         titulo: 'Usuários e Permissões',
         descricao: 'Usuários, perfis e permissões por módulo e ação.',
         rota: '/configuracoes/acesso/usuarios-permissoes',

@@ -101,17 +101,18 @@ function pontuarProduto(produto: any, regra: Regra): number {
 }
 
 function localizarProduto(produtos: any[], regra: Regra): any | undefined {
+  const alvoExato = normalizar(regra.solicitada)
+  const exatos = produtos.filter((produto) => normalizar(nomeProduto(produto)) === alvoExato)
+  if (exatos.length === 1) return exatos[0]
+  if (exatos.length > 1) return undefined
+
   const classificados = produtos
     .map((produto) => ({ produto, pontos: pontuarProduto(produto, regra) }))
     .filter((item) => item.pontos >= 0)
     .sort((a, b) => b.pontos - a.pontos)
 
   if (classificados.length === 0) return undefined
-  if (classificados.length === 1) return classificados[0].produto
-
-  const primeiro = classificados[0]
-  const segundo = classificados[1]
-  return primeiro.pontos > segundo.pontos ? primeiro.produto : undefined
+  return classificados[0].produto
 }
 
 function falhar(mensagem: string, detalhes: string[]): void {
@@ -119,11 +120,13 @@ function falhar(mensagem: string, detalhes: string[]): void {
   console.error(`[V205H] ${completo}`)
 }
 
-export function aplicarOrcamento2462ParisiValidado(
+export async function aplicarOrcamento2462ParisiValidado(
   vendas: any[],
   produtos: any[],
   clientes: any[],
-): any[] {
+  atualizar: (colecao: any, registro: any) => Promise<any>,
+  carregar: (colecao: any) => Promise<any>,
+): Promise<any[]> {
   const listaVendas = Array.isArray(vendas) ? vendas : []
   const listaProdutos = Array.isArray(produtos) ? produtos : []
   const listaClientes = Array.isArray(clientes) ? clientes : []
@@ -148,19 +151,28 @@ export function aplicarOrcamento2462ParisiValidado(
     return listaVendas
   }
 
-  const clientesParisi = listaClientes.filter((cliente) => {
-    const nome = normalizar(nomeCliente(cliente))
-    return nome === 'PARISI' ||
-      nome.includes('CONDOMINIO PARISI') ||
-      nome.includes('COND PARISI') ||
-      nome.endsWith(' PARISI')
-  })
+  if (String(indices2462[0].venda?.marcadorInstalacao || '') === 'SYNERGIAS_2462_REVISADO_V304') {
+    return listaVendas
+  }
+
+  const documentoParisi = '50648335000199'
+  const clientesDocumento = listaClientes.filter((cliente) =>
+    String(cliente?.cnpj || cliente?.cpf || cliente?.documento || '').replace(/\D/g, '') === documentoParisi,
+  )
+  const clientesParisi = clientesDocumento.length
+    ? clientesDocumento
+    : listaClientes.filter((cliente) => {
+        const nome = normalizar(nomeCliente(cliente))
+        return nome.includes('EDIFICIO RESIDENCIAL VILLA PARISI') ||
+          nome.includes('CONDOMINIO PARISI') ||
+          nome.endsWith(' PARISI')
+      })
 
   if (clientesParisi.length !== 1) {
     falhar(
-      'O cliente Parisi não foi localizado de forma única.',
+      'O cliente do orçamento 2462 não foi localizado de forma única.',
       clientesParisi.length === 0
-        ? ['Nenhum cliente foi criado.']
+        ? ['CNPJ 50.648.335/0001-99 não localizado. Nenhum cliente foi criado.']
         : [
             `Foram encontrados ${clientesParisi.length} cadastros compatíveis:`,
             ...clientesParisi.map((cliente) => `- ${nomeCliente(cliente)}`),
@@ -335,7 +347,7 @@ export function aplicarOrcamento2462ParisiValidado(
       produtoVinculado: true,
       vinculoProdutoOrigem: 'DESCRICAO_ATUAL_ERP',
       ncm: texto(produto?.ncm),
-      cfop: texto(produto?.cfopDentroEstado, produto?.cfop),
+      cfop: texto(produto?.cfopDentroEstado, produto?.cfop, '5102'),
       origem: texto(produto?.origem),
       cest: texto(produto?.cest),
       csosn: texto(produto?.csosn),
@@ -372,17 +384,22 @@ export function aplicarOrcamento2462ParisiValidado(
       cliente?.email,
     ),
     clienteInscricaoEstadual: texto(cliente?.inscricaoEstadual, cliente?.ie),
-    enderecoFaturamento: texto(
-      cliente?.enderecoFiscalFormatado,
-      cliente?.enderecoFaturamento,
-      atual?.enderecoFaturamento,
-    ),
-    enderecoEntrega: texto(
-      cliente?.enderecoEntregaFormatado,
-      cliente?.enderecoEntrega,
-      atual?.enderecoEntrega,
-      atual?.enderecoFaturamento,
-    ),
+    enderecoFaturamento: 'RUA SAPÊ, 900\nPASSO DA AREIA - PORTO ALEGRE / RS - CEP: 91350-050',
+    faturamentoCep: '91350-050',
+    faturamentoEndereco: 'RUA SAPÊ',
+    faturamentoNumero: '900',
+    faturamentoComplemento: '',
+    faturamentoBairro: 'PASSO DA AREIA',
+    faturamentoCidade: 'PORTO ALEGRE',
+    faturamentoEstado: 'RS',
+    enderecoEntrega: 'RUA SAPÊ, 900\nPASSO DA AREIA - PORTO ALEGRE / RS - CEP: 91350-050',
+    entregaCep: '91350-050',
+    entregaEndereco: 'RUA SAPÊ',
+    entregaNumero: '900',
+    entregaComplemento: '',
+    entregaBairro: 'PASSO DA AREIA',
+    entregaCidade: 'PORTO ALEGRE',
+    entregaEstado: 'RS',
     itens,
     itensEditadosManual: true,
     tipoDesconto: 'valor',
@@ -394,18 +411,23 @@ export function aplicarOrcamento2462ParisiValidado(
     valorTotal: totalFinal,
     statusOrcamento: texto(atual?.statusOrcamento, atual?.status, 'Aberto'),
     atualizadoEm: agora,
-    marcadorInstalacao: 'SYNERGIAS_ORCAMENTO_2462_PARISI_SOBREPOSICAO_V205H',
+    marcadorInstalacao: 'SYNERGIAS_2462_REVISADO_V304',
+    origemAtualizacao: 'SYNERGIAS_2462_REVISADO_V304',
   }
 
   const resultado = [...listaVendas]
   resultado[indice] = atualizado
 
-  console.info('[V205H] Orçamento 2462 sobreposto e preparado para gravação central.', {
+  await atualizar('vendas', atualizado)
+  const confirmado = await carregar('vendas')
+  const vendasConfirmadas = Array.isArray(confirmado?.data) ? confirmado.data : resultado
+
+  console.info('[V304] Orçamento 2462 revisado pelos produtos atuais e gravado na coleção central.', {
     cliente: nomeCliente(cliente),
     itens: itens.length,
     subtotal,
     totalFinal,
   })
 
-  return resultado
+  return vendasConfirmadas
 }

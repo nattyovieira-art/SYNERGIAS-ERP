@@ -5,10 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "npm run test:regras-pedidos && npm run test:regras-precos && npm run test:email-endereco && npm run test:diarias && npm run test:isolamento-email && npm run test:conversao-endereco",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test:entrega": "node scripts/test-pedido-entrega-central.mjs",
     "test:compras-seguranca": "node scripts/test-compras-seguranca.mjs",
+    "test:regras-pedidos": "node scripts/test-regras-pedidos.mjs",
+    "test:regras-precos": "node scripts/test-regras-precos.mjs",
+    "test:email-endereco": "node scripts/test-email-endereco-orcamento.mjs",
+    "test:diarias": "node scripts/test-diarias-financeiro.mjs",
+    "test:isolamento-email": "node scripts/test-isolamento-email-clientes.mjs",
+    "test:conversao-endereco": "node scripts/test-conversao-orcamento-endereco.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

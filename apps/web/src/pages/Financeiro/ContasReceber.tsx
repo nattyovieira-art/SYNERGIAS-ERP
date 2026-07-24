@@ -5,6 +5,7 @@ import {
   FilePlus2,
   Filter,
   Pencil,
+  MailWarning,
   RefreshCw,
   Search,
   Trash2,
@@ -227,12 +228,35 @@ function ContasReceber() {
     setVencimentoFim('')
   }
 
-  function classeStatus(status: string) {
-    return status
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replaceAll(' ', '-')
-      .toLowerCase()
+  function formaPrincipal(conta: ContaReceber) {
+    const forma = String(conta.formaPagamento || conta.tipoCobranca || '').trim()
+    return normalizarTexto(forma).includes('boleto') ? 'BOLETO' : forma || '-'
+  }
+
+  function detalheForma(conta: ContaReceber) {
+    return String(conta.tipoCobranca || conta.formaPagamento || '-').trim()
+  }
+
+  function podeEnviarCobranca(conta: ContaReceber) {
+    const hoje = new Date().toISOString().slice(0, 10)
+    return Boolean(
+      conta.pedidoId &&
+      conta.dataVencimento &&
+      conta.dataVencimento < hoje &&
+      conta.status !== 'Paga' &&
+      conta.status !== 'Cancelada' &&
+      Number(conta.saldoAberto || 0) > 0,
+    )
+  }
+
+  function abrirCobranca(conta: ContaReceber) {
+    if (!conta.pedidoId) {
+      alert('Esta conta não possui um pedido vinculado.')
+      return
+    }
+    navigate(
+      `/vendas/pedidos/editar/${encodeURIComponent(conta.pedidoId)}?cobrancaAtraso=${encodeURIComponent(conta.id)}`,
+    )
   }
 
   return (
@@ -425,12 +449,9 @@ function ContasReceber() {
                 <th>Cliente</th>
                 <th>Pedido / Boleto</th>
                 <th>Forma</th>
-                <th>Banco</th>
                 <th>Valor</th>
-                <th>Recebido</th>
                 <th>Saldo</th>
                 <th>Conciliação</th>
-                <th>Status</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -452,13 +473,11 @@ function ContasReceber() {
                     </td>
 
                     <td>
-                      <strong>{conta.formaPagamento || '-'}</strong>
-                      <small>{conta.tipoCobranca || '-'}</small>
+                      <strong>{formaPrincipal(conta)}</strong>
+                      <small>{detalheForma(conta)}</small>
                     </td>
 
-                    <td>{conta.bancoCobranca || '-'}</td>
                     <td>{dinheiro(conta.valorOriginal)}</td>
-                    <td>{dinheiro(conta.valorRecebido)}</td>
                     <td>{dinheiro(conta.saldoAberto)}</td>
 
                     <td>
@@ -474,13 +493,18 @@ function ContasReceber() {
                     </td>
 
                     <td>
-                      <span className={`financeiro-status ${classeStatus(conta.status)}`}>
-                        {conta.status}
-                      </span>
-                    </td>
-
-                    <td>
                       <div className="financeiro-acoes">
+                        {podeEnviarCobranca(conta) && (
+                          <button
+                            type="button"
+                            className="financeiro-editar-button"
+                            title="Preparar e-mail de pagamento em atraso"
+                            aria-label="Preparar e-mail de pagamento em atraso"
+                            onClick={() => abrirCobranca(conta)}
+                          >
+                            <MailWarning size={17} />
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="financeiro-editar-button"
@@ -507,7 +531,7 @@ function ContasReceber() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={11} className="financeiro-vazio">
+                  <td colSpan={8} className="financeiro-vazio">
                     Nenhuma conta a receber encontrada.
                   </td>
                 </tr>

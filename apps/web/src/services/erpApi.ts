@@ -1,3 +1,14 @@
+import { corrigirOrcamento2492LifeSquare } from './corrigirOrcamento2492LifeSquare'
+import { corrigirOrcamento2151Pedido2453PorDescricao } from './corrigirOrcamento2151Pedido2453PorDescricao'
+import { criarOrcamentoOttoClub } from './criarOrcamentoOttoClub'
+import { inserirOrcamento2380Pedido2458Nfe2358 } from './inserirOrcamento2380Pedido2458Nfe2358'
+import { inserirOrcamento2355Pedido2428Nfe2325 } from './inserirOrcamento2355Pedido2428Nfe2325'
+import { inserirOrcamento2396Vitoria } from './inserirOrcamento2396Vitoria'
+import { corrigirOrcamentos2406e2411PorDescricao } from './corrigirOrcamentos2406e2411PorDescricao'
+import { corrigirPedido2508StatusBoleto } from './corrigirPedido2508StatusBoleto'
+import { aplicarTodosOrcamentosDescricao } from './aplicarTodosOrcamentosDescricao'
+import { aplicarOrcamentosGrandParkUmaVez } from './aplicarOrcamentosGrandPark'
+import { aplicarOrcamento2439PontalUmaVez } from './aplicarOrcamento2439Pontal'
 import { corrigirImportacoes2413e2421PorDescricao } from './corrigirImportacoes2413e2421PorDescricao'
 import { aplicarOrcamento2447NiloDescricao } from './aplicarOrcamento2447NiloDescricao'
 import { inserirMadison2371Pedido2434Nfe2334 } from './inserirMadison2371Pedido2434Nfe2334'
@@ -1067,6 +1078,63 @@ export async function inicializarArmazenamentoCentral(): Promise<void> {
   // Nenhuma importação, reconstrução, mesclagem com cache local ou correção pontual
   // pode regravar a coleção completa durante a abertura do ERP.
   let vendasEstaveis = vendasServidor as any[]
+  try {
+  vendasEstaveis = await corrigirPedido2508StatusBoleto(vendasEstaveis, atualizarRegistroColecaoCentral, carregarColecaoCentral)
+  } catch (erro) {
+    console.warn('[Synergias ERP] Ajuste V296 do Pedido 2508 não aplicado.', erro)
+  }
+  try {
+  vendasEstaveis = await aplicarTodosOrcamentosDescricao(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [], atualizarRegistroColecaoCentral, carregarColecaoCentral)
+  } catch (erro) {
+    console.warn('[Synergias ERP] V295 não aplicada.', erro)
+  }
+  try {
+  vendasEstaveis = await corrigirOrcamento2492LifeSquare(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], atualizarRegistroColecaoCentral, carregarColecaoCentral)
+  } catch (erro) {
+    console.warn('[Synergias ERP] Ajuste V305 do Orçamento 2492 não aplicado.', erro)
+  }
+  try {
+  vendasEstaveis = await corrigirOrcamento2151Pedido2453PorDescricao(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], atualizarRegistroColecaoCentral, carregarColecaoCentral)
+  } catch (erro) {
+    console.warn('[Synergias ERP] Ajuste V308 do orçamento 2151 / pedido 2453 não aplicado.', erro)
+  }
+  try {
+  vendasEstaveis = await criarOrcamentoOttoClub(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [], atualizarRegistroColecaoCentral, carregarColecaoCentral)
+  } catch (erro) {
+    console.warn('[Synergias ERP] Orçamento OTTO CLUB não criado.', erro)
+  }
+  try {
+  vendasEstaveis = await inserirOrcamento2380Pedido2458Nfe2358(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], atualizarRegistroColecaoCentral, carregarColecaoCentral)
+  } catch (erro) {
+    console.warn('[Synergias ERP] Histórico 2380/2458/NF-e 2358 não inserido.', erro)
+  }
+  try {
+  vendasEstaveis = await inserirOrcamento2355Pedido2428Nfe2325(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], atualizarRegistroColecaoCentral, carregarColecaoCentral)
+  } catch (erro) {
+    console.warn('[Synergias ERP] Histórico 2355/2428/NF-e 2325 não inserido.', erro)
+  }
+  try {
+  vendasEstaveis = await inserirOrcamento2396Vitoria(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [], atualizarRegistroColecaoCentral, carregarColecaoCentral)
+  } catch (erro) {
+    console.warn('[Synergias ERP] Orçamento histórico 2396 não inserido.', erro)
+  }
+  try {
+  vendasEstaveis = await corrigirOrcamentos2406e2411PorDescricao(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [], atualizarRegistroColecaoCentral, carregarColecaoCentral)
+  } catch (erro) {
+    console.warn('[Synergias ERP] Orçamentos 2360/2397/2406/2411/2448 não corrigidos.', erro)
+  }
+  try {
+  vendasEstaveis = await aplicarOrcamentosGrandParkUmaVez(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [])
+  } catch (erro) {
+    console.warn('[Synergias ERP] Carga 2485/2486 não aplicada.', erro)
+    throw erro
+  }
+  try {
+  vendasEstaveis = await aplicarOrcamento2439PontalUmaVez(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [])
+  } catch (erro) {
+    console.warn('[Synergias ERP] Orçamento 2439 PONTAL não aplicado.', erro)
+    throw erro
+  }
   vendasEstaveis = await criarOrcamentoSupremeUmaVez(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [])
   vendasEstaveis = await criarOrcamentoSistemaUmaVez(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [])
   vendasEstaveis = await criarOrcamentoMoinhosUmaVez(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [])

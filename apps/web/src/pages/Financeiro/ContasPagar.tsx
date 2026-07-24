@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, FilePlus2, Filter, List, Printer, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
+import { EVENTO_CONTAS_PAGAR_ATUALIZADAS } from '../../services/diariasFinanceiro'
 import '../../styles/financeiro.css'
 import '../../styles/novos-modulos.css'
 
@@ -51,6 +52,18 @@ export default function ContasPagar() {
   const [busca, setBusca] = useState('')
   const [mostrarFiltros, setMostrarFiltros] = useState(false)
   const [status, setStatus] = useState('')
+
+  useEffect(() => {
+    const recarregar = () => setLista(ler())
+    window.addEventListener(EVENTO_CONTAS_PAGAR_ATUALIZADAS, recarregar)
+    window.addEventListener('storage', recarregar)
+    window.addEventListener('focus', recarregar)
+    return () => {
+      window.removeEventListener(EVENTO_CONTAS_PAGAR_ATUALIZADAS, recarregar)
+      window.removeEventListener('storage', recarregar)
+      window.removeEventListener('focus', recarregar)
+    }
+  }, [])
 
   const filtradas = useMemo(
     () =>
@@ -134,10 +147,10 @@ export default function ContasPagar() {
         <section className="novo-card">
           <div className="novo-table-wrap">
             <table className="novo-table">
-              <thead><tr><th>Fornecedor</th><th>Documento</th><th>Descrição</th><th>Categoria</th><th>Emissão</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
+              <thead><tr><th>Fornecedor</th><th>Descrição</th><th>Categoria</th><th>Emissão</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
               <tbody>
-                {filtradas.map((conta) => <tr key={conta.id}><td><strong>{conta.fornecedor}</strong></td><td>{conta.documento || '-'}</td><td>{conta.descricao}</td><td>{conta.categoria || 'Despesas gerais'}</td><td>{dataBrasil(conta.emissao)}</td><td>{dataBrasil(conta.vencimento)}</td><td><strong>{moeda(conta.valor)}</strong></td><td><span className={`novo-status ${conta.status === 'Paga' ? 'success' : conta.status === 'Cancelada' ? 'danger' : 'warning'}`}>{conta.status}</span></td><td><div className="financeiro-conciliacao-acoes">{conta.status === 'Em aberto' && <button type="button" onClick={() => marcarPaga(conta)}>Marcar paga</button>}<button type="button" onClick={() => excluir(conta)} title="Excluir"><Trash2 size={17} /></button></div></td></tr>)}
-                {!filtradas.length && <tr><td colSpan={9} className="novo-empty">Nenhuma conta a pagar encontrada.</td></tr>}
+                {filtradas.map((conta) => <tr key={conta.id}><td><strong>{conta.fornecedor}</strong></td><td>{conta.descricao}</td><td>{conta.categoria || 'Despesas gerais'}</td><td>{dataBrasil(conta.emissao)}</td><td>{dataBrasil(conta.vencimento)}</td><td><strong>{moeda(conta.valor)}</strong></td><td><span className={`novo-status ${conta.status === 'Paga' ? 'success' : conta.status === 'Cancelada' ? 'danger' : 'warning'}`}>{conta.status}</span></td><td><div className="financeiro-conciliacao-acoes">{conta.status === 'Em aberto' && <button type="button" onClick={() => marcarPaga(conta)}>Marcar paga</button>}<button type="button" onClick={() => excluir(conta)} title="Excluir"><Trash2 size={17} /></button></div></td></tr>)}
+                {!filtradas.length && <tr><td colSpan={8} className="novo-empty">Nenhuma conta a pagar encontrada.</td></tr>}
               </tbody>
             </table>
           </div>

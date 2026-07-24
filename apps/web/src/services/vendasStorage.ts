@@ -26,9 +26,22 @@ function gerarDataAtual() {
 }
 
 function normalizarParcela(parcela: ParcelaVenda): ParcelaVenda {
+  const possuiBoletoGerado = Boolean(
+    parcela.idCobrancaBanco ||
+    parcela.idCobrancaApi ||
+    parcela.numeroBoleto ||
+    parcela.nossoNumero ||
+    parcela.seuNumero ||
+    parcela.linhaDigitavel ||
+    parcela.codigoBarras ||
+    parcela.linkBoleto ||
+    parcela.boletoPdfUrl ||
+    parcela.boletoPdfBase64 ||
+    parcela.dataGeracaoBoleto
+  )
   return {
     ...parcela,
-    statusBoleto: parcela.statusBoleto || 'Pendente',
+    statusBoleto: parcela.statusBoleto || (possuiBoletoGerado ? 'Gerado' : 'Pendente'),
     numeroBoleto: parcela.numeroBoleto || '',
     nossoNumero: parcela.nossoNumero || '',
     seuNumero: parcela.seuNumero || '',

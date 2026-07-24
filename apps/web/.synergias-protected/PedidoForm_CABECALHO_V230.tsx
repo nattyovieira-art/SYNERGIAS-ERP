@@ -205,6 +205,17 @@ const LIMITE_BOLETOS_GRATUITOS_POR_BANCO = 100
 
 type BancoBoletoGratuito = 'Inter'
 
+function parametroUrlAtual(nome: string): string {
+  if (typeof window === 'undefined') return ''
+  const pagina = new URLSearchParams(window.location.search)
+  const hash = new URLSearchParams(
+    window.location.hash.includes('?')
+      ? window.location.hash.slice(window.location.hash.indexOf('?'))
+      : '',
+  )
+  return hash.get(nome) || pagina.get(nome) || ''
+}
+
 type ResumoBoletosGratuitos = {
   banco: BancoBoletoGratuito
   usados: number
@@ -637,7 +648,7 @@ function limparLogradouroEntregaComposto(
 
   const numero = String(numeroSeparado || '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   if (numero) {
-    const antesDoNumero = texto.match(new RegExp(`^(.+?)(?=,?\\s*${numero}(?:\\b|\\s|,|-))`, 'i'))
+    const antesDoNumero = texto.match(new RegExp(`^(.+?)(?=,?\\s*${numero}(?:\\D|$))`, 'i'))
     if (antesDoNumero?.[1]) return limparParteEndereco(antesDoNumero[1])
   }
 
@@ -761,34 +772,36 @@ function montarEnderecoClienteSeparado(
 
   if (tipo === 'entrega') {
     return {
-      cep: limparParteEndereco(clienteAny.cepEntrega || clienteAny.cep || enderecoClienteSeparado.cep || enderecoFallback.cep),
+      cep: limparParteEndereco(enderecoFallback.cep || clienteAny.cepEntrega || clienteAny.cep || enderecoClienteSeparado.cep),
       endereco: limparParteEndereco(
-        possuiCamposSeparados
-          ? clienteAny.enderecoEntrega || clienteAny.endereco || enderecoClienteSeparado.endereco || enderecoFallback.endereco
-          : enderecoClienteSeparado.endereco || enderecoFallback.endereco,
+        enderecoFallback.endereco ||
+          (possuiCamposSeparados
+            ? clienteAny.enderecoEntrega || clienteAny.endereco || enderecoClienteSeparado.endereco
+            : enderecoClienteSeparado.endereco),
       ),
-      numero: limparParteEndereco(clienteAny.numeroEntrega || clienteAny.numero || enderecoClienteSeparado.numero || enderecoFallback.numero),
+      numero: limparParteEndereco(enderecoFallback.numero || clienteAny.numeroEntrega || clienteAny.numero || enderecoClienteSeparado.numero),
       complemento: limparParteEndereco(
-        clienteAny.complementoEntrega || clienteAny.complemento || enderecoClienteSeparado.complemento || enderecoFallback.complemento,
+        enderecoFallback.complemento || clienteAny.complementoEntrega || clienteAny.complemento || enderecoClienteSeparado.complemento,
       ),
-      bairro: limparParteEndereco(clienteAny.bairroEntrega || clienteAny.bairro || enderecoClienteSeparado.bairro || enderecoFallback.bairro),
-      cidade: limparParteEndereco(clienteAny.cidadeEntrega || clienteAny.cidade || enderecoClienteSeparado.cidade || enderecoFallback.cidade),
-      estado: limparParteEndereco(clienteAny.estadoEntrega || clienteAny.estado || enderecoClienteSeparado.estado || enderecoFallback.estado),
+      bairro: limparParteEndereco(enderecoFallback.bairro || clienteAny.bairroEntrega || clienteAny.bairro || enderecoClienteSeparado.bairro),
+      cidade: limparParteEndereco(enderecoFallback.cidade || clienteAny.cidadeEntrega || clienteAny.cidade || enderecoClienteSeparado.cidade),
+      estado: limparParteEndereco(enderecoFallback.estado || clienteAny.estadoEntrega || clienteAny.estado || enderecoClienteSeparado.estado),
     }
   }
 
   return {
-    cep: limparParteEndereco(clienteAny.cep || enderecoClienteSeparado.cep || enderecoFallback.cep),
+    cep: limparParteEndereco(enderecoFallback.cep || clienteAny.cep || enderecoClienteSeparado.cep),
     endereco: limparParteEndereco(
-      possuiCamposSeparados
-        ? clienteAny.endereco || enderecoClienteSeparado.endereco || enderecoFallback.endereco
-        : enderecoClienteSeparado.endereco || enderecoFallback.endereco,
+      enderecoFallback.endereco ||
+        (possuiCamposSeparados
+          ? clienteAny.endereco || enderecoClienteSeparado.endereco
+          : enderecoClienteSeparado.endereco),
     ),
-    numero: limparParteEndereco(clienteAny.numero || enderecoClienteSeparado.numero || enderecoFallback.numero),
-    complemento: limparParteEndereco(clienteAny.complemento || enderecoClienteSeparado.complemento || enderecoFallback.complemento),
-    bairro: limparParteEndereco(clienteAny.bairro || enderecoClienteSeparado.bairro || enderecoFallback.bairro),
-    cidade: limparParteEndereco(clienteAny.cidade || enderecoClienteSeparado.cidade || enderecoFallback.cidade),
-    estado: limparParteEndereco(clienteAny.estado || enderecoClienteSeparado.estado || enderecoFallback.estado),
+    numero: limparParteEndereco(enderecoFallback.numero || clienteAny.numero || enderecoClienteSeparado.numero),
+    complemento: limparParteEndereco(enderecoFallback.complemento || clienteAny.complemento || enderecoClienteSeparado.complemento),
+    bairro: limparParteEndereco(enderecoFallback.bairro || clienteAny.bairro || enderecoClienteSeparado.bairro),
+    cidade: limparParteEndereco(enderecoFallback.cidade || clienteAny.cidade || enderecoClienteSeparado.cidade),
+    estado: limparParteEndereco(enderecoFallback.estado || clienteAny.estado || enderecoClienteSeparado.estado),
   }
 }
 
@@ -956,8 +969,16 @@ function montarParcelasPedidoAPartirDoOrcamento(
 function buscarOrcamentoOrigemUrl() {
   if (typeof window === 'undefined') return undefined
 
-  const parametros = new URLSearchParams(window.location.search)
-  const orcamentoId = parametros.get('orcamentoId') || ''
+  const parametrosPagina = new URLSearchParams(window.location.search)
+  const parametrosHash = new URLSearchParams(
+    window.location.hash.includes('?')
+      ? window.location.hash.slice(window.location.hash.indexOf('?'))
+      : '',
+  )
+  const orcamentoId =
+    parametrosHash.get('orcamentoId') ||
+    parametrosPagina.get('orcamentoId') ||
+    ''
 
   if (!orcamentoId) return undefined
 
@@ -976,12 +997,12 @@ function criarPedidoAPartirDoOrcamento(
   const enderecoEntrega = separarEnderecoOrcamentoParaPedido(
     orcamentoOrigem.enderecoEntrega || orcamentoOrigem.entregaEndereco || orcamentoOrigem.enderecoFaturamento || '',
   )
-  const enderecoFaturamentoFinal = montarEnderecoClienteSeparado(
+  const enderecoFaturamentoBase = montarEnderecoClienteSeparado(
     clienteBase,
     enderecoFaturamento,
     'faturamento',
   )
-  const enderecoEntregaFinal = montarEnderecoEntregaDoSnapshot(
+  const enderecoEntregaBase = montarEnderecoEntregaDoSnapshot(
     orcamentoOrigem.enderecoEntregaSnapshot,
     montarEnderecoClienteSeparado(
       clienteBase,
@@ -989,6 +1010,31 @@ function criarPedidoAPartirDoOrcamento(
       'entrega',
     ),
   )
+  const enderecoFaturamentoFinal = {
+    cep: limparParteEndereco(orcamentoOrigem.faturamentoCep || enderecoFaturamentoBase.cep),
+    endereco: limparLogradouroEntregaComposto(
+      orcamentoOrigem.faturamentoEndereco || enderecoFaturamentoBase.endereco,
+      orcamentoOrigem.faturamentoNumero || enderecoFaturamentoBase.numero,
+    ),
+    numero: limparParteEndereco(orcamentoOrigem.faturamentoNumero || enderecoFaturamentoBase.numero),
+    complemento: limparParteEndereco(orcamentoOrigem.faturamentoComplemento || enderecoFaturamentoBase.complemento),
+    bairro: limparParteEndereco(orcamentoOrigem.faturamentoBairro || enderecoFaturamentoBase.bairro),
+    cidade: limparParteEndereco(orcamentoOrigem.faturamentoCidade || enderecoFaturamentoBase.cidade),
+    estado: limparParteEndereco(orcamentoOrigem.faturamentoEstado || enderecoFaturamentoBase.estado),
+  }
+  const numeroEntregaOrigem = orcamentoOrigem.entregaNumero || enderecoEntregaBase.numero
+  const enderecoEntregaFinal = {
+    cep: limparParteEndereco(orcamentoOrigem.entregaCep || enderecoEntregaBase.cep),
+    endereco: limparLogradouroEntregaComposto(
+      orcamentoOrigem.entregaEndereco || enderecoEntregaBase.endereco,
+      numeroEntregaOrigem,
+    ),
+    numero: limparParteEndereco(numeroEntregaOrigem),
+    complemento: limparParteEndereco(orcamentoOrigem.entregaComplemento || enderecoEntregaBase.complemento),
+    bairro: limparParteEndereco(orcamentoOrigem.entregaBairro || enderecoEntregaBase.bairro),
+    cidade: limparParteEndereco(orcamentoOrigem.entregaCidade || enderecoEntregaBase.cidade),
+    estado: limparParteEndereco(orcamentoOrigem.entregaEstado || enderecoEntregaBase.estado),
+  }
   const pagamentosOrigem = Array.isArray(orcamentoOrigem.pagamentos)
     ? orcamentoOrigem.pagamentos
     : Array.isArray(orcamentoOrigem.parcelas)
@@ -1006,14 +1052,20 @@ function criarPedidoAPartirDoOrcamento(
   const dataInicial = orcamentoOrigem.dataEmissao || hoje()
   const tipoDescontoOrigem = String(orcamentoOrigem.tipoDesconto || '').toLowerCase()
   const descontoInformado = Number(orcamentoOrigem.descontoInformado || 0)
+  const numeroOrcamentoOrigem = String(
+    orcamentoOrigem.numeroOrcamento ||
+    orcamentoOrigem.numero ||
+    orcamentoOrigem.codigo ||
+    '',
+  ).trim()
 
   return {
     id: String(Date.now()),
     tipo: 'Pedido',
-    numeroOrcamento: orcamentoOrigem.numeroOrcamento || '',
+    numeroOrcamento: numeroOrcamentoOrigem,
     numeroPedido: gerarNumeroInicial(),
     orcamentoOrigemId: orcamentoOrigem.id || '',
-    orcamentoOrigemNumero: orcamentoOrigem.numeroOrcamento || '',
+    orcamentoOrigemNumero: numeroOrcamentoOrigem,
     dataEmissao: dataInicial,
     dataValidade: orcamentoOrigem.dataValidade || somarDiasUteis(dataInicial, 5),
     dataEntrega: orcamentoOrigem.dataEntrega || somarDiasUteis(dataInicial, 2),
@@ -1048,7 +1100,7 @@ function criarPedidoAPartirDoOrcamento(
       clienteAny.emailNotaFiscal ||
       clienteBase?.email ||
       '',
-    clienteTelefone: clienteBase?.telefone || clienteBase?.celular || '',
+    clienteTelefone: orcamentoOrigem.clienteTelefone || clienteBase?.telefone || clienteBase?.celular || '',
     clienteCreditoDisponivel: Number(clienteBase?.limiteCredito || 0),
     clienteEmailNotaFiscal: orcamentoOrigem.emailEnvio || orcamentoOrigem.clienteEmailNotaFiscal || orcamentoOrigem.clienteEmail || clienteBase?.email || '',
     emailEnvio: orcamentoOrigem.emailEnvio || orcamentoOrigem.clienteEmailNotaFiscal || orcamentoOrigem.clienteEmail || clienteBase?.email || '',
@@ -1173,6 +1225,10 @@ function PedidoForm() {
   const envioEmailAutomaticoExecutado = useRef(false)
   const cancelamentosBoletoEmAndamento = useRef(new Set<string>())
   const { id } = useParams()
+  const contaCobrancaAtrasoId = parametroUrlAtual('cobrancaAtraso')
+  const contaCobrancaAtraso = contaCobrancaAtrasoId
+    ? listarContasReceberStorage().find((conta) => String(conta.id) === contaCobrancaAtrasoId)
+    : undefined
 
   const vendaEncontrada = id ? buscarVendaStorage(id) : undefined
   const recargaPedidoExecutada = useRef(false)
@@ -1464,17 +1520,37 @@ function PedidoForm() {
   )
 
   useEffect(() => {
-    const copiasPedido = Array.isArray(venda.emailsCopiaEnvio)
-      ? venda.emailsCopiaEnvio
-      : []
-    const copiasCliente = Array.isArray(clienteSelecionado?.emailsCopiaDocumentos)
-      ? clienteSelecionado.emailsCopiaDocumentos
-      : []
+    if (!clienteSelecionado) return
+    const locais = normalizarEnderecosEntrega(clienteSelecionado)
+    const local = locais.find((item) => item.id === venda.enderecoEntregaId) ||
+      locais.find((item) => item.ativo)
+    const clienteComEmailFiscal = clienteSelecionado as Cliente & { emailNotaFiscal?: string }
+    const emailCorreto = String(
+      local?.emailEnvio || clienteComEmailFiscal.emailNotaFiscal || clienteSelecionado.email || '',
+    ).trim()
+    const copiasCorretas = Array.isArray(local?.emailsCopiaEnvio) && local.emailsCopiaEnvio.length
+      ? local.emailsCopiaEnvio
+      : Array.isArray(clienteSelecionado.emailsCopiaDocumentos)
+        ? clienteSelecionado.emailsCopiaDocumentos
+        : []
 
-    setEmailsCopiaTexto(
-      (copiasPedido.length ? copiasPedido : copiasCliente).join('; '),
-    )
-  }, [clienteSelecionado?.codigo, venda.id])
+    setEmailsCopiaTexto(copiasCorretas.join('; '))
+    setVenda((atual) => {
+      const copiasAtuais = Array.isArray(atual.emailsCopiaEnvio) ? atual.emailsCopiaEnvio : []
+      if (
+        atual.clienteEmail === emailCorreto &&
+        atual.clienteEmailNotaFiscal === emailCorreto &&
+        JSON.stringify(copiasAtuais) === JSON.stringify(copiasCorretas)
+      ) return atual
+      return {
+        ...atual,
+        clienteEmail: emailCorreto,
+        clienteEmailNotaFiscal: emailCorreto,
+        emailEnvio: emailCorreto,
+        emailsCopiaEnvio: copiasCorretas,
+      }
+    })
+  }, [clienteSelecionado, venda.enderecoEntregaId])
 
   function dinheiro(valor: number) {
     return Number(valor || 0).toLocaleString('pt-BR', {
@@ -1775,6 +1851,11 @@ function PedidoForm() {
       const locais = normalizarEnderecosEntrega(clienteServidor)
       const clienteAtualizado: Cliente = {
         ...clienteServidor,
+        email: emailPrincipal || clienteServidor.email || '',
+        emailNotaFiscal:
+          emailPrincipal ||
+          (clienteServidor as Cliente & { emailNotaFiscal?: string }).emailNotaFiscal ||
+          '',
         enderecosEntrega: enderecoId
           ? locais.map((local) => local.id === enderecoId
             ? { ...local, emailEnvio: emailPrincipal }
@@ -1821,11 +1902,20 @@ function PedidoForm() {
       }
     }
 
-    salvarVendaStorage(vendaAtualizada)
+    let vendaConfirmada = vendaAtualizada
+    try {
+      vendaConfirmada = await salvarVendaStorageConfirmado(vendaAtualizada)
+    } catch (erro) {
+      console.error('[Synergias ERP] Falha ao confirmar e-mails no pedido.', erro)
+      if (exibirAviso) {
+        alert('Os e-mails foram salvos no cliente, mas o pedido não foi confirmado pelo servidor. Tente novamente.')
+      }
+      return null
+    }
     setClientes(clientesAtualizados)
-    setVenda(vendaAtualizada)
+    setVenda(vendaConfirmada)
     setEmailsCopiaTexto(copias.join('; '))
-    return vendaAtualizada
+    return vendaConfirmada
   }
 
   function salvarEmailsFormaEnvioNoCliente(
@@ -2139,6 +2229,7 @@ function PedidoForm() {
     setClientes((clientesAtuais) => [...clientesAtuais, clienteSalvo])
 
     setClienteBusca(nome)
+    setEmailsCopiaTexto('')
     setVenda((atual) => ({
       ...atual,
       clienteCodigo: codigo,
@@ -2146,6 +2237,9 @@ function PedidoForm() {
       clienteDocumento: documento,
       clienteIeRg: '',
       clienteEmail: emailNotaFiscal || emailPrincipal,
+      clienteEmailNotaFiscal: emailNotaFiscal || emailPrincipal,
+      emailEnvio: emailNotaFiscal || emailPrincipal,
+      emailsCopiaEnvio: [],
       clienteTelefone: novoCliente.telefone.trim(),
       clienteCreditoDisponivel: 0,
       faturamentoCep: novoCliente.cep.trim(),
@@ -2181,10 +2275,17 @@ function PedidoForm() {
     }
 
     const nome = montarNomeCliente(cliente)
+    const locaisEntrega = normalizarEnderecosEntrega(cliente).filter((local) => local.ativo)
+    const localEntrega = locaisEntrega[0]
+    const emailSelecionado = String(localEntrega?.emailEnvio || cliente.email || '').trim()
+    const copiasSelecionadas = Array.isArray(cliente.emailsCopiaDocumentos)
+      ? cliente.emailsCopiaDocumentos
+      : []
 
     setClienteBusca(nome)
     setMostrarSugestoesCliente(false)
     destacarSugestao('cliente', -1)
+    setEmailsCopiaTexto(copiasSelecionadas.join('; '))
 
     setVenda((atual) => ({
       ...atual,
@@ -2194,7 +2295,10 @@ function PedidoForm() {
       clienteDocumento: somenteNumerosCredito(cliente.cnpj || cliente.cpf || ''),
       clienteIeRg: cliente.inscricaoEstadual || '',
       clienteIndicadorIE: cliente.indicadorIE || (somenteNumerosCredito(cliente.inscricaoEstadual || '') ? '1' : '9'),
-      clienteEmail: cliente.email || '',
+      clienteEmail: emailSelecionado,
+      clienteEmailNotaFiscal: emailSelecionado,
+      emailEnvio: emailSelecionado,
+      emailsCopiaEnvio: copiasSelecionadas,
       clienteTelefone: cliente.telefone || cliente.celular || '',
       clienteCreditoDisponivel: Number(cliente.limiteCredito || 0),
 
@@ -2207,14 +2311,18 @@ function PedidoForm() {
       faturamentoEstado: cliente.estado || '',
       faturamentoCodigoIbge: String((cliente as any).codigoIbgeMunicipio || ''),
 
-      entregaCep: cliente.cepEntrega || cliente.cep || '',
-      entregaEndereco: cliente.enderecoEntrega || cliente.endereco || '',
-      entregaNumero: cliente.numeroEntrega || cliente.numero || '',
+      enderecoEntregaId: localEntrega?.id || '',
+      enderecoEntregaNome: localEntrega?.nomeLocal || '',
+      enderecoEntregaSnapshot: localEntrega,
+      entregaCep: localEntrega?.cep || cliente.cepEntrega || cliente.cep || '',
+      entregaEndereco: localEntrega?.logradouro || cliente.enderecoEntrega || cliente.endereco || '',
+      entregaNumero: localEntrega?.numero || cliente.numeroEntrega || cliente.numero || '',
       entregaComplemento:
-        cliente.complementoEntrega || cliente.complemento || '',
-      entregaBairro: cliente.bairroEntrega || cliente.bairro || '',
-      entregaCidade: cliente.cidadeEntrega || cliente.cidade || '',
-      entregaEstado: cliente.estadoEntrega || cliente.estado || '',
+        localEntrega?.complemento || cliente.complementoEntrega || cliente.complemento || '',
+      entregaBairro: localEntrega?.bairro || cliente.bairroEntrega || cliente.bairro || '',
+      entregaCidade: localEntrega?.cidade || cliente.cidadeEntrega || cliente.cidade || '',
+      entregaEstado: localEntrega?.uf || cliente.estadoEntrega || cliente.estado || '',
+      entregaCodigoIbge: localEntrega?.codigoIbgeMunicipio || String((cliente as any).codigoIbgeMunicipioEntrega || ''),
     }))
   }
 
@@ -3724,9 +3832,20 @@ function PedidoForm() {
       }))
   }
 
+  function parcelasBoletoParaEmail(vendaBase: Venda) {
+    const parcelasGeradas = (vendaBase.parcelas || []).filter((parcela) => boletoFoiGerado(parcela))
+    if (!contaCobrancaAtraso) return parcelasGeradas
+    return parcelasGeradas.filter(
+      (parcela) => Number(parcela.numero) === Number(contaCobrancaAtraso.parcelaNumero),
+    )
+  }
+
   function montarAssuntoEmailNotaBoleto(vendaBase: Venda) {
     const pagamento = identificarPagamentoEmail(vendaBase)
     const numeroPedido = vendaBase.numeroPedido || vendaBase.id || ''
+    if (contaCobrancaAtraso) {
+      return `Pagamento pendente — NF-e ${vendaBase.numeroNotaFiscal || '-'} — Pedido ${numeroPedido}`
+    }
     return pagamento.ehBoleto
       ? `NF-e, XML e boletos — Pedido ${numeroPedido}`
       : `NF-e, XML e dados para pagamento — Pedido ${numeroPedido}`
@@ -3734,6 +3853,28 @@ function PedidoForm() {
 
   function montarTextoEmailNotaBoleto(vendaBase: Venda) {
     void SYNERGIAS_EMAIL_PIX_TRANSFERENCIA_COMPLETO_V264
+    if (contaCobrancaAtraso) {
+      return `Olá, ${vendaBase.clienteNome || 'cliente'},
+
+Identificamos que o pagamento abaixo continua pendente em nosso sistema:
+
+Pedido: ${vendaBase.numeroPedido || '-'}
+Nota Fiscal: ${vendaBase.numeroNotaFiscal || '-'}
+Vencimento: ${formatarDataBrasil(contaCobrancaAtraso.dataVencimento)}
+Valor em aberto: ${dinheiro(Number(contaCobrancaAtraso.saldoAberto || 0))}
+
+Para sua conferência, seguem anexos a Nota Fiscal e o boleto vencido.
+
+Caso o pagamento já tenha sido realizado, pedimos a gentileza de desconsiderar esta mensagem e, se possível, enviar o comprovante para conferência.
+
+Em caso de dúvida ou divergência, estamos à disposição.
+
+Atenciosamente,
+
+SYNERGIAS DISTRIBUIDORA
+Telefone/WhatsApp: ${EMPRESA_TELEFONE_WHATSAPP}
+E-mail: ${EMPRESA_EMAIL_FINANCEIRO}`
+    }
     const pagamento = identificarPagamentoEmail(vendaBase)
     const ehPagamentoBancario = pagamento.ehPix || pagamento.ehTransferencia
     const parcelas = montarParcelasEmail(vendaBase)
@@ -3805,6 +3946,9 @@ Endereço: ${EMPRESA_ENDERECO}`
   }
 
   function montarHtmlEmailNotaBoleto(vendaBase: Venda) {
+    if (contaCobrancaAtraso) {
+      return `<div style="font-family:Arial,sans-serif;color:#111827;font-size:15px;line-height:1.6;max-width:760px;"><div style="background:#f59e0b;color:#111827;text-align:center;padding:12px;font-weight:700;font-size:18px;">PAGAMENTO PENDENTE</div><div style="padding:28px 24px;"><p>Olá, <strong>${vendaBase.clienteNome || 'cliente'}</strong>,</p><p>Identificamos que o pagamento abaixo continua pendente em nosso sistema:</p><table style="border-collapse:collapse;width:100%;max-width:560px;margin:18px 0;"><tr><td style="border:1px solid #d1d5db;padding:8px;font-weight:700;">Pedido</td><td style="border:1px solid #d1d5db;padding:8px;">${vendaBase.numeroPedido || '-'}</td></tr><tr><td style="border:1px solid #d1d5db;padding:8px;font-weight:700;">Nota Fiscal</td><td style="border:1px solid #d1d5db;padding:8px;">${vendaBase.numeroNotaFiscal || '-'}</td></tr><tr><td style="border:1px solid #d1d5db;padding:8px;font-weight:700;">Vencimento</td><td style="border:1px solid #d1d5db;padding:8px;">${formatarDataBrasil(contaCobrancaAtraso.dataVencimento)}</td></tr><tr><td style="border:1px solid #d1d5db;padding:8px;font-weight:700;">Valor em aberto</td><td style="border:1px solid #d1d5db;padding:8px;"><strong>${dinheiro(Number(contaCobrancaAtraso.saldoAberto || 0))}</strong></td></tr></table><p>Para sua conferência, seguem anexos a <strong>Nota Fiscal</strong> e o <strong>boleto vencido</strong>.</p><p>Caso o pagamento já tenha sido realizado, pedimos a gentileza de desconsiderar esta mensagem e, se possível, enviar o comprovante para conferência.</p><p>Em caso de dúvida ou divergência, estamos à disposição.</p><p>Atenciosamente,</p><table style="border-collapse:collapse;margin-top:24px;border:1px solid #222;width:625px;max-width:100%;"><tr><td style="padding:16px;width:200px;text-align:center;border-right:1px solid #222;"><img src="cid:logoSynergias" alt="Synergias Distribuidora" style="max-width:155px;height:auto;"/></td><td style="padding:16px;"><strong>SYNERGIAS DISTRIBUIDORA</strong><br/>Telefone/WhatsApp: ${EMPRESA_TELEFONE_WHATSAPP}<br/>E-mail: ${EMPRESA_EMAIL_FINANCEIRO}</td></tr></table></div></div>`
+    }
     const pagamento = identificarPagamentoEmail(vendaBase)
     const ehPagamentoBancario = pagamento.ehPix || pagamento.ehTransferencia
     const dados = obterDadosPagamentoEmail(vendaBase)
@@ -4023,19 +4167,21 @@ Endereço: ${EMPRESA_ENDERECO}`
     const pagamento = identificarPagamentoEmail(vendaBase)
     if (!pagamento.ehBoleto) return vendaBase
 
-    const parcelasGeradas = (vendaBase.parcelas || []).filter((parcela) => boletoFoiGerado(parcela))
+    const parcelasGeradas = parcelasBoletoParaEmail(vendaBase)
     if (parcelasGeradas.length === 0) {
-      throw new Error('A forma de pagamento é BOLETO, mas nenhum boleto foi gerado para as parcelas deste pedido.')
+      throw new Error(contaCobrancaAtraso
+        ? 'O boleto vencido desta conta não foi localizado no pedido.'
+        : 'A forma de pagamento é BOLETO, mas nenhum boleto foi gerado para as parcelas deste pedido.')
     }
 
-    if (parcelasGeradas.length !== (vendaBase.parcelas || []).length) {
+    if (!contaCobrancaAtraso && parcelasGeradas.length !== (vendaBase.parcelas || []).length) {
       throw new Error(`Existem ${vendaBase.parcelas.length} parcelas, mas somente ${parcelasGeradas.length} boletos foram gerados. Emita todos os boletos antes de enviar o e-mail.`)
     }
 
     const parcelasAtualizadas = [...(vendaBase.parcelas || [])]
     for (let indice = 0; indice < parcelasAtualizadas.length; indice += 1) {
       const parcela = parcelasAtualizadas[indice]
-      if (!boletoFoiGerado(parcela)) continue
+      if (!parcelasGeradas.some((item) => Number(item.numero) === Number(parcela.numero))) continue
       if (parcela.boletoPdfBase64 || parcela.boletoPdfUrl || parcela.linkBoleto) continue
 
       const codigo = String(parcela.idCobrancaBanco || parcela.idCobrancaApi || '').trim()
@@ -4070,7 +4216,7 @@ Endereço: ${EMPRESA_ENDERECO}`
     const danfeOrigem = separarPdfBase64OuUrl(danfeAtualBase64)
     const pagamento = identificarPagamentoEmail(vendaBase)
     const parcelasBoleto = pagamento.ehBoleto
-      ? (vendaBase.parcelas || []).filter((parcela) => boletoFoiGerado(parcela))
+      ? parcelasBoletoParaEmail(vendaBase)
       : []
     const totalBoletos = parcelasBoleto.length
     const anexosBoleto = parcelasBoleto.map((parcela, indice) => {
@@ -4135,17 +4281,28 @@ Endereço: ${EMPRESA_ENDERECO}`
       notaBoletoEnviados: true,
       dataEnvioNotaBoleto: dataEnvio,
       canalEnvio: 'E-mail',
+      ...(contaCobrancaAtraso ? {
+        ultimaCobrancaAtrasoEm: new Date().toISOString(),
+        ultimaCobrancaAtrasoContaId: contaCobrancaAtraso.id,
+      } : {}),
       emailsCopiaEnvio: emailsCopiaNormalizados(),
       statusBoleto:
         vendaBase.statusBoleto === 'Gerado' ? 'Enviado' : vendaBase.statusBoleto,
       parcelas: (vendaBase.parcelas || []).map((parcela: ParcelaVenda) => ({
         ...parcela,
         statusBoleto:
-          parcela.statusBoleto === 'Gerado' ? 'Enviado' : parcela.statusBoleto,
+          parcela.statusBoleto === 'Gerado' &&
+          (!contaCobrancaAtraso || Number(parcela.numero) === Number(contaCobrancaAtraso.parcelaNumero))
+            ? 'Enviado'
+            : parcela.statusBoleto,
         dataEnvioBoleto:
-          parcela.statusBoleto === 'Gerado' ? dataEnvio : parcela.dataEnvioBoleto,
+          parcela.statusBoleto === 'Gerado' &&
+          (!contaCobrancaAtraso || Number(parcela.numero) === Number(contaCobrancaAtraso.parcelaNumero))
+            ? dataEnvio
+            : parcela.dataEnvioBoleto,
         horarioEnvioBoleto:
-          parcela.statusBoleto === 'Gerado'
+          parcela.statusBoleto === 'Gerado' &&
+          (!contaCobrancaAtraso || Number(parcela.numero) === Number(contaCobrancaAtraso.parcelaNumero))
             ? horarioEnvio
             : parcela.horarioEnvioBoleto,
       })),
@@ -4186,13 +4343,15 @@ Endereço: ${EMPRESA_ENDERECO}`
       return
     }
     const quantidadeBoletos = pagamentoEmail.ehBoleto
-      ? (vendaBase.parcelas || []).filter((parcela) => boletoFoiGerado(parcela)).length
+      ? parcelasBoletoParaEmail(vendaBase).length
       : 0
     const documentosConfirmacao = pagamentoEmail.ehPix
       ? 'Nota Fiscal, XML autorizado e dados para pagamento via PIX no corpo do e-mail'
       : pagamentoEmail.ehTransferencia
         ? 'Nota Fiscal, XML autorizado e dados para transferência bancária no corpo do e-mail'
-        : `Nota Fiscal, XML autorizado e ${quantidadeBoletos} boleto${quantidadeBoletos === 1 ? '' : 's'} anexado${quantidadeBoletos === 1 ? '' : 's'}`
+        : contaCobrancaAtraso
+          ? 'Nota Fiscal e boleto vencido'
+          : `Nota Fiscal, XML autorizado e ${quantidadeBoletos} boleto${quantidadeBoletos === 1 ? '' : 's'} anexado${quantidadeBoletos === 1 ? '' : 's'}`
 
     const confirmar = window.confirm(
       `Enviar ${documentosConfirmacao} para:\n\n${emailDestino}\n\nRemetente: ${EMPRESA_EMAIL_FINANCEIRO}`,

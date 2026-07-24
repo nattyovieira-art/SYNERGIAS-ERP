@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { HashRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import Login from './pages/Login/Login'
 import { authApi, type AuthUser } from './services/authApi'
 import { inicializarArmazenamentoCentral } from './services/erpApi'
@@ -40,6 +40,7 @@ import RelatorioDetalhe from './pages/Relatorios/RelatorioDetalhe'
 import Configuracoes from './pages/Configuracoes/Configuracoes'
 import ParametrosVendas from './pages/Configuracoes/ParametrosVendas'
 import Vendedores from './pages/Configuracoes/Vendedores'
+import Funcionarios from './pages/Configuracoes/Funcionarios'
 import FormasPagamento from './pages/Configuracoes/FormasPagamento'
 import ContasBancarias from './pages/Configuracoes/ContasBancarias'
 import CategoriasFinanceiras from './pages/Configuracoes/CategoriasFinanceiras'
@@ -138,11 +139,11 @@ function App() {
   }
 
   if (!authUser) {
-    return <BrowserRouter><Login onAuthenticated={aoAutenticar} /></BrowserRouter>
+    return <HashRouter><Login onAuthenticated={aoAutenticar} /></HashRouter>
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/painel" replace />} />
 
@@ -242,6 +243,7 @@ function App() {
 
         <Route path="/configuracoes/vendas/parametros" element={<ParametrosVendas />} />
         <Route path="/configuracoes/vendas/vendedores" element={<Vendedores />} />
+        <Route path="/configuracoes/funcionarios" element={<Funcionarios />} />
         <Route path="/configuracoes/financeiro/formas-pagamento" element={<FormasPagamento />} />
         <Route path="/configuracoes/financeiro/contas-bancarias" element={<ContasBancarias />} />
         <Route path="/configuracoes/financeiro/categorias" element={<CategoriasFinanceiras />} />
@@ -291,7 +293,7 @@ function App() {
 
         <Route path="*" element={<Navigate to="/painel" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 

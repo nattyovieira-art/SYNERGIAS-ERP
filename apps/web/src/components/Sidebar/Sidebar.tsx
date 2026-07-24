@@ -7,7 +7,6 @@ import {
   FileChartColumnIncreasing,
   Home,
   Package,
-  Route,
   Settings,
   ShoppingCart,
   Users,
@@ -25,7 +24,6 @@ function Sidebar() {
     { rota: '/compras', label: 'Compras', icon: ShoppingCart },
     { rota: '/estoque', label: 'Estoque', icon: Boxes },
     { rota: '/vendas', label: 'Vendas', icon: FileChartColumnIncreasing },
-    { rota: '/logistica', label: 'Logística', icon: Route },
     { rota: '/financeiro', label: 'Financeiro', icon: CircleDollarSign },
     { rota: '/fiscal', label: 'Fiscal', icon: Calculator },
     { rota: '/relatorios', label: 'Relatórios', icon: ClipboardList },
@@ -60,7 +58,7 @@ function Sidebar() {
               className={ativo ? 'active' : ''}
               onClick={() => navigate(rota)}
             >
-              <Icon size={19} />
+              <Icon size={rota === '/configuracoes' ? 22 : 19} />
               {label}
             </button>
           )

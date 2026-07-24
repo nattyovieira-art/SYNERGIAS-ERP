@@ -1388,7 +1388,10 @@ function OrcamentoForm() {
 
     setEnderecosEntregaDados(dadosAtualizados)
     setEnderecosEntregaLista(listaAtualizada)
-    if (indice === enderecoEntregaSelecionadoIndice) setEnderecoEntrega(enderecoFormatado)
+    if (indice === enderecoEntregaSelecionadoIndice) {
+      setEnderecoEntrega(enderecoFormatado)
+      if (campo === 'emailEnvio') setClienteEmailNotaFiscal(String(valor || '').trim())
+    }
   }
 
   async function consultarCepEnderecoEntrega(indice: number) {
@@ -2119,7 +2122,7 @@ function OrcamentoForm() {
     }
   }
 
-  function gerarPedido() {
+  async function gerarPedido() {
     const vendas = carregarVendasStorage() as Array<{
       tipo?: string
       id?: string
@@ -2144,8 +2147,11 @@ function OrcamentoForm() {
       return
     }
 
-    setStatus('Aprovado')
-    salvar('Aprovado', false, true)
+    const salvo = await salvar('Aprovado', false, true)
+    if (!salvo) {
+      alert('Não foi possível confirmar o orçamento no servidor. O pedido não foi criado.')
+      return
+    }
     navigate(`/vendas/pedidos/novo?orcamentoId=${idOrcamento}`)
   }
 
@@ -3732,6 +3738,7 @@ function abrirImpressaoOrcamento() {
                             <label><span>Cidade</span><input value={enderecosEntregaDados[indice]?.cidade || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'cidade', event.target.value)} /></label>
                             <label><span>UF</span><input maxLength={2} value={enderecosEntregaDados[indice]?.uf || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'uf', event.target.value.toUpperCase())} /></label>
                             <label><span>Código IBGE</span><input value={enderecosEntregaDados[indice]?.codigoIbgeMunicipio || ''} readOnly /></label>
+                            <label className="campo-logradouro"><span>E-mail deste endereço</span><input type="email" value={enderecosEntregaDados[indice]?.emailEnvio || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'emailEnvio', event.target.value)} placeholder="email@cliente.com.br" /></label>
                             <div className="endereco-entrega-editor-acoes">
                               <button
                                 type="button"

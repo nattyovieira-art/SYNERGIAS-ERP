@@ -107,6 +107,15 @@
   color: #ffffff;
 }
 
+.diarias-turno-overlay{position:fixed;inset:0;z-index:3000;display:grid;place-items:center;padding:20px;background:rgba(15,39,71,.58);backdrop-filter:blur(4px)}
+.diarias-turno-modal{width:min(590px,100%);border:1px solid #d9e4ef;border-radius:22px;padding:24px;background:#fff;box-shadow:0 28px 70px rgba(15,39,71,.3)}
+.diarias-turno-modal header,.diarias-turno-modal footer,.diarias-turno-lista article,.diarias-turno-lista article>div{display:flex;align-items:center}
+.diarias-turno-modal header{justify-content:space-between;gap:20px}.diarias-turno-modal header span{color:#64748b;font-size:12px;font-weight:800;text-transform:uppercase}.diarias-turno-modal h2{margin:4px 0 0;color:#0f2747}.diarias-turno-modal header>strong{color:#15803d;white-space:nowrap}
+.diarias-turno-modal>p{margin:22px 0 12px;color:#475569}.diarias-turno-lista{display:grid;gap:10px}.diarias-turno-lista article{justify-content:space-between;gap:15px;padding:14px;border:1px solid #dce5ef;border-radius:14px}.diarias-turno-lista article>div{gap:8px}
+.diarias-turno-lista button,.diarias-turno-modal footer button{border:1px solid #cbd5e1;border-radius:10px;padding:9px 12px;background:#fff;color:#475569;font-weight:800;cursor:pointer}.diarias-turno-lista .sim.ativo{border-color:#4ade80;background:#dcfce7;color:#166534}.diarias-turno-lista .nao.ativo{border-color:#94a3b8;background:#e2e8f0;color:#334155}
+.diarias-turno-modal footer{justify-content:flex-end;gap:10px;margin-top:20px}.diarias-turno-modal footer .diarias-confirmar{border-color:#15803d;background:#16a34a;color:#fff}
+@media(max-width:600px){.diarias-turno-modal header,.diarias-turno-lista article{align-items:stretch;flex-direction:column}.diarias-turno-lista article>div{display:grid;grid-template-columns:1fr 1fr}}
+
 .dashboard-main {
   min-width: 0;
   height: 100vh;
@@ -803,6 +812,58 @@
 .agenda-form > input {
   width: 100%;
   margin-bottom: 10px;
+}
+
+.agenda-tipo,
+.agenda-diaria-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.agenda-tipo button {
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #475569;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.agenda-tipo button.ativo {
+  border-color: #22c55e;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.agenda-diaria-row input {
+  width: 100%;
+  height: 42px;
+  box-sizing: border-box;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 11px;
+  padding: 0 12px;
+}
+
+.agenda-diaria-row strong {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid #bbf7d0;
+  border-radius: 11px;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.agenda-form-row select {
+  height: 42px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 11px;
+  background: #fff;
+  padding: 0 8px;
 }
 
 .agenda-form input:focus {

@@ -28,6 +28,8 @@ import Sidebar from '../../components/Sidebar/Sidebar'
 import ChartCard from '../../components/ChartCard/ChartCard'
 import SummaryQuickDrawer from '../../components/SummaryQuickDrawer/SummaryQuickDrawer'
 import { authApi } from '../../services/authApi'
+import { excluirDespesaDiaria, sincronizarDespesaDiaria } from '../../services/diariasFinanceiro'
+import { listarFuncionariosDiarias, type FuncionarioDiaria } from '../../services/funcionariosDiarias'
 import '../../styles/dashboard.css'
 
 type Periodo = '6m' | '12m' | 'ano'
@@ -41,6 +43,9 @@ type AgendaItem = {
   hora?: string
   concluido: boolean
   createdAt: string
+  tipo?: 'tarefa' | 'diaria'
+  funcionario?: string
+  valorDiaria?: number
 }
 
 type ProdutoCritico = {
@@ -53,6 +58,7 @@ type ProdutoCritico = {
 }
 
 const AGENDA_KEY = 'synergias_painel_agenda'
+const LEMBRETES_DIARIAS_KEY = 'synergias_lembretes_diarias'
 
 const CHAVES = {
   vendas: ['synergias_pedidos', 'pedidos', 'synergias_vendas', 'vendas', 'erp_pedidos'],
@@ -220,7 +226,13 @@ function Dashboard() {
   const [descricao, setDescricao] = useState('')
   const [data, setData] = useState(dataHoje())
   const [hora, setHora] = useState('')
+  const [tipoAgenda, setTipoAgenda] = useState<'tarefa' | 'diaria'>('tarefa')
+  const [funcionarioDiaria, setFuncionarioDiaria] = useState('')
+  const [valorDiaria, setValorDiaria] = useState('')
   const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [turnoDiariasAberto, setTurnoDiariasAberto] = useState<'12h' | '16h' | null>(null)
+  const [funcionariosTurno, setFuncionariosTurno] = useState<FuncionarioDiaria[]>([])
+  const [respostasDiarias, setRespostasDiarias] = useState<Record<string, boolean | null>>({})
   const [produtosRemotos, setProdutosRemotos] = useState<RegistroGenerico[] | null>(null)
   const [clientesRemotos, setClientesRemotos] = useState<RegistroGenerico[] | null>(null)
   const [notificacoesAbertas, setNotificacoesAbertas] = useState(false)
@@ -263,6 +275,109 @@ function Dashboard() {
   useEffect(() => {
     localStorage.setItem(AGENDA_KEY, JSON.stringify(agenda))
   }, [agenda])
+
+  useEffect(() => {
+    agenda
+      .filter((item) => item.tipo === 'diaria' && item.funcionario?.trim())
+      .forEach((item) => {
+        try {
+          sincronizarDespesaDiaria({
+            id: item.id,
+            data: item.data,
+            funcionario: item.funcionario || '',
+            valorDiaria: 50,
+            descricao: item.descricao,
+          })
+        } catch {
+          // Uma diária já paga permanece protegida e não deve ser regravada.
+        }
+      })
+  }, [agenda])
+
+  useEffect(() => {
+    function verificarLembretesDiarias() {
+      const agora = new Date()
+      const hoje = dataHoje()
+      const horaAtual = agora.getHours()
+      const turno = horaAtual >= 16 ? '16h' : horaAtual >= 12 ? '12h' : ''
+      if (!turno) return
+
+      let respondidos: Record<string, boolean> = {}
+      try {
+        respondidos = JSON.parse(localStorage.getItem(LEMBRETES_DIARIAS_KEY) || '{}')
+      } catch {
+        respondidos = {}
+      }
+      const chave = `${hoje}-${turno}`
+      if (respondidos[chave]) return
+
+      respondidos[chave] = true
+      localStorage.setItem(LEMBRETES_DIARIAS_KEY, JSON.stringify(respondidos))
+      const ativos = listarFuncionariosDiarias().filter((funcionario) => funcionario.ativo)
+      if (!ativos.length) return
+      setFuncionariosTurno(ativos)
+      setRespostasDiarias(Object.fromEntries(ativos.map((funcionario) => [funcionario.id, null])))
+      setTurnoDiariasAberto(turno as '12h' | '16h')
+    }
+
+    verificarLembretesDiarias()
+    const intervalo = window.setInterval(verificarLembretesDiarias, 60_000)
+    return () => window.clearInterval(intervalo)
+  }, [])
+
+  function confirmarTurnoDiarias() {
+    if (!turnoDiariasAberto) return
+    if (funcionariosTurno.some((funcionario) => respostasDiarias[funcionario.id] === null)) {
+      alert('Responda se cada funcionário trabalhou neste turno.')
+      return
+    }
+    const dataTurno = dataHoje()
+    const horaTurno = turnoDiariasAberto === '16h' ? '16:00' : '12:00'
+    const novos: AgendaItem[] = []
+    funcionariosTurno.forEach((funcionario) => {
+      if (!respostasDiarias[funcionario.id]) return
+      const jaExiste = agenda.some((item) =>
+        item.tipo === 'diaria' &&
+        item.data === dataTurno &&
+        item.hora === horaTurno &&
+        String(item.funcionario || '').trim().toLocaleLowerCase('pt-BR') === funcionario.nome.toLocaleLowerCase('pt-BR'))
+      if (jaExiste) return
+      const novo: AgendaItem = {
+        id: `diaria-${dataTurno}-${horaTurno.replace(':', '')}-${funcionario.id}`,
+        descricao: `Diária - ${funcionario.nome} - turno ${turnoDiariasAberto}`,
+        data: dataTurno,
+        hora: horaTurno,
+        concluido: false,
+        createdAt: new Date().toISOString(),
+        tipo: 'diaria',
+        funcionario: funcionario.nome,
+        valorDiaria: 50,
+      }
+      sincronizarDespesaDiaria({ id: novo.id, data: novo.data, funcionario: funcionario.nome, valorDiaria: 50, descricao: novo.descricao })
+      novos.push(novo)
+    })
+    if (novos.length) setAgenda((atual) => [...atual, ...novos])
+    setTurnoDiariasAberto(null)
+    setFuncionariosTurno([])
+    setRespostasDiarias({})
+    setAgendaAberta(true)
+  }
+
+  function responderTurnoDepois() {
+    if (turnoDiariasAberto) {
+      let respondidos: Record<string, boolean> = {}
+      try {
+        respondidos = JSON.parse(localStorage.getItem(LEMBRETES_DIARIAS_KEY) || '{}')
+      } catch {
+        respondidos = {}
+      }
+      delete respondidos[`${dataHoje()}-${turnoDiariasAberto}`]
+      localStorage.setItem(LEMBRETES_DIARIAS_KEY, JSON.stringify(respondidos))
+    }
+    setTurnoDiariasAberto(null)
+    setFuncionariosTurno([])
+    setRespostasDiarias({})
+  }
 
   useEffect(() => {
     function fecharAoClicarFora(evento: MouseEvent) {
@@ -422,31 +537,67 @@ function Dashboard() {
     setDescricao('')
     setData(dataHoje())
     setHora('')
+    setTipoAgenda('tarefa')
+    setFuncionarioDiaria('')
+    setValorDiaria('')
     setEditandoId(null)
   }
 
   function salvarAgenda() {
     const descricaoLimpa = descricao.trim()
-    if (!descricaoLimpa || !data) return
+    if (!data) return
+    const valorNumerico = tipoAgenda === 'diaria' ? 50 : Number(String(valorDiaria).replace(',', '.'))
+    if (tipoAgenda === 'tarefa' && !descricaoLimpa) return
+    if (tipoAgenda === 'diaria' && !funcionarioDiaria.trim()) {
+      alert('Informe o funcionário da diária.')
+      return
+    }
 
     if (editandoId) {
-      setAgenda((atual) =>
-        atual.map((item) =>
-          item.id === editandoId ? { ...item, descricao: descricaoLimpa, data, hora: hora || undefined } : item,
-        ),
-      )
+      const anterior = agenda.find((item) => item.id === editandoId)
+      const atualizado: AgendaItem = {
+        ...(anterior as AgendaItem),
+        descricao: descricaoLimpa || `Diária - ${funcionarioDiaria.trim()}`,
+        data,
+        hora: hora || undefined,
+        tipo: tipoAgenda,
+        funcionario: tipoAgenda === 'diaria' ? funcionarioDiaria.trim() : undefined,
+        valorDiaria: tipoAgenda === 'diaria' ? valorNumerico : undefined,
+      }
+      try {
+        if (anterior?.tipo === 'diaria' && tipoAgenda !== 'diaria') excluirDespesaDiaria(editandoId)
+        if (tipoAgenda === 'diaria') sincronizarDespesaDiaria({
+          id: atualizado.id,
+          data: atualizado.data,
+          funcionario: atualizado.funcionario || '',
+          valorDiaria: atualizado.valorDiaria || 0,
+          descricao: atualizado.descricao,
+        })
+        setAgenda((atual) => atual.map((item) => item.id === editandoId ? atualizado : item))
+      } catch (erro) {
+        alert(erro instanceof Error ? erro.message : 'Não foi possível atualizar a despesa da diária.')
+        return
+      }
     } else {
-      setAgenda((atual) => [
-        ...atual,
-        {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          descricao: descricaoLimpa,
-          data,
-          hora: hora || undefined,
-          concluido: false,
-          createdAt: new Date().toISOString(),
-        },
-      ])
+      const novo: AgendaItem = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        descricao: descricaoLimpa || `Diária - ${funcionarioDiaria.trim()}`,
+        data,
+        hora: hora || undefined,
+        concluido: false,
+        createdAt: new Date().toISOString(),
+        tipo: tipoAgenda,
+        funcionario: tipoAgenda === 'diaria' ? funcionarioDiaria.trim() : undefined,
+        valorDiaria: tipoAgenda === 'diaria' ? valorNumerico : undefined,
+      }
+      if (tipoAgenda === 'diaria') sincronizarDespesaDiaria({
+        id: novo.id,
+        data: novo.data,
+        funcionario: novo.funcionario || '',
+        valorDiaria: novo.valorDiaria || 0,
+        descricao: novo.descricao,
+      })
+      setAgenda((atual) => [...atual, novo])
     }
 
     limparFormularioAgenda()
@@ -457,6 +608,18 @@ function Dashboard() {
     setDescricao(item.descricao)
     setData(item.data)
     setHora(item.hora || '')
+    setTipoAgenda(item.tipo || 'tarefa')
+    setFuncionarioDiaria(item.funcionario || '')
+    setValorDiaria(item.tipo === 'diaria' ? '50' : '')
+  }
+
+  function excluirAgenda(item: AgendaItem) {
+    try {
+      if (item.tipo === 'diaria') excluirDespesaDiaria(item.id)
+      setAgenda((atual) => atual.filter((registro) => registro.id !== item.id))
+    } catch (erro) {
+      alert(erro instanceof Error ? erro.message : 'Não foi possível excluir a diária.')
+    }
   }
 
   async function sair() {
@@ -501,6 +664,9 @@ function Dashboard() {
                   <span>
                     {new Date(`${item.data}T12:00:00`).toLocaleDateString('pt-BR')}
                     {item.hora ? ` · ${item.hora}` : ''}
+                    {item.tipo === 'diaria'
+                      ? ` · ${item.funcionario} · ${Number(item.valorDiaria || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
+                      : ''}
                   </span>
                 </div>
 
@@ -508,7 +674,7 @@ function Dashboard() {
                   <button type="button" title="Editar" onClick={() => editarAgenda(item)}>
                     <Edit3 size={16} />
                   </button>
-                  <button type="button" title="Excluir" className="danger" onClick={() => setAgenda((atual) => atual.filter((registro) => registro.id !== item.id))}>
+                  <button type="button" title="Excluir" className="danger" onClick={() => excluirAgenda(item)}>
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -824,16 +990,28 @@ function Dashboard() {
             {agendaAberta && (
               <div className="agenda-content">
                 <div className="agenda-form">
+                  <div className="agenda-tipo">
+                    <button type="button" className={tipoAgenda === 'tarefa' ? 'ativo' : ''} onClick={() => setTipoAgenda('tarefa')}>Tarefa</button>
+                    <button type="button" className={tipoAgenda === 'diaria' ? 'ativo' : ''} onClick={() => setTipoAgenda('diaria')}>Diária de funcionário</button>
+                  </div>
+                  {tipoAgenda === 'diaria' && (
+                    <div className="agenda-diaria-row">
+                      <input value={funcionarioDiaria} onChange={(event) => setFuncionarioDiaria(event.target.value)} placeholder="Nome do funcionário" />
+                      <strong>Valor do turno: R$ 50,00</strong>
+                    </div>
+                  )}
                   <input
                     value={descricao}
                     onChange={(event) => setDescricao(event.target.value)}
-                    placeholder="O que você precisa fazer?"
+                    placeholder={tipoAgenda === 'diaria' ? 'Observação da diária (opcional)' : 'O que você precisa fazer?'}
                     onKeyDown={(event) => { if (event.key === 'Enter') salvarAgenda() }}
                   />
 
                   <div className="agenda-form-row">
                     <input type="date" value={data} onChange={(event) => setData(event.target.value)} />
-                    <input type="time" value={hora} onChange={(event) => setHora(event.target.value)} />
+                    {tipoAgenda === 'diaria'
+                      ? <select value={hora || '12:00'} onChange={(event) => setHora(event.target.value)}><option value="12:00">Turno 12h</option><option value="16:00">Turno 16h</option></select>
+                      : <input type="time" value={hora} onChange={(event) => setHora(event.target.value)} />}
                     <button type="button" className="agenda-save" onClick={salvarAgenda} title={editandoId ? 'Salvar edição' : 'Adicionar tarefa'}>
                       {editandoId ? <Check size={19} /> : <Plus size={19} />}
                     </button>
@@ -853,6 +1031,26 @@ function Dashboard() {
           </article>
         </section>
       </section>
+      {turnoDiariasAberto && (
+        <div className="diarias-turno-overlay" role="dialog" aria-modal="true" aria-labelledby="diarias-turno-titulo">
+          <section className="diarias-turno-modal">
+            <header><div><span>Diárias de funcionários</span><h2 id="diarias-turno-titulo">Turno das {turnoDiariasAberto}</h2></div><strong>R$ 50,00 por funcionário</strong></header>
+            <p>Informe quem trabalhou neste turno:</p>
+            <div className="diarias-turno-lista">
+              {funcionariosTurno.map((funcionario) => (
+                <article key={funcionario.id}>
+                  <strong>{funcionario.nome}</strong>
+                  <div>
+                    <button type="button" className={respostasDiarias[funcionario.id] === true ? 'sim ativo' : 'sim'} onClick={() => setRespostasDiarias((atuais) => ({ ...atuais, [funcionario.id]: true }))}>Sim, trabalhou</button>
+                    <button type="button" className={respostasDiarias[funcionario.id] === false ? 'nao ativo' : 'nao'} onClick={() => setRespostasDiarias((atuais) => ({ ...atuais, [funcionario.id]: false }))}>Não trabalhou</button>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <footer><button type="button" className="diarias-depois" onClick={responderTurnoDepois}>Responder depois</button><button type="button" className="diarias-confirmar" onClick={confirmarTurnoDiarias}>Confirmar turno</button></footer>
+          </section>
+        </div>
+      )}
     </main>
   )
 }

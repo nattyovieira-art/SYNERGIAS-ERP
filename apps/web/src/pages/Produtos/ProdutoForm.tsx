@@ -166,7 +166,7 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
     margemLucroVarejo: produtoEncontrado?.margemLucroVarejo || 0,
 
     margemAutomaticaAtacado:
-      produtoEncontrado?.margemAutomaticaAtacado ?? 28,
+      Math.max(30, produtoEncontrado?.margemAutomaticaAtacado ?? 30),
     vendaAtacado: produtoEncontrado?.vendaAtacado || 0,
     margemLucroAtacado: produtoEncontrado?.margemLucroAtacado || 0,
 
@@ -234,13 +234,13 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
     return custo + custo * (margem / 100)
   }
 
-  function calcularPrecoMinimoVarejo(custo: number) {
+  function calcularPrecoMinimo(custo: number) {
     if (!Number.isFinite(custo) || custo <= 0) return 0
     return Math.ceil(custo * 1.3 * 100) / 100
   }
 
-  function garantirPrecoMinimoVarejo(valorVenda: number, custo: number) {
-    return Math.max(Number(valorVenda || 0), calcularPrecoMinimoVarejo(custo))
+  function garantirPrecoMinimo(valorVenda: number, custo: number) {
+    return Math.max(Number(valorVenda || 0), calcularPrecoMinimo(custo))
   }
 
   function calcularMargemLucro(custo: number, venda: number) {
@@ -249,14 +249,14 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
   }
 
   function alterarCusto(valor: number) {
-    const vendaVarejo = garantirPrecoMinimoVarejo(
+    const vendaVarejo = garantirPrecoMinimo(
       Number(produto.vendaVarejo || 0),
       valor,
     )
 
-    const vendaAtacado = calcularVendaPelaMargem(
+    const vendaAtacado = garantirPrecoMinimo(
+      Number(produto.vendaAtacado || 0),
       valor,
-      Number(produto.margemAutomaticaAtacado || 0)
     )
 
     setProduto((atual) => ({
@@ -280,7 +280,7 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
     const vendaVarejo = Math.max(
       Number(produto.vendaVarejo || 0),
       calcularVendaPelaMargem(Number(produto.custo || 0), margemProtegida),
-      calcularPrecoMinimoVarejo(Number(produto.custo || 0)),
+      calcularPrecoMinimo(Number(produto.custo || 0)),
     )
 
     setProduto((atual) => ({
@@ -295,14 +295,15 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
   }
 
   function alterarMargemAtacado(valor: number) {
+    const margemProtegida = Math.max(30, Number(valor || 0))
     const vendaAtacado = calcularVendaPelaMargem(
       Number(produto.custo || 0),
-      valor
+      margemProtegida
     )
 
     setProduto((atual) => ({
       ...atual,
-      margemAutomaticaAtacado: valor,
+      margemAutomaticaAtacado: margemProtegida,
       vendaAtacado,
       margemLucroAtacado: calcularMargemLucro(
         Number(produto.custo || 0),
@@ -313,7 +314,7 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
 
   function alterarVendaVarejo(valor: number) {
     const custo = Number(produto.custoMedioAtual ?? produto.custo ?? 0)
-    const vendaProtegida = garantirPrecoMinimoVarejo(valor, custo)
+    const vendaProtegida = garantirPrecoMinimo(valor, custo)
 
     setProduto((atual) => ({
       ...atual,
@@ -323,12 +324,14 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
   }
 
   function alterarVendaAtacado(valor: number) {
+    const custo = Number(produto.custoMedioAtual ?? produto.custo ?? 0)
+    const vendaProtegida = garantirPrecoMinimo(valor, custo)
     setProduto((atual) => ({
       ...atual,
-      vendaAtacado: valor,
+      vendaAtacado: vendaProtegida,
       margemLucroAtacado: calcularMargemLucro(
-        Number(produto.custo || 0),
-        valor
+        custo,
+        vendaProtegida
       ),
     }))
   }
@@ -578,8 +581,12 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
     if (!validarCodigoBarrasProduto()) return
 
     const custoReferencia = Number(produto.custoMedioAtual ?? produto.custo ?? 0)
-    const vendaVarejo = garantirPrecoMinimoVarejo(
+    const vendaVarejo = garantirPrecoMinimo(
       Number(produto.vendaVarejo || 0),
+      custoReferencia,
+    )
+    const vendaAtacado = garantirPrecoMinimo(
+      Number(produto.vendaAtacado || 0),
       custoReferencia,
     )
 
@@ -589,6 +596,9 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
       margemAutomaticaVarejo: Math.max(30, Number(produto.margemAutomaticaVarejo || 0)),
       vendaVarejo,
       margemLucroVarejo: calcularMargemLucro(custoReferencia, vendaVarejo),
+      margemAutomaticaAtacado: Math.max(30, Number(produto.margemAutomaticaAtacado || 0)),
+      vendaAtacado,
+      margemLucroAtacado: calcularMargemLucro(custoReferencia, vendaAtacado),
       codigoBarras: String(produto.codigoBarras || '').replace(/\D/g, ''),
     })
     alert('Produto salvo com sucesso!')
@@ -598,8 +608,12 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
     if (!validarCodigoBarrasProduto()) return
 
     const custoReferencia = Number(produto.custoMedioAtual ?? produto.custo ?? 0)
-    const vendaVarejo = garantirPrecoMinimoVarejo(
+    const vendaVarejo = garantirPrecoMinimo(
       Number(produto.vendaVarejo || 0),
+      custoReferencia,
+    )
+    const vendaAtacado = garantirPrecoMinimo(
+      Number(produto.vendaAtacado || 0),
       custoReferencia,
     )
 
@@ -609,6 +623,9 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
       margemAutomaticaVarejo: Math.max(30, Number(produto.margemAutomaticaVarejo || 0)),
       vendaVarejo,
       margemLucroVarejo: calcularMargemLucro(custoReferencia, vendaVarejo),
+      margemAutomaticaAtacado: Math.max(30, Number(produto.margemAutomaticaAtacado || 0)),
+      vendaAtacado,
+      margemLucroAtacado: calcularMargemLucro(custoReferencia, vendaAtacado),
       codigoBarras: String(produto.codigoBarras || '').replace(/\D/g, ''),
     })
     alert('Produto salvo com sucesso!')
@@ -1146,7 +1163,8 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
               Margem automática atacado %
               <input
                 type="number"
-                value={produto.margemAutomaticaAtacado || 0}
+                min={30}
+                value={Math.max(30, Number(produto.margemAutomaticaAtacado || 0))}
                 onChange={(e) =>
                   alterarMargemAtacado(Number(e.target.value))
                 }

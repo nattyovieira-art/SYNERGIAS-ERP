@@ -25,6 +25,7 @@ export type EnderecoEntregaCliente = {
   celular: string
   horarioEntrega: string
   emailEnvio: string
+  emailsCopiaEnvio?: string[]
   observacoes: string
   ativo: boolean
 }
@@ -49,6 +50,7 @@ export type Cliente = {
   celular?: string
   celularWhatsapp?: string
   email?: string
+  emailNotaFiscal?: string
   emailsCopiaDocumentos?: string[]
   horarioEntrega?: string
 

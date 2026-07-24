@@ -49,7 +49,7 @@ function numeroSeguro(valor: unknown) {
 }
 
 
-function calcularPrecoMinimoVarejo(custo: number) {
+function calcularPrecoMinimo(custo: number) {
   if (!Number.isFinite(custo) || custo <= 0) return 0
   return Math.ceil(custo * 1.3 * 100) / 100
 }
@@ -123,14 +123,14 @@ function normalizarProduto(produto: any, produtosExistentes: Produto[] = []): Pr
     numeroSeguro(produto?.valorUnitario) ||
     numeroSeguro(produto?.valor)
 
-  const precoMinimoVarejo = calcularPrecoMinimoVarejo(custoMedioAtual || custo)
-  const vendaVarejo = Math.max(vendaVarejoInformada, precoMinimoVarejo)
+  const precoMinimo = calcularPrecoMinimo(custoMedioAtual || custo)
+  const vendaVarejo = Math.max(vendaVarejoInformada, precoMinimo)
   const margemAutomaticaVarejo = Math.max(
     30,
     numeroSeguro(produto?.margemAutomaticaVarejo) || 30,
   )
 
-  const vendaAtacado = numeroSeguro(produto?.vendaAtacado)
+  const vendaAtacado = Math.max(numeroSeguro(produto?.vendaAtacado), precoMinimo)
 
   const estoqueAtual =
     produto?.estoqueAtual !== undefined
@@ -184,9 +184,12 @@ function normalizarProduto(produto: any, produtosExistentes: Produto[] = []): Pr
     vendaVarejo,
     margemLucroVarejo: calcularMargemLucro(custoMedioAtual || custo, vendaVarejo),
 
-    margemAutomaticaAtacado: numeroSeguro(produto?.margemAutomaticaAtacado) || 28,
+    margemAutomaticaAtacado: Math.max(
+      30,
+      numeroSeguro(produto?.margemAutomaticaAtacado) || 30,
+    ),
     vendaAtacado,
-    margemLucroAtacado: numeroSeguro(produto?.margemLucroAtacado),
+    margemLucroAtacado: calcularMargemLucro(custoMedioAtual || custo, vendaAtacado),
 
     quantidadeMinimaAtacado: numeroSeguro(produto?.quantidadeMinimaAtacado),
 
@@ -284,7 +287,7 @@ export function corrigirPrecosMinimosProdutosStorage() {
 
   const atualizados = produtos.map((produto) => {
     const custo = numeroSeguro(produto.custoMedioAtual) || numeroSeguro(produto.custo)
-    const minimo = calcularPrecoMinimoVarejo(custo)
+    const minimo = calcularPrecoMinimo(custo)
     const vendaAtual = numeroSeguro(produto.vendaVarejo)
 
     if (minimo <= 0 || vendaAtual >= minimo) {

@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Mail,
   Printer,
+  Route,
 } from 'lucide-react'
 
 import Sidebar from '../../components/Sidebar/Sidebar'
@@ -394,6 +395,7 @@ function obterInscricaoEstadual(venda: VendaLista) {
 
 function obterStatusPagamento(venda: VendaLista) {
   if (pedidoFoiCancelado(venda)) return 'CANCELADO'
+  if (pagamentoDispensaBoleto(venda)) return 'PAGO'
   const parcelas = Array.isArray(venda.parcelas) ? venda.parcelas : []
   if (parcelas.length === 0) return 'PENDENTE'
   return parcelas.every((parcela) => {
@@ -402,15 +404,63 @@ function obterStatusPagamento(venda: VendaLista) {
   }) ? 'PAGO' : 'PENDENTE'
 }
 
+function pagamentoDispensaBoleto(venda: VendaLista) {
+  const registro = venda as any
+  const formas = [
+    registro.formaPagamento,
+    registro.tipoCobranca,
+    registro.condicaoPagamento,
+    ...(Array.isArray(registro.pagamentos)
+      ? registro.pagamentos.flatMap((pagamento: any) => [
+          pagamento?.formaPagamento,
+          pagamento?.tipoCobranca,
+        ])
+      : []),
+    ...(Array.isArray(venda.parcelas)
+      ? venda.parcelas.flatMap((parcela: any) => [
+          parcela?.formaPagamento,
+          parcela?.tipoCobranca,
+        ])
+      : []),
+  ].map(normalizarTexto).filter(Boolean)
+  return formas.some((forma) => forma.includes('pix') || forma.includes('transfer'))
+}
+
 function pedidoTemBoletoEmitido(venda: VendaLista) {
-  return Array.isArray(venda.parcelas) && venda.parcelas.length > 0
+  const registro = venda as any
+  const statusGeral = normalizarTexto(registro.statusBoleto)
+  const statusReconhecido = ['gerado', 'enviado', 'pago', 'vencido'].some((status) =>
+    statusGeral.includes(status),
+  )
+  const totalReconhecido = Number(registro.totalBoletosGerados || 0) > 0
+  const parcelaReconhecida = Array.isArray(venda.parcelas) && venda.parcelas.some((parcela: any) => {
+    const status = normalizarTexto(parcela?.statusBoleto)
+    return (
+      ['gerado', 'enviado', 'pago', 'vencido'].some((valor) => status.includes(valor)) ||
+      Boolean(
+        parcela?.idCobrancaBanco ||
+        parcela?.idCobrancaApi ||
+        parcela?.numeroBoleto ||
+        parcela?.nossoNumero ||
+        parcela?.seuNumero ||
+        parcela?.linhaDigitavel ||
+        parcela?.codigoBarras ||
+        parcela?.linkBoleto ||
+        parcela?.boletoPdfUrl ||
+        parcela?.boletoPdfBase64 ||
+        parcela?.dataGeracaoBoleto
+      )
+    )
+  })
+  return statusReconhecido || totalReconhecido || parcelaReconhecida
 }
 function pedidoFoiCancelado(venda: VendaLista) {
   return [venda.statusPedido, venda.status]
     .some((status) => normalizarTexto(status).includes('cancel'))
 }
 function pedidoFoiEntregue(venda: VendaLista) {
-  return normalizarTexto(venda.statusPedido) === 'entregue' || Boolean(venda.estoqueBaixado) || Boolean(venda.dataEntregaRealizada)
+  const status = normalizarTexto(venda.statusPedido)
+  return ['entregue', 'concluido'].includes(status) || Boolean(venda.estoqueBaixado) || Boolean(venda.dataEntregaRealizada)
 }
 function obterStatusVisualPedido(venda: VendaLista) {
   if (pedidoFoiCancelado(venda)) {
@@ -418,7 +468,7 @@ function obterStatusVisualPedido(venda: VendaLista) {
   }
 
   const nfeEmitida = Boolean(obterNumeroNfe(venda))
-  const boletoEmitido = pedidoTemBoletoEmitido(venda)
+  const boletoEmitido = pagamentoDispensaBoleto(venda) || pedidoTemBoletoEmitido(venda)
   const entregue = pedidoFoiEntregue(venda)
 
   const etapasConcluidas = [nfeEmitida, boletoEmitido, entregue].filter(Boolean).length
@@ -1052,6 +1102,17 @@ function Vendas() {
             </div>
 
             <div className="vendas-toolbar-acoes-direita">
+              <button
+                type="button"
+                className="vendas-btn-logistica"
+                onClick={() => navigate('/logistica')}
+                title="Logística"
+                aria-label="Abrir Logística"
+              >
+                <Route size={22} strokeWidth={2} aria-hidden="true" />
+                <span>LOGÍSTICA</span>
+              </button>
+
               <button type="button" className={`vendas-filter-toggle ${filtroStatus !== 'TODOS' || dataInicio || dataFim || filtroCliente || filtroVendedor || filtroVinculo !== 'TODOS' ? 'ativo' : ''}`} onClick={() => setMostrarFiltros((atual) => !atual)} title="Filtro">
                 <Filter size={25} strokeWidth={2.35} />
               </button>
