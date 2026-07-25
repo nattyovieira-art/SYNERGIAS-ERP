@@ -744,11 +744,32 @@
 .contas-receber-tabela :is(th, td):nth-child(1) { width: 10%; }
 .contas-receber-tabela :is(th, td):nth-child(2) { width: 22%; }
 .contas-receber-tabela :is(th, td):nth-child(3) { width: 17%; }
-.contas-receber-tabela :is(th, td):nth-child(4) { width: 18%; }
+.contas-receber-tabela :is(th, td):nth-child(4) { width: 13%; }
 .contas-receber-tabela :is(th, td):nth-child(5) { width: 8%; }
 .contas-receber-tabela :is(th, td):nth-child(6) { width: 8%; }
 .contas-receber-tabela :is(th, td):nth-child(7) { width: 10%; }
-.contas-receber-tabela :is(th, td):nth-child(8) { width: 7%; }
+.contas-receber-tabela :is(th, td):nth-child(8) { width: 12%; }
+
+.contas-receber-tabela :is(th, td):nth-child(8) {
+  text-align: center;
+}
+
+.contas-receber-tabela td:nth-child(8) .financeiro-acoes {
+  justify-content: center;
+  flex-wrap: nowrap;
+}
+
+.contas-receber-tabela td:nth-child(8) .financeiro-acoes button {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+}
+
+.contas-receber-tabela td:nth-child(8) .financeiro-acoes button svg {
+  width: 20px;
+  height: 20px;
+}
 
 .contas-receber-tabela :is(th, td) {
   padding-inline: 10px;

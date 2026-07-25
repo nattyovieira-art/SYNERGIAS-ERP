@@ -120,10 +120,25 @@
 
 .orcamento-card-header {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 1fr 260px;
   gap: 22px;
   align-items: end;
   margin-bottom: 24px;
+}
+
+.orcamento-card-header > div:first-child {
+  grid-column: 2;
+}
+
+.orcamento-card-header > div:nth-child(2) {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.orcamento-status-indicador {
+  display: block;
+  width: 100%;
+  text-align: center;
 }
 
 .orcamento-label {

@@ -1557,13 +1557,36 @@ function PedidoForm() {
     setEmailsCopiaTexto(copiasCorretas.join('; '))
     setVenda((atual) => {
       const copiasAtuais = Array.isArray(atual.emailsCopiaEnvio) ? atual.emailsCopiaEnvio : []
+      const clienteAny = clienteSelecionado as Cliente & { documento?: string; logradouro?: string; uf?: string; codigoIbgeMunicipio?: string }
+      const documentoAtual = somenteNumerosCredito(atual.clienteDocumento || '')
+      const documentoCadastro = somenteNumerosCredito(
+        clienteSelecionado.cnpj || clienteSelecionado.cpf || clienteAny.documento || '',
+      )
+      const documentoCorreto = [documentoAtual, documentoCadastro]
+        .find((documento) => documento.length === 11 || documento.length === 14) || documentoCadastro || documentoAtual
+      const primeiroTexto = (...valores: Array<string | number | undefined | null>) =>
+        valores.map((valor) => String(valor ?? '').trim()).find(Boolean) || ''
+      const dadosCadastro = {
+        clienteDocumento: documentoCorreto,
+        clienteTelefone: primeiroTexto(atual.clienteTelefone, clienteSelecionado.telefone, clienteSelecionado.celular),
+        faturamentoCep: primeiroTexto(atual.faturamentoCep, clienteSelecionado.cep),
+        faturamentoEndereco: primeiroTexto(atual.faturamentoEndereco, clienteSelecionado.endereco, clienteAny.logradouro),
+        faturamentoNumero: primeiroTexto(atual.faturamentoNumero, clienteSelecionado.numero),
+        faturamentoComplemento: primeiroTexto(atual.faturamentoComplemento, clienteSelecionado.complemento),
+        faturamentoBairro: primeiroTexto(atual.faturamentoBairro, clienteSelecionado.bairro),
+        faturamentoCidade: primeiroTexto(atual.faturamentoCidade, clienteSelecionado.cidade),
+        faturamentoCodigoIbge: primeiroTexto(atual.faturamentoCodigoIbge, clienteAny.codigoIbgeMunicipio),
+        faturamentoEstado: primeiroTexto(atual.faturamentoEstado, clienteSelecionado.estado, clienteAny.uf).toUpperCase().slice(0, 2),
+      }
       if (
         atual.clienteEmail === emailCorreto &&
         atual.clienteEmailNotaFiscal === emailCorreto &&
-        JSON.stringify(copiasAtuais) === JSON.stringify(copiasCorretas)
+        JSON.stringify(copiasAtuais) === JSON.stringify(copiasCorretas) &&
+        Object.entries(dadosCadastro).every(([campo, valor]) => String((atual as any)[campo] || '') === String(valor || ''))
       ) return atual
       return {
         ...atual,
+        ...dadosCadastro,
         clienteEmail: emailCorreto,
         clienteEmailNotaFiscal: emailCorreto,
         emailEnvio: emailCorreto,

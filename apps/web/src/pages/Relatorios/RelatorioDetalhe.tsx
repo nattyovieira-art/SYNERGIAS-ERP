@@ -939,7 +939,6 @@ function gerarVendas(id: string, vendas: Venda[], produtos: Produto[]): Resultad
         { chave: 'custo', titulo: 'Custo dos produtos', alinhar: 'right' },
         { chave: 'lucro', titulo: 'Lucro bruto', alinhar: 'right' },
         { chave: 'margem', titulo: 'Margem %', alinhar: 'right' },
-        { chave: 'custoStatus', titulo: 'Validação do custo', alinhar: 'center' },
       ],
       linhas: calculados
         .sort((a, b) => numero(b.venda.numeroPedido) - numero(a.venda.numeroPedido))
@@ -951,9 +950,6 @@ function gerarVendas(id: string, vendas: Venda[], produtos: Produto[]): Resultad
           custo: item.custoCompleto ? dinheiro(item.custo) : `${dinheiro(item.custo)} (parcial)`,
           lucro: item.custoCompleto ? dinheiro(item.lucro) : 'Não conclusivo',
           margem: item.margemPercentual === null ? '-' : percentual(item.margemPercentual),
-          custoStatus: item.custoCompleto
-            ? 'Custo completo'
-            : `${item.itensSemCusto} item(ns) sem custo`,
         })),
       observacao:
         pedidosSemCusto > 0
@@ -2011,7 +2007,7 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
           </div>
         </section>
 
-        <nav className="relatorios-nav" aria-label="RelatÃ³rios disponÃ­veis">
+        <nav className={`relatorios-nav relatorios-workspace-${configuracao.corClasse}`} aria-label="RelatÃ³rios disponÃ­veis">
           {relatoriosPrincipais.map((relatorio) => <button key={relatorio.id} type="button" className={relatorioAtivo === relatorio.id ? 'is-active' : ''} onClick={() => selecionarRelatorio(relatorio.id)}>{relatorio.titulo}</button>)}
           {relatoriosExtras.length > 0 && <div className="relatorios-mais" ref={maisRef}><button type="button" className={relatoriosExtras.some((item) => item.id === relatorioAtivo) ? 'is-active' : ''} onClick={() => setMenuMaisAberto((aberto) => !aberto)}>Mais relatórios <ChevronDown size={16} /></button>{menuMaisAberto && <div className="relatorios-mais-menu">{relatoriosExtras.map((relatorio) => <button key={relatorio.id} type="button" onClick={() => selecionarRelatorio(relatorio.id)}><strong>{relatorio.titulo}</strong><small>{relatorio.descricao}</small></button>)}</div>}</div>}
         </nav>

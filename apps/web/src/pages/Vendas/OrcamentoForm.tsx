@@ -883,7 +883,6 @@ function OrcamentoForm() {
   const [idOrcamento, setIdOrcamento] = useState<string>(gerarId())
   const [status, setStatus] = useState<StatusOrcamento>('Aberto')
   const [numero, setNumero] = useState(gerarNumeroOrcamento())
-  const [pedidoOriginarioId, setPedidoOriginarioId] = useState('')
   const [pedidoOriginarioNumero, setPedidoOriginarioNumero] = useState('')
 
   const [vendedores, setVendedores] = useState<string[]>(carregarVendedores())
@@ -969,30 +968,6 @@ function OrcamentoForm() {
   const classeStatusExibicao = statusEhConcluido
     ? 'concluido'
     : String(status || 'Aberto').toLowerCase()
-
-  function abrirPedidoOriginario() {
-    const vendas = carregarVendasStorage() as Array<{
-      tipo?: string
-      id?: string
-      numeroPedido?: string
-      orcamentoOrigemId?: string
-    }>
-    const pedido = vendas.find(
-      (venda) =>
-        venda.tipo === 'Pedido' && (
-          String(venda.id || '') === String(pedidoOriginarioId || '') ||
-          String(venda.numeroPedido || '') === String(pedidoOriginarioNumero || '') ||
-          String(venda.orcamentoOrigemId || '') === String(idOrcamento || id || '')
-        ),
-    )
-
-    if (!pedido?.id) {
-      alert('Pedido originário não localizado para este orçamento.')
-      return
-    }
-
-    navigate(`/vendas/pedidos/editar/${pedido.id}`)
-  }
 
   useEffect(() => {
     let ativo = true
@@ -1082,7 +1057,6 @@ function OrcamentoForm() {
     setIdOrcamento(orcamentoEncontrado.id)
     setStatus(orcamentoEncontrado.statusOrcamento || 'Aberto')
     const estadoReal = determinarEstadoRealOrcamento(orcamentoEncontrado, carregarVendasStorage())
-    setPedidoOriginarioId(String(estadoReal.pedidoReal?.id || ''))
     setPedidoOriginarioNumero(String(estadoReal.pedidoReal?.numeroPedido || ''))
     setNumero(String(Number(String(orcamentoEncontrado.numeroOrcamento || '').replace(/\D/g, '')) || ''))
     setVendedor(orcamentoEncontrado.vendedor || '')
@@ -3279,34 +3253,9 @@ function abrirImpressaoOrcamento() {
               <div>
                 <span className="orcamento-label">Status</span>
                 <div className={`orcamento-status ${classeStatusExibicao}`}>
-                  {statusEhConcluido ? (
-                    <div className="orcamento-status-concluido">
-                      <span className="orcamento-status-concluido-titulo">CONCLUÍDO</span>
-                      <button
-                        type="button"
-                        className="orcamento-status-pedido-link"
-                        onClick={abrirPedidoOriginario}
-                        title={`Abrir pedido ${pedidoOriginarioNumero || ''}`}
-                      >
-                        {`Pedido ${pedidoOriginarioNumero || ''}`.trim()}
-                      </button>
-                    </div>
-                  ) : (
-                    <select
-                      className="orcamento-status-select"
-                      value={status}
-                      onChange={(event) => {
-                        const novoStatus = event.target.value as StatusOrcamento
-                        setStatus(novoStatus)
-                        salvar(novoStatus, false)
-                      }}
-                      aria-label="Alterar status do orçamento"
-                    >
-                      <option value="Aberto">ABERTO</option>
-                      <option value="Aprovado">APROVADO</option>
-                      <option value="Reprovado">REPROVADO</option>
-                    </select>
-                  )}
+                  <span className="orcamento-status-indicador">
+                    {statusEhConcluido ? 'CONCLUÍDO' : String(status || 'Aberto').toUpperCase()}
+                  </span>
                 </div>
               </div>
 

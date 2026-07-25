@@ -47,6 +47,10 @@ export default function ImportarNfHistoricaModal({ aberto, onClose, onConcluido 
     const nome = txt(documento, 'dest xNome')
     const numeroNf = txt(documento, 'ide nNF')
     const emissao = (txt(documento, 'ide dhEmi') || txt(documento, 'ide dEmi')).slice(0, 10)
+    const valorProdutos = Number(txt(documento, 'ICMSTot vProd') || 0)
+    const frete = Number(txt(documento, 'ICMSTot vFrete') || 0)
+    const desconto = Number(txt(documento, 'ICMSTot vDesc') || 0)
+    const outrosCustos = Number(txt(documento, 'ICMSTot vOutro') || 0)
     const valorNf = Number(txt(documento, 'ICMSTot vNF') || 0)
     const itens = Array.from(documento.querySelectorAll('infNFe > det')).map((det, indice) => {
       const descricao = txt(det, 'prod xProd')
@@ -54,7 +58,7 @@ export default function ImportarNfHistoricaModal({ aberto, onClose, onConcluido 
       const automatico = opcoes[0]?.pontos >= .82 && opcoes[0]?.pontos > (opcoes[1]?.pontos || 0) ? opcoes[0].produto : undefined
       return { id: `nf-${indice}-${Date.now()}`, descricao, quantidade: Number(txt(det, 'prod qCom') || 0), unitario: Number(txt(det, 'prod vUnCom') || 0), produtoCodigo: String(automatico?.codigo || '') }
     })
-    setDadosNf({ chave, cnpj, nome, numeroNf, emissao, valorNf, xmlOriginal })
+    setDadosNf({ chave, cnpj, nome, numeroNf, emissao, valorProdutos, frete, desconto, outrosCustos, valorNf, xmlOriginal })
     setDataOrcamento((atual) => atual || emissao)
     setDataPedido((atual) => atual || emissao)
     setDataVencimento((atual) => atual || emissao)
@@ -78,22 +82,26 @@ export default function ImportarNfHistoricaModal({ aberto, onClose, onConcluido 
       const produto: any = produtos.find((p) => String(p.codigo) === linha.produtoCodigo)
       return { id: `hist-${indice}-${Date.now()}`, produtoId: String(produto.id || ''), codigo: String(produto.codigo || ''), codigoProduto: String(produto.codigo || ''), codigoBarras: String(produto.codigoBarras || produto.codigo || ''), descricao: String(produto.descricao || produto.nome), unidade: String(produto.unidade || 'UN'), quantidade: linha.quantidade, valorUnitario: linha.unitario, desconto: 0, valorTotal: Number((linha.quantidade * linha.unitario).toFixed(2)), produtoVinculado: true, vinculoProdutoOrigem: 'DESCRICAO' }
     })
-    const total = Number(dadosNf.valorNf || itens.reduce((s, item) => s + item.valorTotal, 0))
+    const subtotal = Number(dadosNf.valorProdutos || itens.reduce((s, item) => s + item.valorTotal, 0))
+    const total = Number(dadosNf.valorNf || (subtotal + Number(dadosNf.frete || 0) + Number(dadosNf.outrosCustos || 0) - Number(dadosNf.desconto || 0)))
     const agora = new Date().toISOString()
     const clienteId = String(cliente.codigo || cliente.id || '')
-    const base = { clienteId, clienteCodigo: clienteId, clienteNome: String(cliente.razaoSocial || cliente.nomeFantasia || dadosNf.nome), clienteDocumento: String(cliente.cnpj || dadosNf.cnpj), dataEmissao: dadosNf.emissao, itens, subtotal: total, totalFinal: total, valorTotal: total, frete: 0, outrosCustos: 0, descontoInformado: 0, estoqueMovimentado: true, importacaoHistorica: true, movimentarEstoque: false, criadoEm: agora, atualizadoEm: agora }
+    const base = { clienteId, clienteCodigo: clienteId, clienteNome: String(cliente.razaoSocial || cliente.nomeFantasia || dadosNf.nome), clienteDocumento: String(cliente.cnpj || dadosNf.cnpj), dataEmissao: dadosNf.emissao, itens, subtotal, totalFinal: total, valorTotal: total, frete: Number(dadosNf.frete || 0), outrosCustos: Number(dadosNf.outrosCustos || 0), descontoInformado: Number(dadosNf.desconto || 0), formaPagamento, tipoCobranca: formaPagamento, valorPagamento: Number(valorPagamento), estoqueMovimentado: true, importacaoHistorica: true, movimentarEstoque: false, criadoEm: agora, atualizadoEm: agora }
     setOcupado(true)
     try {
       const idOrcamento = String(orcamentoExistente?.id || `orc-historico-${orcamento}-${Date.now()}`)
       const idPedido = String(pedidoExistente?.id || `pedido-historico-${pedido}`)
-      await salvarVendaStorageConfirmado({ ...base, ...orcamentoExistente, id: idOrcamento, tipo: 'Orçamento', numeroOrcamento: orcamento.trim(), dataEmissao: dataOrcamento || dadosNf.emissao, status: 'GERADO', statusOrcamento: 'Gerado', pedidoGeradoId: idPedido, pedidoGeradoEm: orcamentoExistente?.pedidoGeradoEm || agora, atualizadoEm: agora } as any)
+      await salvarVendaStorageConfirmado({ ...orcamentoExistente, ...base, id: idOrcamento, tipo: 'Orçamento', numeroOrcamento: orcamento.trim(), dataEmissao: dataOrcamento || dadosNf.emissao, emissao: dataOrcamento || dadosNf.emissao, dataEntrega: dadosNf.emissao, entrega: dadosNf.emissao, dataValidade: dadosNf.emissao, validade: dadosNf.emissao, status: 'GERADO', statusOrcamento: 'Gerado', pedidoGeradoId: idPedido, pedidoGeradoEm: orcamentoExistente?.pedidoGeradoEm || agora, atualizadoEm: agora } as any)
       await salvarVendaStorageConfirmado({
-        ...base,
         ...pedidoExistente,
+        ...base,
         id: idPedido,
         tipo: 'Pedido',
         numeroPedido: pedido.trim(),
         dataEmissao: dataPedido || dadosNf.emissao,
+        emissao: dataPedido || dadosNf.emissao,
+        dataEntrega: dadosNf.emissao,
+        entrega: dadosNf.emissao,
         status: jaEntregue ? 'CONCLUÍDO' : (pedidoExistente?.status || 'ABERTO'),
         statusPedido: jaEntregue ? 'Entregue' : (pedidoExistente?.statusPedido || 'Aberto'),
         logisticaStatus: jaEntregue ? 'Entregue' : pedidoExistente?.logisticaStatus,

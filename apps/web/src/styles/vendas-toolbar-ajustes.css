@@ -2049,3 +2049,53 @@
     min-height: 36px !important;
   }
 }
+
+/* LISTA DE PEDIDOS: COLUNAS E STATUS CENTRALIZADOS */
+.vendas-lista-cabecalho.is-pedidos,
+.vendas-documento-row.is-pedidos {
+  grid-template-columns:
+    120px
+    minmax(180px, 210px)
+    minmax(260px, 1fr)
+    100px
+    120px
+    110px
+    170px !important;
+}
+
+.vendas-lista-cabecalho.is-pedidos > span {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  text-align: center !important;
+  white-space: normal !important;
+  line-height: 1.15 !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-documento-numero,
+.vendas-documento-row.is-pedidos > .vendas-pagamento-status,
+.vendas-documento-row.is-pedidos > .vendas-conciliado,
+.vendas-documento-row.is-pedidos > .vendas-action-reconcile {
+  justify-self: center !important;
+  align-self: center !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-status-unico {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+@media (max-width: 1280px) {
+  .vendas-lista-cabecalho.is-pedidos,
+  .vendas-documento-row.is-pedidos {
+    grid-template-columns:
+      112px
+      minmax(170px, 190px)
+      minmax(220px, 1fr)
+      90px
+      112px
+      102px
+      158px !important;
+  }
+}

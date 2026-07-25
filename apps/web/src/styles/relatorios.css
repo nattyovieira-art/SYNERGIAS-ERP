@@ -1609,7 +1609,8 @@
 
 /* O relatório de margem segue a mesma altura compacta das demais tabelas. */
 .relatorios-resultado-margem .relatorios-tabela {
-  height: 1px !important;
+  height: auto !important;
+  table-layout: fixed !important;
 }
 
 .relatorios-resultado-margem .relatorios-tabela thead,
@@ -1630,13 +1631,12 @@
 .relatorios-resultado-margem .relatorios-tabela,
 .relatorios-resultado-margem .relatorios-tabela thead,
 .relatorios-resultado-margem .relatorios-tabela tbody {
-  display: block !important;
+  display: table !important;
   width: 100% !important;
 }
 
 .relatorios-resultado-margem .relatorios-tabela tr {
-  display: grid !important;
-  grid-template-columns: 8% 32% 10% 13% 15% 13% 9%;
+  display: table-row !important;
   width: 100% !important;
   height: auto !important;
   min-height: 52px !important;
@@ -1647,13 +1647,25 @@
   height: auto !important;
   min-height: 52px !important;
   max-height: none !important;
-  display: flex !important;
-  align-items: center;
+  display: table-cell !important;
+  vertical-align: middle !important;
   box-sizing: border-box;
 }
 
-.relatorios-resultado-margem .relatorios-tabela :is(th, td).align-right {
-  justify-content: flex-end;
+.relatorios-resultado-margem .relatorios-tabela :is(th,td).col-pedido { width: 8% !important; }
+.relatorios-resultado-margem .relatorios-tabela :is(th,td).col-cliente { width: 32% !important; }
+.relatorios-resultado-margem .relatorios-tabela :is(th,td).col-status { width: 10% !important; }
+.relatorios-resultado-margem .relatorios-tabela :is(th,td).col-venda { width: 13% !important; }
+.relatorios-resultado-margem .relatorios-tabela :is(th,td).col-custo { width: 15% !important; }
+.relatorios-resultado-margem .relatorios-tabela :is(th,td).col-lucro { width: 13% !important; }
+.relatorios-resultado-margem .relatorios-tabela :is(th,td).col-margem { width: 9% !important; }
+
+.relatorios-resultado-margem .relatorios-tabela thead {
+  display: table-header-group !important;
+}
+
+.relatorios-resultado-margem .relatorios-tabela tbody {
+  display: table-row-group !important;
 }
 
 /* Toda a identidade interna acompanha a cor definida pelo módulo atual. */
@@ -1685,7 +1697,49 @@
   background: var(--area-soft) !important;
 }
 
+.relatorios-nav[class*="relatorios-workspace-"] button:hover,
+.relatorios-nav[class*="relatorios-workspace-"] button.is-active {
+  color: var(--area-color) !important;
+  background: var(--area-soft) !important;
+}
+
+.relatorios-nav[class*="relatorios-workspace-"] button.is-active {
+  border-bottom-color: var(--area-color) !important;
+}
+
 .relatorios-tabela-scroll,
 .relatorios-tabela-wrap {
   overflow-x: auto !important;
+}
+
+/* Correção final da lucratividade: tabela visível e linhas compactas. */
+.relatorios-resultado-margem .relatorios-tabela {
+  display: table !important;
+  width: 100% !important;
+  height: auto !important;
+  table-layout: fixed !important;
+}
+
+.relatorios-resultado-margem .relatorios-tabela thead {
+  display: table-header-group !important;
+  height: auto !important;
+}
+
+.relatorios-resultado-margem .relatorios-tabela tbody {
+  display: table-row-group !important;
+  height: auto !important;
+}
+
+.relatorios-resultado-margem .relatorios-tabela tr {
+  display: table-row !important;
+  height: 52px !important;
+}
+
+.relatorios-resultado-margem .relatorios-tabela :is(th, td) {
+  display: table-cell !important;
+  height: 52px !important;
+  min-height: 0 !important;
+  max-height: 52px !important;
+  padding: 10px 14px !important;
+  vertical-align: middle !important;
 }

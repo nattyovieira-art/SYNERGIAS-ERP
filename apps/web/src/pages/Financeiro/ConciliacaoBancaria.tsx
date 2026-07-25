@@ -171,7 +171,6 @@ const STORAGE_CONTAS_RECEBER = 'synergias_contas_receber'
 const STORAGE_CONTAS_PAGAR = 'synergias_contas_pagar'
 const STORAGE_LANCAMENTOS_OFX = 'synergias_lancamentos_ofx'
 const STORAGE_CONCILIACOES = 'synergias_conciliacoes_bancarias'
-const STORAGE_VENDAS = 'synergias_vendas'
 const STORAGE_COMPRAS = 'synergias_erp_compras'
 
 function hoje() {
@@ -640,7 +639,7 @@ function localizarParcelaPedido(venda: any, conta: ContaReceber) {
 function atualizarPedidoPorContaReceber(conta: ContaReceber) {
   if (!conta.pedidoId && !conta.pedidoNumero) return
 
-  const vendas = lerStorage<any>(STORAGE_VENDAS)
+  const vendas = listarVendasStorage() as any[]
   const indiceVenda = vendas.findIndex(
     (venda) =>
       String(venda.id || '') === String(conta.pedidoId || '') ||
@@ -692,22 +691,21 @@ function atualizarPedidoPorContaReceber(conta: ContaReceber) {
   const algumaParcelaPaga = parcelasAtualizadas.some((parcela: any) => parcela.statusBoleto === 'Pago')
   const statusFinanceiro = todasContasPagas ? 'Pago' : algumaContaPaga ? 'Parcialmente Pago' : 'Aberto'
 
-  vendas[indiceVenda] = {
+  const vendaAtualizada = {
     ...venda,
     parcelas: parcelasAtualizadas,
     statusBoleto: todasParcelasPagas ? 'Pago' : algumaParcelaPaga ? 'Gerado' : 'Pendente',
     statusFinanceiro,
     valorPago: Number(totalMovimentado.toFixed(2)),
     saldoAberto: Number(Math.max(totalSaldo, 0).toFixed(2)),
-    statusPedido:
-      todasContasPagas && totalOriginal > 0
-        ? 'Pago'
-        : statusFinanceiro === 'Parcialmente Pago'
-          ? 'Parcialmente Pago'
-          : venda.statusPedido,
+    conciliado: todasContasPagas && totalOriginal > 0
+      ? contasPedido.every((item) => Boolean(item.conciliado))
+      : venda.conciliado,
+    dataConciliacao: todasContasPagas && contasPedido.every((item) => Boolean(item.conciliado))
+      ? hoje()
+      : venda.dataConciliacao,
   }
-
-  salvarStorage(STORAGE_VENDAS, vendas)
+  void salvarVendaStorageConfirmado(vendaAtualizada)
 }
 
 function conciliarConta(

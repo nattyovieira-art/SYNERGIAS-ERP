@@ -791,24 +791,27 @@ function Vendas() {
 
     if (venda.conciliado) return
 
-    const statusPagamento = obterStatusPagamento(venda)
-    if (statusPagamento !== 'PAGO') {
-      alert('O pedido ainda possui pagamento pendente. Abra o pedido e use Atualizar cobranças antes de solicitar a conciliação.')
-      return
-    }
-
     const contasDoPedido = listarContasReceberStorage().filter(
       (conta) => String(conta.pedidoId || '') === String(venda.id || ''),
     )
 
+    const statusPagamento = obterStatusPagamento(venda)
+    if (statusPagamento !== 'PAGO') {
+      const contaPendente = contasDoPedido.find((conta) => !conta.conciliado)
+      navigate(contaPendente?.id
+        ? `/financeiro/contas-a-receber/receber/${contaPendente.id}`
+        : '/financeiro/contas-a-receber')
+      return
+    }
+
     if (contasDoPedido.length === 0) {
-      alert('Nenhuma Conta a Receber vinculada a este pedido foi encontrada. A conciliação não será marcada sem vínculo financeiro real.')
+      navigate('/financeiro/contas-a-receber')
       return
     }
 
     const todasConciliadas = contasDoPedido.every((conta) => Boolean(conta.conciliado))
     if (!todasConciliadas) {
-      alert('Ainda não existe conciliação financeira confirmada para todas as parcelas deste pedido. Faça a conciliação no Financeiro; esta linha será marcada como CONCILIADO somente quando o vínculo financeiro estiver confirmado.')
+      navigate('/financeiro/conciliacao-bancaria')
       return
     }
 

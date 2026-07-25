@@ -91,10 +91,21 @@ function normalizarVenda(venda: VendaComMetadados): VendaComMetadados {
   const parcelas = Array.isArray(venda.parcelas)
     ? venda.parcelas.map((parcela) => normalizarParcela(parcela))
     : []
+  const pedidoHistoricoEntregue = String((venda as any).tipo || '').toLowerCase() === 'pedido'
+    && Boolean((venda as any).importacaoHistorica)
+    && Boolean(
+      (venda as any).entregue
+      || (venda as any).dataEntregaRealizada
+      || (venda as any).entregaConfirmadaSemNovaBaixa
+      || (venda as any).entregaConfirmadaSemBaixaEstoque
+    )
 
   const ambienteFiscalDetectado = detectarAmbienteFiscal(venda)
   return {
     ...venda,
+    ...(pedidoHistoricoEntregue
+      ? { status: 'CONCLUÍDO', statusPedido: 'Entregue', logisticaStatus: 'Entregue' }
+      : {}),
     parcelas,
     ...((ambienteFiscalDetectado && (venda.statusNotaFiscal === 'Autorizada' || venda.statusNotaFiscal === 'Emitida'))
       ? { ambienteNotaFiscal: ambienteFiscalDetectado }
