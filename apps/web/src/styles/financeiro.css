@@ -736,6 +736,31 @@
   background: #f8fcf9;
 }
 
+.contas-receber-tabela {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.contas-receber-tabela :is(th, td):nth-child(1) { width: 10%; }
+.contas-receber-tabela :is(th, td):nth-child(2) { width: 22%; }
+.contas-receber-tabela :is(th, td):nth-child(3) { width: 17%; }
+.contas-receber-tabela :is(th, td):nth-child(4) { width: 18%; }
+.contas-receber-tabela :is(th, td):nth-child(5) { width: 8%; }
+.contas-receber-tabela :is(th, td):nth-child(6) { width: 8%; }
+.contas-receber-tabela :is(th, td):nth-child(7) { width: 10%; }
+.contas-receber-tabela :is(th, td):nth-child(8) { width: 7%; }
+
+.contas-receber-tabela :is(th, td) {
+  padding-inline: 10px;
+}
+
+.contas-receber-tabela td strong,
+.contas-receber-tabela td small {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 .conciliacao-pendencias-tabela {
   min-width: 0;
   table-layout: fixed;

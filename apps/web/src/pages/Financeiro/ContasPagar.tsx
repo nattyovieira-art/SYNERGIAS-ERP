@@ -100,16 +100,6 @@ export default function ContasPagar() {
     setLista(novaLista)
   }
 
-  function marcarPaga(conta: Conta) {
-    persistir(
-      lista.map((item) =>
-        item.id === conta.id
-          ? { ...item, status: 'Paga', dataPagamento: new Date().toISOString().slice(0, 10) }
-          : item,
-      ),
-    )
-  }
-
   function excluir(conta: Conta) {
     if (!window.confirm(`Deseja excluir a conta "${conta.descricao}"?`)) return
     persistir(lista.filter((item) => item.id !== conta.id))
@@ -155,7 +145,7 @@ export default function ContasPagar() {
             <table className="novo-table">
               <thead><tr><th>Fornecedor</th><th>Descrição</th><th>Categoria</th><th>Emissão</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
               <tbody>
-                {filtradas.map((conta) => <tr key={conta.id}><td><strong>{conta.fornecedor}</strong></td><td>{conta.descricao}</td><td>{conta.categoria || 'Despesas gerais'}</td><td>{dataBrasil(conta.emissao)}</td><td>{dataBrasil(conta.vencimento)}</td><td><strong>{moeda(conta.valor)}</strong></td><td><span className={`novo-status ${conta.status === 'Paga' ? 'success' : conta.status === 'Cancelada' ? 'danger' : 'warning'}`}>{statusExibicao(conta.status)}</span></td><td><div className="financeiro-conciliacao-acoes">{conta.status === 'Em aberto' && <button type="button" onClick={() => marcarPaga(conta)}>Marcar paga</button>}<button type="button" onClick={() => excluir(conta)} title="Excluir"><Trash2 size={17} /></button></div></td></tr>)}
+                {filtradas.map((conta) => <tr key={conta.id}><td><strong>{conta.fornecedor}</strong></td><td>{conta.descricao}</td><td>{conta.categoria || 'Despesas gerais'}</td><td>{dataBrasil(conta.emissao)}</td><td>{dataBrasil(conta.vencimento)}</td><td><strong>{moeda(conta.valor)}</strong></td><td><span className={`novo-status ${conta.status === 'Paga' ? 'success' : conta.status === 'Cancelada' ? 'danger' : 'warning'}`}>{statusExibicao(conta.status)}</span></td><td><div className="financeiro-conciliacao-acoes">{conta.status !== 'Cancelada' && <button type="button" onClick={() => navigate(`/financeiro/contas-a-pagar/pagar/${encodeURIComponent(conta.id)}`)}>{conta.status === 'Paga' ? 'Pagamento' : 'Marcar paga'}</button>}<button type="button" onClick={() => excluir(conta)} title="Excluir"><Trash2 size={17} /></button></div></td></tr>)}
                 {!filtradas.length && <tr><td colSpan={8} className="novo-empty">Nenhuma conta a pagar encontrada.</td></tr>}
               </tbody>
             </table>

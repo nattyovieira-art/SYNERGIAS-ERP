@@ -22,6 +22,7 @@ import Financeiro from './pages/Financeiro/Financeiro'
 import ContasReceber from './pages/Financeiro/ContasReceber'
 import NovaContaReceber from './pages/Financeiro/NovaContaReceber'
 import NovaContaPagar from './pages/Financeiro/NovaContaPagar'
+import PagarConta from './pages/Financeiro/PagarConta'
 import ConciliacaoBancaria from './pages/Financeiro/ConciliacaoBancaria'
 import ReceberConta from './pages/Financeiro/ReceberConta'
 
@@ -261,6 +262,7 @@ function App() {
         <Route path="/clientes/historico/:id" element={<HistoricoComercial />} />
         <Route path="/financeiro/contas-a-pagar" element={<ContasPagar />} />
         <Route path="/financeiro/contas-a-pagar/nova" element={<NovaContaPagar />} />
+        <Route path="/financeiro/contas-a-pagar/pagar/:id" element={<PagarConta />} />
         <Route path="/financeiro/fluxo-de-caixa" element={<FluxoCaixa />} />
         <Route path="/estoque/locais" element={<LocaisEstoque />} />
 

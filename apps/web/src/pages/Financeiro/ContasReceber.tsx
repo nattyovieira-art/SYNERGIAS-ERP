@@ -442,7 +442,7 @@ function ContasReceber() {
         </div>
 
         <div className="financeiro-tabela-card">
-          <table className="financeiro-tabela">
+          <table className="financeiro-tabela contas-receber-tabela">
             <thead>
               <tr>
                 <th>Vencimento</th>

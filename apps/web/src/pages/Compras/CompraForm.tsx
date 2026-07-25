@@ -512,13 +512,66 @@ function CompraForm({ modo }: CompraFormProps) {
   }
 
   function compraAtualizadaParaSalvar(): Compra {
+    const itensNormalizados = compra.itens.map(normalizarItem)
+    const itensIncluidos = itensNormalizados.filter((item) => item.incluidoNoSistema !== false)
+    const baseRateio = itensIncluidos.reduce(
+      (soma, item) => soma + Math.max(0, numero(item.totalFiscal ?? item.total)),
+      0,
+    )
+    const ultimoItemId = itensIncluidos.at(-1)?.id
+    let freteRateado = 0
+    let outrosRateados = 0
+    let descontoRateado = 0
+
+    const ratear = (valor: number, item: ItemCompra, acumulado: number) => {
+      const total = Math.max(0, Math.round(numero(valor) * 100))
+      if (!total || !itensIncluidos.length) return 0
+      if (item.id === ultimoItemId) return (total - acumulado) / 100
+      const baseItem = Math.max(0, numero(item.totalFiscal ?? item.total))
+      const centavos = baseRateio > 0
+        ? Math.floor((total * Math.round(baseItem * 100)) / Math.round(baseRateio * 100))
+        : Math.floor(total / itensIncluidos.length)
+      return centavos / 100
+    }
+
+    const itensComRateio = itensNormalizados.map((item) => {
+      if (item.incluidoNoSistema === false) return item
+      const freteItem = ratear(compra.frete, item, Math.round(freteRateado * 100))
+      const outrosItem = ratear(compra.outrosCustos, item, Math.round(outrosRateados * 100))
+      const descontoItem = ratear(compra.desconto, item, Math.round(descontoRateado * 100))
+      freteRateado += freteItem
+      outrosRateados += outrosItem
+      descontoRateado += descontoItem
+
+      const custoSemRateioAnterior = Math.max(
+        0,
+        numero(item.custoFinalItem)
+          - numero(item.frete)
+          - numero(item.outrosCustosRateados)
+          + numero(item.descontoRateado),
+      )
+      const custoFinalItem = Math.max(
+        0,
+        custoSemRateioAnterior + freteItem + outrosItem - descontoItem,
+      )
+      const quantidade = numero(item.quantidadeConvertida || item.quantidade)
+      return {
+        ...item,
+        frete: freteItem,
+        outrosCustosRateados: outrosItem,
+        descontoRateado: descontoItem,
+        custoFinalItem,
+        custoUnitarioConvertido: quantidade > 0 ? custoFinalItem / quantidade : 0,
+      }
+    })
+
     return {
       ...compra,
       status: compra.parcelasPagamento?.length ? 'Faturado' : compra.status,
       subtotal,
       totalFinal,
       atualizadoEm: new Date().toISOString(),
-      itens: compra.itens.map(normalizarItem),
+      itens: itensComRateio,
     }
   }
 

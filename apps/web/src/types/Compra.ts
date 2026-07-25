@@ -24,6 +24,8 @@ export type ItemCompra = {
   cfop?: string
   desconto?: number
   frete?: number
+  outrosCustosRateados?: number
+  descontoRateado?: number
   impostos?: number
 
   unidadeFiscal?: string
