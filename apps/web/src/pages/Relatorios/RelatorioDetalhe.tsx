@@ -26,6 +26,7 @@ import type { Produto } from '../../types/Produto'
 import type { Venda } from '../../types/Venda'
 import { ERP_STORAGE_UPDATED_EVENT, obterColecaoMemoria } from '../../services/erpApi'
 import { consolidarVendasRelatorios } from '../../services/relatoriosData'
+import { listarComprasStorage } from '../../services/comprasStorage'
 
 
 
@@ -1864,7 +1865,7 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
       contas: lerStorage<ContaReceber>('synergias_contas_receber'),
       lancamentos: lerStorage<LancamentoOFX>('synergias_lancamentos_ofx'),
       vendas: obterColecaoMemoria<Venda>('vendas'),
-      compras: lerStorage<Compra>('synergias_erp_compras'),
+      compras: listarComprasStorage(),
       produtos: obterColecaoMemoria<Produto>('produtos'),
       clientes: obterColecaoMemoria<Cliente>('clientes'),
       movimentacoes: lerStorage<EstoqueMovimentacao>('synergias_estoque_movimentacoes'),
@@ -2059,7 +2060,7 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
                     <thead>
                       <tr>
                         {colunasVisiveis.map((coluna) => (
-                          <th key={coluna.chave} className={`align-${coluna.alinhar || 'left'}`}>
+                          <th key={coluna.chave} className={`align-${coluna.alinhar || 'left'} col-${coluna.chave}`}>
                             {coluna.titulo}
                           </th>
                         ))}
@@ -2069,7 +2070,7 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
                       {resultado.linhas.map((linha, index) => (
                         <tr key={`${relatorioAtivo}-${index}`}>
                           {colunasVisiveis.map((coluna) => (
-                            <td key={coluna.chave} className={`align-${coluna.alinhar || 'left'}`}>
+                            <td key={coluna.chave} className={`align-${coluna.alinhar || 'left'} col-${coluna.chave}`}>
                               {linha[coluna.chave] ?? '-'}
                             </td>
                           ))}

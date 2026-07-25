@@ -1917,8 +1917,6 @@ function Produtos() {
                 <tr>
                   <th className="produtos-col-descricao">Descrição</th>
                   <th className="produtos-col-categoria">Categoria</th>
-                  <th className="produtos-col-subcategoria">Subcategoria</th>
-                  <th className="produtos-col-marca">Marca</th>
                   <th className="produtos-col-estoque">Estoque</th>
                   <th className="produtos-col-valor">Venda Varejo</th>
                   <th className="produtos-col-status">Situação</th>
@@ -1940,8 +1938,6 @@ function Produtos() {
                       </td>
 
                       <td className="produtos-col-categoria"><span className="produto-texto-truncado" title={produto.categoria || 'Sem categoria'}>{produto.categoria || 'Sem categoria'}</span></td>
-                      <td className="produtos-col-subcategoria"><span className="produto-texto-truncado" title={produto.subcategoria || 'Sem subcategoria'}>{produto.subcategoria || 'Sem subcategoria'}</span></td>
-                      <td className="produtos-col-marca"><span className="produto-texto-truncado" title={produto.marca || 'Sem marca'}>{produto.marca || 'Sem marca'}</span></td>
 
                       <td className="produtos-col-estoque">
                         {Number(produto.estoqueAtual || produto.estoque || 0)}
@@ -1989,7 +1985,7 @@ function Produtos() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={8} className="produtos-listagem-vazia">
+                    <td colSpan={6} className="produtos-listagem-vazia">
                       Nenhum produto encontrado.
                     </td>
                   </tr>

@@ -523,6 +523,13 @@
 .produto-descricao-linha{font-size:14px!important;font-weight:700!important;line-height:1.25!important}
 .produto-texto-truncado{font-size:14px!important;line-height:1.25!important}
 .produtos-col-valor,.produtos-col-estoque,.produtos-col-status,.produtos-col-acoes{text-align:center!important}
+
+.produtos-listagem-table .produtos-col-descricao{width:45%!important}
+.produtos-listagem-table .produtos-col-categoria{width:18%!important}
+.produtos-listagem-table .produtos-col-estoque{width:9%!important}
+.produtos-listagem-table .produtos-col-valor{width:12%!important}
+.produtos-listagem-table .produtos-col-status{width:8%!important}
+.produtos-listagem-table .produtos-col-acoes{width:8%!important;min-width:96px!important}
 .produtos-linha-acoes{justify-content:center!important;gap:8px!important}
 @media (max-width: 1200px){
   .produtos-listagem-table{min-width:980px!important}

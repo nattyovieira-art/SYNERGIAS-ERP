@@ -69,11 +69,9 @@ function Clientes() {
     label: string
     type?: 'text' | 'currency' | 'status'
   }[] = [
-    { key: 'codigo', label: 'Código' },
     { key: 'razaoSocial', label: 'Cliente' },
-    { key: 'tipoPessoa', label: 'Pessoa' },
     { key: 'tipo', label: 'Tipo' },
-    { key: 'cidade', label: 'Cidade' },
+    { key: 'email', label: 'E-mail' },
     { key: 'telefone', label: 'Telefone' },
     { key: 'situacao', label: 'Situação', type: 'status' },
     { key: 'valorAno', label: 'Valor no ano', type: 'currency' },

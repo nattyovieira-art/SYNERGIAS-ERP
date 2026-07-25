@@ -58,10 +58,7 @@ function Sidebar() {
               className={ativo ? 'active' : ''}
               onClick={() => navigate(rota)}
             >
-              <Icon
-                size={rota === '/configuracoes' ? 25 : 19}
-                strokeWidth={rota === '/configuracoes' ? 2.25 : 2}
-              />
+              <Icon size={19} strokeWidth={2} />
               {label}
             </button>
           )

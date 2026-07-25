@@ -1137,3 +1137,44 @@
 .clientes-page .data-table td:nth-child(2) {
   overflow-wrap:anywhere;
 }
+
+/* Colunas da lista simplificada: Cliente, Tipo, E-mail, Telefone, Situação, Valor e Ações. */
+.clientes-page .data-table th:nth-child(1),
+.clientes-page .data-table td:nth-child(1) { width:28%; }
+.clientes-page .data-table th:nth-child(2),
+.clientes-page .data-table td:nth-child(2) { width:11%; }
+.clientes-page .data-table th:nth-child(3),
+.clientes-page .data-table td:nth-child(3) { width:25%; }
+.clientes-page .data-table th:nth-child(4),
+.clientes-page .data-table td:nth-child(4) { width:12%; }
+.clientes-page .data-table th:nth-child(5),
+.clientes-page .data-table td:nth-child(5) { width:9%; }
+.clientes-page .data-table th:nth-child(6),
+.clientes-page .data-table td:nth-child(6) { width:8%; }
+.clientes-page .data-table th:nth-child(7),
+.clientes-page .data-table td:nth-child(7) { width:7%; min-width:96px; }
+.clientes-page .data-table td:nth-child(1),
+.clientes-page .data-table td:nth-child(3) { overflow-wrap:anywhere; }
+
+.clientes-page .table-actions {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:nowrap;
+  gap:8px;
+}
+.clientes-page .table-actions button {
+  width:40px;
+  height:40px;
+  min-width:40px;
+  padding:0;
+  display:inline-grid;
+  place-items:center;
+  border-radius:10px;
+}
+.clientes-page .table-actions button svg { width:19px; height:19px; }
+.clientes-page .table-actions button.danger {
+  border-color:#fecaca;
+  background:#ef252d;
+  color:#fff;
+}
