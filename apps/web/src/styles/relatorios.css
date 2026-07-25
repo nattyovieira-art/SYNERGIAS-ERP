@@ -1402,14 +1402,22 @@
 .relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-novo { width: 10% !important; min-width: 96px !important; }
 .relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-variacao { width: 10% !important; min-width: 90px !important; }
 
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-data { width: 10% !important; min-width: 96px !important; }
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-produto { width: 43% !important; min-width: 390px !important; }
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-tipo { width: 9% !important; min-width: 82px !important; }
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-origem { width: 6% !important; min-width: 58px !important; }
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-documento,
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-quantidade { width: 8% !important; min-width: 72px !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-data { width: 10% !important; min-width: 0 !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-produto { width: 38% !important; min-width: 0 !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-tipo { width: 9% !important; min-width: 0 !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-origem { width: 8% !important; min-width: 0 !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-documento { width: 9% !important; min-width: 0 !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-quantidade { width: 8% !important; min-width: 0 !important; }
 .relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-anterior,
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-atual { width: 8% !important; min-width: 72px !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-atual { width: 9% !important; min-width: 0 !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td) {
+  padding-inline: 10px !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela td.col-origem {
+  white-space: normal !important;
+}
 .relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela th.col-anterior,
 .relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela th.col-atual {
   white-space: pre-line !important;
@@ -1584,7 +1592,9 @@
 /* Todos os cabeçalhos usam exatamente a mesma cor, sem destaque por coluna. */
 .relatorios-tabela thead th,
 .relatorios-tabela thead th:first-child {
-  background: #f3e8ff !important;
+  background: var(--area-soft, var(--relatorios-soft)) !important;
+  color: var(--area-color, var(--relatorios-primary)) !important;
+  border-bottom-color: var(--area-border, var(--relatorios-border)) !important;
 }
 
 /* Código deve permanecer legível e em uma única linha em todos os relatórios. */
@@ -1599,6 +1609,11 @@
 
 /* O relatório de margem segue a mesma altura compacta das demais tabelas. */
 .relatorios-resultado-margem .relatorios-tabela {
+  height: 1px !important;
+}
+
+.relatorios-resultado-margem .relatorios-tabela thead,
+.relatorios-resultado-margem .relatorios-tabela tbody {
   height: auto !important;
 }
 
@@ -1607,6 +1622,7 @@
 .relatorios-resultado-margem .relatorios-tabela tbody tr,
 .relatorios-resultado-margem .relatorios-tabela tbody td {
   height: 52px !important;
+  max-height: 52px !important;
   min-height: 0 !important;
 }
 

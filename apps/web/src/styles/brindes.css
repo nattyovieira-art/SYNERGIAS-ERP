@@ -195,6 +195,7 @@
   text-align: left;
   color: #334155;
   vertical-align: middle;
+  font-size: 12px;
 }
 
 .brindes-table-card th {
@@ -212,6 +213,7 @@
 .brindes-table-card td strong {
   display: block;
   color: #172033;
+  font-size: 12px;
 }
 
 .brindes-table-card td small {
@@ -240,6 +242,23 @@
 .brindes-estoque-status.is-pendente {
   background: #fef3c7;
   color: #a16207;
+}
+
+.brindes-baixar-estoque {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 9px;
+  background: #7e22ce;
+  color: #ffffff;
+  font: 800 11px/1.1 inherit;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.brindes-baixar-estoque:hover {
+  background: #6b21a8;
 }
 
 .brindes-empty {

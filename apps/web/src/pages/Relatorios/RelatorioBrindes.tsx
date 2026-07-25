@@ -13,7 +13,8 @@ import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import type { Venda } from '../../types/Venda'
 import { ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
-import { listarVendasStorage } from '../../services/vendasStorage'
+import { listarVendasStorage, salvarVendaStorage } from '../../services/vendasStorage'
+import { movimentarEstoqueStorage } from '../../services/estoqueStorage'
 
 import '../../styles/relatorios.css'
 import '../../styles/brindes.css'
@@ -55,6 +56,7 @@ export default function RelatorioBrindes() {
       vendas.flatMap((venda) =>
         (venda.brindes || []).map((brinde) => ({
           ...brinde,
+          vendaId: venda.id,
           pedido: venda.numeroPedido || '-',
         })),
       ),
@@ -110,6 +112,30 @@ export default function RelatorioBrindes() {
   function limparFiltros() {
     setInicio('')
     setFim('')
+  }
+
+  function baixarEstoqueBrinde(brinde: (typeof brindes)[number]) {
+    if (brinde.estoqueBaixado) return
+    const venda = vendas.find((item) => String(item.id) === String(brinde.vendaId))
+    if (!venda) return alert('Pedido do brinde não encontrado.')
+    const resultado = movimentarEstoqueStorage({
+      produtoCodigo: brinde.produtoCodigo,
+      tipo: 'saida',
+      quantidade: brinde.quantidade,
+      motivo: 'Saída - Brinde',
+      observacao: [brinde.destinatario, brinde.clienteNome, brinde.observacao].filter(Boolean).join(' | '),
+      origem: 'brinde',
+      documentoOrigem: venda.numeroPedido || venda.id,
+      usuario: brinde.vendedor || venda.vendedor || 'Synergias',
+    })
+    if (!resultado.ok) return alert(resultado.mensagem)
+    const atualizada = {
+      ...venda,
+      brindes: (venda.brindes || []).map((item) =>
+        item.id === brinde.id ? { ...item, estoqueBaixado: true } : item),
+    }
+    salvarVendaStorage(atualizada)
+    setVendas(listarVendasStorage())
   }
 
   return (
@@ -267,13 +293,17 @@ export default function RelatorioBrindes() {
                   <td>{brinde.clienteNome || '-'}</td>
                   <td>{brinde.vendedor || '-'}</td>
                   <td>
-                    <span
-                      className={`brindes-estoque-status ${
-                        brinde.estoqueBaixado ? 'is-baixado' : 'is-pendente'
-                      }`}
-                    >
-                      {brinde.estoqueBaixado ? 'Baixado' : 'Pendente'}
-                    </span>
+                    {brinde.estoqueBaixado ? (
+                      <span className="brindes-estoque-status is-baixado">Baixado</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="brindes-baixar-estoque"
+                        onClick={() => baixarEstoqueBrinde(brinde)}
+                      >
+                        Baixar estoque
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
