@@ -8,6 +8,7 @@ import { entregarPedidoCentral } from '../../services/pedidoEntregaApi'
 import { listarVendasStorage, salvarVendaStorageConfirmado } from '../../services/vendasStorage'
 import type { Venda } from '../../types/Venda'
 import '../../styles/logistica.css'
+import '../../styles/logistica-fix.css'
 
 const EMPRESA = 'Avenida Frei Henrique de Coimbra, 11, Vila Ipiranga, Porto Alegre, RS, 91370-180'
 const SLA_HORAS = 48

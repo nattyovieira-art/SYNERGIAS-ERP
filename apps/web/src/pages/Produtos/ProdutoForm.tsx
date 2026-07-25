@@ -1803,6 +1803,23 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
                   }
                 />
               </label>
+
+              <label>
+                Unidades por embalagem de compra
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={produto.quantidadePorEmbalagemCompra || 1}
+                  onChange={(e) =>
+                    atualizarProduto(
+                      'quantidadePorEmbalagemCompra',
+                      Math.max(1, Number(e.target.value) || 1)
+                    )
+                  }
+                />
+                <small>Ex.: caixa com 8 bobinas = 8.</small>
+              </label>
             </div>
           )}
 

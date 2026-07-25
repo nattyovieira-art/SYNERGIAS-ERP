@@ -101,6 +101,7 @@ export type Produto = {
   quantidadeEstoque?: number
   saldoEstoque?: number
   quantidade?: number
+  quantidadePorEmbalagemCompra?: number
 
   // Fiscal
   tipoFiscal?: string

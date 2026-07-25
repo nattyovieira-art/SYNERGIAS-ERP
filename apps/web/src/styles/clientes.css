@@ -1111,3 +1111,29 @@
     flex-direction: column;
   }
 }
+
+/* Lista principal: código compacto e razão social como coluna principal. */
+.clientes-page .data-table {
+  table-layout:fixed;
+}
+.clientes-page .data-table th:nth-child(1),
+.clientes-page .data-table td:nth-child(1) { width:6%; }
+.clientes-page .data-table th:nth-child(2),
+.clientes-page .data-table td:nth-child(2) { width:30%; }
+.clientes-page .data-table th:nth-child(3),
+.clientes-page .data-table td:nth-child(3),
+.clientes-page .data-table th:nth-child(4),
+.clientes-page .data-table td:nth-child(4),
+.clientes-page .data-table th:nth-child(7),
+.clientes-page .data-table td:nth-child(7) { width:8%; }
+.clientes-page .data-table th:nth-child(5),
+.clientes-page .data-table td:nth-child(5),
+.clientes-page .data-table th:nth-child(6),
+.clientes-page .data-table td:nth-child(6) { width:12%; }
+.clientes-page .data-table th:nth-child(8),
+.clientes-page .data-table td:nth-child(8) { width:9%; }
+.clientes-page .data-table th:nth-child(9),
+.clientes-page .data-table td:nth-child(9) { width:7%; }
+.clientes-page .data-table td:nth-child(2) {
+  overflow-wrap:anywhere;
+}

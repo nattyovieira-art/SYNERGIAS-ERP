@@ -161,6 +161,24 @@
   background: #dc2626;
 }
 
+.orcamento-status-select {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  text-align: center;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.orcamento-status-select option {
+  color: #0f172a;
+  background: #ffffff;
+}
+
 .orcamento-input.numero,
 .orcamento-input.numero:focus {
   font-size: 26px !important;

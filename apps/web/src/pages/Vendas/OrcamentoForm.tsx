@@ -1,7 +1,7 @@
 // SYNERGIAS_ORCAMENTO_SALVAR_CONFIRMADO_PDF_DATA_ATUAL_V284
 // SYNERGIAS_PIX_TRANSFERENCIA_60_DIAS_V263C
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   CheckCircle,
@@ -535,6 +535,11 @@ function normalizarIndicadorIECliente(valor: unknown, inscricaoEstadual: unknown
   return String(inscricaoEstadual || '').replace(/\D/g, '') ? '1' : ''
 }
 
+function separarEmailsCliente(valor: unknown) {
+  const emails = String(valor || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []
+  return Array.from(new Set(emails.map((email) => email.toLowerCase())))
+}
+
 function mapearClientesOrcamento(clientes: any[]): ClienteOrcamento[] {
   if (!Array.isArray(clientes)) return []
 
@@ -549,13 +554,15 @@ function mapearClientesOrcamento(clientes: any[]): ClienteOrcamento[] {
     const documento =
       cliente.cnpj || cliente.cpf || cliente.documento || cliente.cnpjCpf || ''
 
-    const emailNotaFiscal =
+    const emailsCadastro = separarEmailsCliente(
       cliente.emailNotaFiscal ||
       cliente.emailNfe ||
       cliente.emailNota ||
       cliente.emailFiscal ||
       cliente.email ||
-      ''
+      '',
+    )
+    const emailNotaFiscal = emailsCadastro[0] || ''
 
     const id = String(cliente.id || cliente.codigo || gerarId())
 
@@ -569,7 +576,7 @@ function mapearClientesOrcamento(clientes: any[]): ClienteOrcamento[] {
       enderecoFaturamento: montarEnderecoFiscal(cliente),
       enderecoEntrega: montarEnderecoEntrega(cliente),
       enderecosEntrega: normalizarEnderecosEntrega(cliente as Cliente),
-      emailPrincipal: String(cliente.email || ''),
+      emailPrincipal: separarEmailsCliente(cliente.email)[0] || emailNotaFiscal,
       limiteCredito: Number(cliente.limiteCredito || 0),
       totalVencidas: Number(cliente.totalVencidas || 0),
       totalAVencer: Number(cliente.totalAVencer || 0),
@@ -866,7 +873,9 @@ function OrcamentoForm() {
   ;(window as any).__SYNERGIAS_PDF_ENDERECO__ = 'V210_ENDERECO_PDF_13_5_SEM_NEGRITO'
   ;(window as any).__SYNERGIAS_PDF_ORCAMENTO__ = 'V208_PDF_ORCAMENTO_LAYOUT_CLIENTE_ENDERECO'
   const navigate = useNavigate()
+  const location = useLocation()
   const impressaoAutomaticaExecutada = useRef(false)
+  const rascunhoTextoAplicado = useRef(false)
   const { id } = useParams()
 
   const hoje = formatarDataInput(new Date())
@@ -1102,6 +1111,46 @@ function OrcamentoForm() {
     setObservacoes(orcamentoEncontrado.observacoes || '')
     setValorPagamentoTexto(numeroParaCampo(orcamentoEncontrado.totalFinal || 0))
   }, [id, navigate])
+
+  useEffect(() => {
+    if (!id || !clientes.length || !(clienteId || clienteDocumento || clienteNome)) return
+    const documentoAtual = String(clienteDocumento || '').replace(/\D/g, '')
+    const nomeAtual = normalizarTexto(clienteNome)
+    const clienteAtual = clientes.find((cliente) =>
+      (clienteId && cliente.id === clienteId) ||
+      (documentoAtual && String(cliente.documento || '').replace(/\D/g, '') === documentoAtual) ||
+      (nomeAtual && normalizarTexto(cliente.nome) === nomeAtual))
+    if (!clienteAtual) {
+      setClienteEmailNotaFiscal('')
+      return
+    }
+    const locais = clienteAtual.enderecosEntrega.filter((local) => local.ativo)
+    const idLocalAtual = enderecosEntregaDados[enderecoEntregaSelecionadoIndice]?.id
+    const indiceLocalAtual = Math.max(0, locais.findIndex((local) => local.id === idLocalAtual))
+    const localAtual = locais[indiceLocalAtual]
+    const emailAtual = separarEmailsCliente(localAtual?.emailEnvio || clienteAtual.emailNotaFiscal || clienteAtual.emailPrincipal)[0] || ''
+    setClienteEmailNotaFiscal(emailAtual)
+    if (localAtual) {
+      const listaLocais = locais.map(formatarEnderecoEntrega)
+      setEnderecosEntregaDados(locais)
+      setEnderecosEntregaLista(listaLocais)
+      setEnderecoEntregaSelecionadoIndice(indiceLocalAtual)
+      setEnderecoEntrega(listaLocais[indiceLocalAtual] || '')
+      setEnderecoEntregaEditandoIndice(null)
+      setEditandoEntrega(false)
+    }
+  }, [id, clientes, clienteId, clienteDocumento, clienteNome])
+
+  useEffect(() => {
+    const rascunho = (location.state as any)?.orcamentoTexto
+    if (id || rascunhoTextoAplicado.current || !rascunho || !clientes.length) return
+    const cliente = clientes.find((item) => String(item.id) === String(rascunho.clienteCodigo))
+    if (!cliente) return
+    rascunhoTextoAplicado.current = true
+    selecionarCliente(cliente)
+    setItens(Array.isArray(rascunho.itens) ? rascunho.itens : [])
+    navigate(location.pathname, { replace: true, state: null })
+  }, [id, clientes, location.pathname, location.state, navigate])
 
   useEffect(() => {
     setDataValidade(somarDiasUteis(dataEmissao, 5))
@@ -1440,6 +1489,7 @@ function OrcamentoForm() {
   async function persistirEnderecosEntregaCliente(
     lista: string[],
     dados: EnderecoEntregaCliente[] = enderecosEntregaDados,
+    substituirLista = false,
   ) {
     if (!clienteId) return
     const enderecos = lista.map((endereco) => compactarEnderecoEmDuasLinhas(endereco)).filter(Boolean)
@@ -1450,9 +1500,13 @@ function OrcamentoForm() {
       const atualizados = atuais.map((cliente: any) => {
         const codigo = String(cliente.codigo || cliente.id || '')
         if (codigo !== String(clienteId)) return cliente
+        const existentes = normalizarEnderecosEntrega(cliente as Cliente)
+        const porId = new Map(existentes.map((endereco) => [endereco.id, endereco]))
+        dadosPreenchidos.forEach((endereco) => porId.set(endereco.id, endereco))
+        const enderecosSeguros = substituirLista ? dadosPreenchidos : Array.from(porId.values())
         return {
           ...cliente,
-          enderecosEntrega: dadosPreenchidos.length ? dadosPreenchidos : enderecos.map((logradouro, indice) => ({ ...enderecoEntregaVazio(), id: `ent-${Date.now()}-${indice}`, nomeLocal: `Local ${indice + 1}`, logradouro })),
+          enderecosEntrega: enderecosSeguros.length ? enderecosSeguros : enderecos.map((logradouro, indice) => ({ ...enderecoEntregaVazio(), id: `ent-${Date.now()}-${indice}`, nomeLocal: `Local ${indice + 1}`, logradouro })),
           enderecoEntrega: enderecos[0] || cliente.enderecoEntrega || '',
           atualizadoEm: new Date().toISOString(),
         }
@@ -1490,7 +1544,7 @@ function OrcamentoForm() {
     setEnderecoEntrega(listaFinal[novoIndice] || '')
     setEnderecoEntregaEditandoIndice(null)
     setEditandoEntrega(false)
-    void persistirEnderecosEntregaCliente(listaFinal, dadosAtualizados)
+    void persistirEnderecosEntregaCliente(listaFinal, dadosAtualizados, true)
   }
 
   function selecionarEnderecoEntrega(indice: number) {
@@ -2379,7 +2433,9 @@ function OrcamentoForm() {
 
     const linhasItens = itens
       .map((item) => {
-        const totalLinha = item.quantidade * item.valorUnitario - item.desconto
+        const totalLinha =
+          Number(item.quantidade || 0) * Number(item.valorUnitario || 0) -
+          Number(item.desconto || 0)
 
         return `
           <tr>
@@ -3069,7 +3125,11 @@ function abrirImpressaoOrcamento() {
   useEffect(() => {
     if (impressaoAutomaticaExecutada.current || typeof window === 'undefined') return
 
-    const parametros = new URLSearchParams(window.location.search)
+    const parametros = new URLSearchParams(
+      window.location.hash.includes('?')
+        ? window.location.hash.slice(window.location.hash.indexOf('?'))
+        : window.location.search,
+    )
     if (parametros.get('print') !== '1') return
     if (!id || !numero) return
 
@@ -3232,7 +3292,20 @@ function abrirImpressaoOrcamento() {
                       </button>
                     </div>
                   ) : (
-                    status.toUpperCase()
+                    <select
+                      className="orcamento-status-select"
+                      value={status}
+                      onChange={(event) => {
+                        const novoStatus = event.target.value as StatusOrcamento
+                        setStatus(novoStatus)
+                        salvar(novoStatus, false)
+                      }}
+                      aria-label="Alterar status do orçamento"
+                    >
+                      <option value="Aberto">ABERTO</option>
+                      <option value="Aprovado">APROVADO</option>
+                      <option value="Reprovado">REPROVADO</option>
+                    </select>
                   )}
                 </div>
               </div>

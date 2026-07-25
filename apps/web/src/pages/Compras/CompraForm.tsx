@@ -390,15 +390,14 @@ function CompraForm({ modo }: CompraFormProps) {
   }
 
   function definirInclusaoItem(itemId: string, incluir: boolean) {
-    let motivo = ''
-    if (!incluir) {
-      motivo = window.prompt('Informe o motivo do descarte (ex.: compra pessoal ou brinde):')?.trim() || ''
-      if (!motivo) return
-    }
     setCompra((atual) => ({
       ...atual,
       itens: atual.itens.map((item) => item.id === itemId
-        ? { ...item, incluidoNoSistema: incluir, motivoDescarte: incluir ? '' : motivo }
+        ? {
+            ...item,
+            incluidoNoSistema: incluir,
+            motivoDescarte: incluir ? '' : 'Descartado manualmente',
+          }
         : item),
     }))
   }
@@ -418,6 +417,17 @@ function CompraForm({ modo }: CompraFormProps) {
         ? {
             ...item,
             produtoCodigo: codigo,
+            fatorConversao: Math.max(1, numero(produto?.quantidadePorEmbalagemCompra || item.fatorConversao || 1)),
+            quantidadeConvertida:
+              numero(item.quantidadeFiscal ?? item.quantidade) *
+              Math.max(1, numero(produto?.quantidadePorEmbalagemCompra || item.fatorConversao || 1)),
+            custoUnitarioConvertido:
+              numero(item.quantidadeFiscal ?? item.quantidade) *
+                Math.max(1, numero(produto?.quantidadePorEmbalagemCompra || item.fatorConversao || 1)) > 0
+                ? numero(item.custoFinalItem ?? item.totalFiscal ?? item.total) /
+                  (numero(item.quantidadeFiscal ?? item.quantidade) *
+                    Math.max(1, numero(produto?.quantidadePorEmbalagemCompra || item.fatorConversao || 1)))
+                : 0,
             novoProdutoPendente: false,
             novoProdutoNome: '',
             correspondencia: produto ? 'DESCRICAO' : 'NAO_VINCULADO',
@@ -756,9 +766,20 @@ function CompraForm({ modo }: CompraFormProps) {
 
     const movimentacoesCriadas = resultadoEntrada.idsMovimentacoes
 
+    const itensComCustoFinal = itensNormalizados.map((item) => {
+      const resultado = resultadoEntrada.resultados.find((atual) => atual.produtoCodigo === item.produtoCodigo)
+      return resultado
+        ? {
+            ...item,
+            custoFinalItem: resultado.valorEntrada,
+            custoUnitarioConvertido: resultado.custoEntrada,
+          }
+        : item
+    })
+
     const compraRecebida: Compra = {
       ...compra,
-      itens: itensNormalizados,
+      itens: itensComCustoFinal,
       subtotal,
       totalFinal,
       status: 'Recebido',
@@ -1195,8 +1216,12 @@ function CompraForm({ modo }: CompraFormProps) {
 
                       {compra.origem === 'XML_NFE' ? (
                         <div className="compras-item-decisoes">
-                          <button type="button" className={item.incluidoNoSistema !== false ? 'incluir ativo' : 'incluir'} onClick={() => definirInclusaoItem(item.id, true)}>INSERIR NO SISTEMA</button>
-                          <button type="button" className={item.incluidoNoSistema === false ? 'descartar ativo' : 'descartar'} onClick={() => definirInclusaoItem(item.id, false)}>DESCARTAR ITEM</button>
+                          <button type="button" className={item.incluidoNoSistema !== false ? 'incluir ativo' : 'incluir'} onClick={() => definirInclusaoItem(item.id, true)}>
+                            {item.incluidoNoSistema !== false ? 'INCLUÍDO NA COMPRA' : 'INCLUIR NA COMPRA'}
+                          </button>
+                          <button type="button" className={item.incluidoNoSistema === false ? 'descartar ativo' : 'descartar'} onClick={() => definirInclusaoItem(item.id, false)}>
+                            {item.incluidoNoSistema === false ? 'ITEM DESCARTADO' : 'DESCARTAR ITEM'}
+                          </button>
                         </div>
                       ) : (
                         <button type="button" className="compras-acao excluir" onClick={() => removerItem(item.id)} title="Excluir item" disabled={compra.movimentouEstoque}>

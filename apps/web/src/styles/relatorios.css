@@ -835,6 +835,269 @@
 @media(max-width:1200px){.relatorios-toolbar{align-items:flex-start;flex-wrap:wrap}.relatorios-toolbar-left{flex-wrap:wrap}.relatorios-busca{flex:1}.relatorios-nav{overflow-x:auto}.relatorios-mais{margin-left:0}.relatorios-filtros-secundarios{margin-left:0;flex-wrap:wrap}}
 @media print {.relatorios-nav,.relatorios-toolbar,.relatorios-filtros-secundarios{display:none!important}.relatorios-content{padding:0;overflow:visible}.relatorios-tabela-scroll{max-height:none;overflow:visible}}
 
+/* Lucratividade: prioriza a leitura do nome completo do produto. */
+.relatorios-resultado-lucratividade .relatorios-tabela th:nth-child(1),
+.relatorios-resultado-lucratividade .relatorios-tabela td:nth-child(1) { width:38%; }
+.relatorios-resultado-lucratividade .relatorios-tabela th:nth-child(2),
+.relatorios-resultado-lucratividade .relatorios-tabela td:nth-child(2) { width:9%; }
+.relatorios-resultado-lucratividade .relatorios-tabela th:nth-child(3),
+.relatorios-resultado-lucratividade .relatorios-tabela td:nth-child(3) { width:12%; }
+.relatorios-resultado-lucratividade .relatorios-tabela th:nth-child(4),
+.relatorios-resultado-lucratividade .relatorios-tabela td:nth-child(4) { width:15%; }
+.relatorios-resultado-lucratividade .relatorios-tabela th:nth-child(5),
+.relatorios-resultado-lucratividade .relatorios-tabela td:nth-child(5) { width:15%; }
+.relatorios-resultado-lucratividade .relatorios-tabela th:nth-child(6),
+.relatorios-resultado-lucratividade .relatorios-tabela td:nth-child(6) { width:11%; }
+
+.relatorios-resultado-cobrancas .relatorios-tabela th:nth-child(1),
+.relatorios-resultado-cobrancas .relatorios-tabela td:nth-child(1) { width:22%; }
+.relatorios-resultado-cobrancas .relatorios-tabela th:nth-child(2),
+.relatorios-resultado-cobrancas .relatorios-tabela td:nth-child(2) { width:18%; }
+.relatorios-resultado-cobrancas .relatorios-tabela th:nth-child(3),
+.relatorios-resultado-cobrancas .relatorios-tabela td:nth-child(3) { width:10%; }
+.relatorios-resultado-cobrancas .relatorios-tabela th:nth-child(4),
+.relatorios-resultado-cobrancas .relatorios-tabela td:nth-child(4) { width:18%; }
+.relatorios-resultado-cobrancas .relatorios-tabela th:nth-child(5),
+.relatorios-resultado-cobrancas .relatorios-tabela td:nth-child(5) { width:12%; }
+.relatorios-resultado-cobrancas .relatorios-tabela th:nth-child(6),
+.relatorios-resultado-cobrancas .relatorios-tabela td:nth-child(6) { width:11%; }
+.relatorios-resultado-cobrancas .relatorios-tabela th:nth-child(7),
+.relatorios-resultado-cobrancas .relatorios-tabela td:nth-child(7) { width:9%; }
+
+.relatorios-resultado-inadimplencia .relatorios-tabela th:nth-child(1),
+.relatorios-resultado-inadimplencia .relatorios-tabela td:nth-child(1) { width:28%; }
+.relatorios-resultado-inadimplencia .relatorios-tabela th:nth-child(2),
+.relatorios-resultado-inadimplencia .relatorios-tabela td:nth-child(2) { width:25%; }
+.relatorios-resultado-inadimplencia .relatorios-tabela th:nth-child(3),
+.relatorios-resultado-inadimplencia .relatorios-tabela td:nth-child(3) { width:13%; }
+.relatorios-resultado-inadimplencia .relatorios-tabela th:nth-child(4),
+.relatorios-resultado-inadimplencia .relatorios-tabela td:nth-child(4) { width:11%; }
+.relatorios-resultado-inadimplencia .relatorios-tabela th:nth-child(5),
+.relatorios-resultado-inadimplencia .relatorios-tabela td:nth-child(5) { width:13%; }
+.relatorios-resultado-inadimplencia .relatorios-tabela th:nth-child(6),
+.relatorios-resultado-inadimplencia .relatorios-tabela td:nth-child(6) { width:10%; }
+
+.relatorios-resultado-periodo .relatorios-tabela th:nth-child(1),
+.relatorios-resultado-periodo .relatorios-tabela td:nth-child(1) { width:10%; }
+.relatorios-resultado-periodo .relatorios-tabela th:nth-child(2),
+.relatorios-resultado-periodo .relatorios-tabela td:nth-child(2) { width:13%; }
+.relatorios-resultado-periodo .relatorios-tabela th:nth-child(3),
+.relatorios-resultado-periodo .relatorios-tabela td:nth-child(3) { width:31%; }
+.relatorios-resultado-periodo .relatorios-tabela th:nth-child(4),
+.relatorios-resultado-periodo .relatorios-tabela td:nth-child(4) { width:18%; }
+.relatorios-resultado-periodo .relatorios-tabela th:nth-child(5),
+.relatorios-resultado-periodo .relatorios-tabela td:nth-child(5) { width:16%; }
+.relatorios-resultado-periodo .relatorios-tabela th:nth-child(6),
+.relatorios-resultado-periodo .relatorios-tabela td:nth-child(6) { width:12%; }
+
+.relatorios-resultado-cliente .relatorios-tabela th:nth-child(1),
+.relatorios-resultado-cliente .relatorios-tabela td:nth-child(1) { width:32%; }
+.relatorios-resultado-cliente .relatorios-tabela th:nth-child(2),
+.relatorios-resultado-cliente .relatorios-tabela td:nth-child(2) { width:10%; }
+.relatorios-resultado-cliente .relatorios-tabela th:nth-child(3),
+.relatorios-resultado-cliente .relatorios-tabela td:nth-child(3) { width:22%; }
+.relatorios-resultado-cliente .relatorios-tabela th:nth-child(4),
+.relatorios-resultado-cliente .relatorios-tabela td:nth-child(4) { width:20%; }
+.relatorios-resultado-cliente .relatorios-tabela th:nth-child(5),
+.relatorios-resultado-cliente .relatorios-tabela td:nth-child(5) { width:16%; }
+
+/* Relatórios de Produtos: nomes legíveis e nenhuma coluna fora da tela. */
+.relatorios-workspace-produtos .relatorios-tabela-scroll {
+  overflow-x:auto!important;
+  overflow-y:auto!important;
+}
+.relatorios-workspace-produtos .relatorios-tabela {
+  min-width:1050px!important;
+}
+.relatorios-workspace-produtos .relatorios-indicadores {
+  grid-template-columns:repeat(5,minmax(0,1fr));
+}
+
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela td:nth-child(1) { width:28%; }
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela td:nth-child(2) { width:9%; }
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela th:nth-child(3),
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela td:nth-child(3) { width:12%; }
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela th:nth-child(4),
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela td:nth-child(4) { width:20%; }
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela th:nth-child(5),
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela td:nth-child(5),
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela th:nth-child(6),
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela td:nth-child(6) { width:10%; }
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela th:nth-child(7),
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela td:nth-child(7) { width:11%; }
+
+.relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela td:nth-child(1) { width:8%; }
+.relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela td:nth-child(2) { width:32%; }
+.relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela th:nth-child(n+3),
+.relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela td:nth-child(n+3) { width:15%; }
+
+@media(max-width:1100px) {
+  .relatorios-workspace-produtos .relatorios-indicadores {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela-scroll {
+  overflow-x:auto!important;
+  overflow-y:auto!important;
+}
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela {
+  min-width:1200px!important;
+}
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela td:nth-child(1) { width:12%; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela td:nth-child(2) { width:27%; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela th:nth-child(3),
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela td:nth-child(3) { width:9%; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela th:nth-child(4),
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela td:nth-child(4) { width:14%; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela th:nth-child(5),
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela td:nth-child(5) { width:14%; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela th:nth-child(n+6),
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela td:nth-child(n+6) { width:8%; }
+
+.relatorios-workspace-estoque .relatorios-tabela-scroll {
+  overflow-x:auto!important;
+  overflow-y:auto!important;
+}
+.relatorios-workspace-estoque .relatorios-resultado-baixo .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-estoque .relatorios-resultado-baixo .relatorios-tabela td:nth-child(1),
+.relatorios-workspace-estoque .relatorios-resultado-negativo .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-estoque .relatorios-resultado-negativo .relatorios-tabela td:nth-child(1) { width:11%; }
+.relatorios-workspace-estoque .relatorios-resultado-baixo .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-estoque .relatorios-resultado-baixo .relatorios-tabela td:nth-child(2),
+.relatorios-workspace-estoque .relatorios-resultado-negativo .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-estoque .relatorios-resultado-negativo .relatorios-tabela td:nth-child(2) { width:35%; }
+.relatorios-workspace-estoque .relatorios-resultado-baixo .relatorios-tabela th:nth-child(3),
+.relatorios-workspace-estoque .relatorios-resultado-baixo .relatorios-tabela td:nth-child(3),
+.relatorios-workspace-estoque .relatorios-resultado-negativo .relatorios-tabela th:nth-child(3),
+.relatorios-workspace-estoque .relatorios-resultado-negativo .relatorios-tabela td:nth-child(3) { width:20%; }
+.relatorios-workspace-estoque .relatorios-resultado-baixo .relatorios-tabela th:nth-child(n+4),
+.relatorios-workspace-estoque .relatorios-resultado-baixo .relatorios-tabela td:nth-child(n+4),
+.relatorios-workspace-estoque .relatorios-resultado-negativo .relatorios-tabela th:nth-child(n+4),
+.relatorios-workspace-estoque .relatorios-resultado-negativo .relatorios-tabela td:nth-child(n+4) { width:11.33%; }
+
+.relatorios-workspace-estoque .relatorios-resultado-giro .relatorios-tabela th:first-child,
+.relatorios-workspace-estoque .relatorios-resultado-giro .relatorios-tabela td:first-child,
+.relatorios-workspace-estoque .relatorios-resultado-cobertura .relatorios-tabela th:first-child,
+.relatorios-workspace-estoque .relatorios-resultado-cobertura .relatorios-tabela td:first-child { width:40%; }
+.relatorios-workspace-estoque .relatorios-resultado-giro .relatorios-tabela th:nth-child(n+2),
+.relatorios-workspace-estoque .relatorios-resultado-giro .relatorios-tabela td:nth-child(n+2),
+.relatorios-workspace-estoque .relatorios-resultado-cobertura .relatorios-tabela th:nth-child(n+2),
+.relatorios-workspace-estoque .relatorios-resultado-cobertura .relatorios-tabela td:nth-child(n+2) { width:15%; }
+
+.relatorios-workspace-estoque .relatorios-resultado-abc .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-estoque .relatorios-resultado-abc .relatorios-tabela td:nth-child(1) { width:8%; }
+.relatorios-workspace-estoque .relatorios-resultado-abc .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-estoque .relatorios-resultado-abc .relatorios-tabela td:nth-child(2) { width:36%; }
+.relatorios-workspace-estoque .relatorios-resultado-abc .relatorios-tabela th:nth-child(n+3),
+.relatorios-workspace-estoque .relatorios-resultado-abc .relatorios-tabela td:nth-child(n+3) { width:14%; }
+
+.relatorios-workspace-clientes .relatorios-tabela-scroll {
+  overflow-x:auto!important;
+  overflow-y:auto!important;
+}
+.relatorios-workspace-clientes .relatorios-tabela {
+  min-width:1050px!important;
+}
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela td:nth-child(1) { width:6%; }
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela td:nth-child(2) { width:7%; }
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela th:nth-child(3),
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela td:nth-child(3) { width:29%; }
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela th:nth-child(4),
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela td:nth-child(4) { width:9%; }
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela th:nth-child(5),
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela td:nth-child(5),
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela th:nth-child(6),
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela td:nth-child(6) { width:16%; }
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela th:nth-child(7),
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela td:nth-child(7) { width:17%; }
+
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela td:nth-child(1) { width:9%; }
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela td:nth-child(2) { width:26%; }
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela th:nth-child(3),
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela td:nth-child(3) { width:8%; }
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela th:nth-child(4),
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela td:nth-child(4),
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela th:nth-child(5),
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela td:nth-child(5) { width:14%; }
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela th:nth-child(6),
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela td:nth-child(6) { width:20%; }
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela th:nth-child(7),
+.relatorios-workspace-clientes .relatorios-resultado-carteira .relatorios-tabela td:nth-child(7) { width:9%; }
+
+.relatorios-workspace-clientes .relatorios-resultado-inativos .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-clientes .relatorios-resultado-inativos .relatorios-tabela td:nth-child(1) { width:9%; }
+.relatorios-workspace-clientes .relatorios-resultado-inativos .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-clientes .relatorios-resultado-inativos .relatorios-tabela td:nth-child(2) { width:28%; }
+.relatorios-workspace-clientes .relatorios-resultado-inativos .relatorios-tabela th:nth-child(3),
+.relatorios-workspace-clientes .relatorios-resultado-inativos .relatorios-tabela td:nth-child(3),
+.relatorios-workspace-clientes .relatorios-resultado-inativos .relatorios-tabela th:nth-child(4),
+.relatorios-workspace-clientes .relatorios-resultado-inativos .relatorios-tabela td:nth-child(4) { width:15%; }
+.relatorios-workspace-clientes .relatorios-resultado-inativos .relatorios-tabela th:nth-child(5),
+.relatorios-workspace-clientes .relatorios-resultado-inativos .relatorios-tabela td:nth-child(5) { width:23%; }
+.relatorios-workspace-clientes .relatorios-resultado-inativos .relatorios-tabela th:nth-child(6),
+.relatorios-workspace-clientes .relatorios-resultado-inativos .relatorios-tabela td:nth-child(6) { width:10%; }
+
+.relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela td:nth-child(1) { width:28%; }
+.relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela td:nth-child(2) { width:13%; }
+.relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela th:nth-child(3),
+.relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela td:nth-child(3) { width:12%; }
+.relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela th:nth-child(4),
+.relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela td:nth-child(4) { width:9%; }
+.relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela th:nth-child(5),
+.relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela td:nth-child(5) { width:16%; }
+.relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela th:nth-child(6),
+.relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela td:nth-child(6) { width:22%; }
+
+.relatorios-workspace-clientes .relatorios-resultado-ticket .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-clientes .relatorios-resultado-ticket .relatorios-tabela td:nth-child(1) { width:36%; }
+.relatorios-workspace-clientes .relatorios-resultado-ticket .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-clientes .relatorios-resultado-ticket .relatorios-tabela td:nth-child(2) { width:10%; }
+.relatorios-workspace-clientes .relatorios-resultado-ticket .relatorios-tabela th:nth-child(3),
+.relatorios-workspace-clientes .relatorios-resultado-ticket .relatorios-tabela td:nth-child(3),
+.relatorios-workspace-clientes .relatorios-resultado-ticket .relatorios-tabela th:nth-child(4),
+.relatorios-workspace-clientes .relatorios-resultado-ticket .relatorios-tabela td:nth-child(4) { width:19%; }
+.relatorios-workspace-clientes .relatorios-resultado-ticket .relatorios-tabela th:nth-child(5),
+.relatorios-workspace-clientes .relatorios-resultado-ticket .relatorios-tabela td:nth-child(5) { width:16%; }
+
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela td:nth-child(1) { width:30%; }
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela td:nth-child(2) { width:9%; }
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela th:nth-child(3),
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela td:nth-child(3) { width:15%; }
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela th:nth-child(4),
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela td:nth-child(4) { width:13%; }
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela th:nth-child(5),
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela td:nth-child(5) { width:17%; }
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela th:nth-child(6),
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela td:nth-child(6) { width:16%; }
+
+.relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela th:nth-child(1),
+.relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela td:nth-child(1) { width:6%; }
+.relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela th:nth-child(2),
+.relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela td:nth-child(2) { width:32%; }
+.relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela th:nth-child(3),
+.relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela td:nth-child(3) { width:9%; }
+.relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela th:nth-child(4),
+.relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela td:nth-child(4),
+.relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela th:nth-child(5),
+.relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela td:nth-child(5) { width:18%; }
+.relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela th:nth-child(6),
+.relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela td:nth-child(6) { width:17%; }
+
 /* Refinamento visual gerencial: blocos compactos, contraste e leitura em grid. */
 .relatorios-content { display:flex; flex-direction:column; }
 .relatorios-content > .page-header { order:0; }

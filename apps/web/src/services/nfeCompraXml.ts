@@ -50,13 +50,15 @@ export function parseNFeCompraXml(xml: string, products: Produto[], numeroCompra
     const unitTrib = text(productXml, 'uTrib') || unitCom
     const eanCom = text(productXml, 'cEAN')
     const eanTrib = text(productXml, 'cEANTrib')
-    const factor = qCom > 0 && qTrib > 0 ? qTrib / qCom : 1
-    const convertedQty = qTrib > qCom ? qTrib : qCom
+    const matched = matchProduct(products, eanTrib, eanCom, description)
+    const factorXml = qCom > 0 && qTrib > 0 ? qTrib / qCom : 1
+    const factorProduct = Math.max(1, Number(matched.product?.quantidadePorEmbalagemCompra || 1))
+    const factor = Math.max(factorXml, factorProduct)
+    const convertedQty = qCom * factor
     const st = num(text(detail, 'vICMSST'))
     const ipi = num(text(detail, 'vIPI'))
     const productValue = num(text(productXml, 'vProd'))
     const finalValue = productValue + st + ipi
-    const matched = matchProduct(products, eanTrib, eanCom, description)
     const convertedUnit = factor > 1 ? 'PACOTE' : unitTrib
 
     return {

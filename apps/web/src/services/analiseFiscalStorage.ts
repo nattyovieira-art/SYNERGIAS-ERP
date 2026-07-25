@@ -252,8 +252,10 @@ function criarAnaliseItem(
   // regra fiscal confirmada. Nesta primeira tela, valores do XML ficam visíveis e
   // a ausência de regra NCM/CEST direciona o item para revisão.
   const ipiNaoRecuperavel = dados.valorIpi
-  const icmsEstimado = 0
-  const icmsStEstimado = 0
+  // Regra confirmada pelo usuário: o ICMS destacado na NF-e de compra
+  // compõe o custo do produto.
+  const icmsEstimado = dados.valorIcms
+  const icmsStEstimado = dados.valorIcmsSt
   const totalTributosNaoRecuperaveis =
     ipiNaoRecuperavel + icmsEstimado + icmsStEstimado
 

@@ -25,12 +25,14 @@ import {
   listarPendenciasProdutosHistoricos,
   obterUltNSUNFeEmitidasStorage,
   salvarUltNSUNFeEmitidasStorage,
+  vincularAutomaticamenteProdutosHistoricosStorage,
   vincularProdutoHistoricoStorage,
   type PendenciaProdutoHistorico,
   type AmbienteNFeEmitidas,
   type ResultadoImportacaoPedidosHistoricos,
 } from '../../services/nfeEmitidasStorage'
 import type { Venda } from '../../types/Venda'
+import ImportarNfHistoricaModal from '../Vendas/ImportarNfHistoricaModal'
 
 import '../../styles/fiscal.css'
 import '../../styles/fiscal-nfe-emitidas.css'
@@ -116,6 +118,7 @@ function Fiscal() {
   const [sincronizandoEmitidas, setSincronizandoEmitidas] =
     useState(false)
   const [importandoXml, setImportandoXml] = useState(false)
+  const [modalNfHistorica, setModalNfHistorica] = useState(false)
   const [pendencias, setPendencias] = useState<
     PendenciaProdutoHistorico[]
   >(() => listarPendenciasProdutosHistoricos())
@@ -248,6 +251,7 @@ function Fiscal() {
   )
 
   function atualizarPendencias() {
+    vincularAutomaticamenteProdutosHistoricosStorage()
     setPendencias(listarPendenciasProdutosHistoricos())
   }
 
@@ -719,7 +723,7 @@ function Fiscal() {
                 <button
                   type="button"
                   className="fiscal-nfe-button fiscal-nfe-button-xml erp-action-descriptive erp-action-import-xml"
-                  onClick={() => inputXmlRef.current?.click()}
+                  onClick={() => setModalNfHistorica(true)}
                   disabled={importandoXml}
                 >
                   <FileUp size={18} />
@@ -729,6 +733,14 @@ function Fiscal() {
                 </button>
               </div>
             </div>
+            <ImportarNfHistoricaModal
+              aberto={modalNfHistorica}
+              onClose={() => setModalNfHistorica(false)}
+              onConcluido={() => {
+                setMensagemImportacao('Orçamento e pedido históricos inseridos e vinculados à NF-e.')
+                atualizarPendencias()
+              }}
+            />
 
             {mostrarFiltrosEmitidas && (
               <div className="fiscal-nfe-filter-panel">

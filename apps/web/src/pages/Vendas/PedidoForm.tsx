@@ -1507,11 +1507,8 @@ function PedidoForm() {
   )
 
   const clienteSelecionado = useMemo(
-    () =>
-      clientes.find(
-        (cliente) => String(cliente.codigo) === String(venda.clienteCodigo || ''),
-      ),
-    [clientes, venda.clienteCodigo],
+    () => localizarClienteAtualParaDocumento(venda),
+    [clientes, venda.clienteCodigo, venda.clienteDocumento, venda.clienteNome],
   )
 
   const resumoCreditoCliente = useMemo(
@@ -1520,19 +1517,42 @@ function PedidoForm() {
   )
 
   useEffect(() => {
-    if (!clienteSelecionado) return
+    if (!clienteSelecionado) {
+      if (!clientes.length || !(venda.clienteCodigo || venda.clienteDocumento || venda.clienteNome)) return
+      setEmailsCopiaTexto('')
+      setVenda((atual) => ({
+        ...atual,
+        clienteEmail: '',
+        clienteEmailNotaFiscal: '',
+        emailEnvio: '',
+        emailsCopiaEnvio: [],
+      }))
+      return
+    }
     const locais = normalizarEnderecosEntrega(clienteSelecionado)
     const local = locais.find((item) => item.id === venda.enderecoEntregaId) ||
+      locais.find((item) =>
+        somenteNumerosCredito(item.cep || '') === somenteNumerosCredito(venda.entregaCep || '') &&
+        String(item.numero || '').trim() === String(venda.entregaNumero || '').trim()) ||
       locais.find((item) => item.ativo)
     const clienteComEmailFiscal = clienteSelecionado as Cliente & { emailNotaFiscal?: string }
-    const emailCorreto = String(
+    const emailBruto = String(
       local?.emailEnvio || clienteComEmailFiscal.emailNotaFiscal || clienteSelecionado.email || '',
     ).trim()
-    const copiasCorretas = Array.isArray(local?.emailsCopiaEnvio) && local.emailsCopiaEnvio.length
+    const emailsDoCampo = emailBruto
+      .split(/[;,\n]+/)
+      .map(extrairPrimeiroEmail)
+      .filter(Boolean)
+    const emailCorreto = emailsDoCampo[0] || ''
+    const copiasCadastradas = Array.isArray(local?.emailsCopiaEnvio) && local.emailsCopiaEnvio.length
       ? local.emailsCopiaEnvio
       : Array.isArray(clienteSelecionado.emailsCopiaDocumentos)
         ? clienteSelecionado.emailsCopiaDocumentos
         : []
+    const copiasCorretas = Array.from(new Set(
+      [...emailsDoCampo.slice(1), ...copiasCadastradas.map((email) => extrairPrimeiroEmail(String(email)))]
+        .filter((email) => email && email !== emailCorreto),
+    ))
 
     setEmailsCopiaTexto(copiasCorretas.join('; '))
     setVenda((atual) => {
@@ -1548,9 +1568,11 @@ function PedidoForm() {
         clienteEmailNotaFiscal: emailCorreto,
         emailEnvio: emailCorreto,
         emailsCopiaEnvio: copiasCorretas,
+        enderecoEntregaId: local?.id || '',
+        enderecoEntregaSnapshot: local,
       }
     })
-  }, [clienteSelecionado, venda.enderecoEntregaId])
+  }, [clientes.length, clienteSelecionado, venda.enderecoEntregaId, venda.entregaCep, venda.entregaNumero])
 
   function dinheiro(valor: number) {
     return Number(valor || 0).toLocaleString('pt-BR', {
@@ -1843,11 +1865,23 @@ function PedidoForm() {
       return null
     }
 
-    const enderecoId = String(vendaAtualizada.enderecoEntregaId || '')
+    const enderecoId = String(
+      vendaAtualizada.enderecoEntregaId ||
+      vendaAtualizada.enderecoEntregaSnapshot?.id ||
+      '',
+    )
+    const mesmoCliente = (cliente: Cliente) => {
+      const clienteLegado = cliente as Cliente & { id?: string; documento?: string }
+      const atualLegado = clienteAtual as Cliente & { id?: string; documento?: string }
+      const codigoCliente = String(cliente.codigo || clienteLegado.id || '')
+      const codigoAtual = String(clienteAtual.codigo || atualLegado.id || '')
+      if (codigoCliente && codigoAtual && codigoCliente === codigoAtual) return true
+      const documentoCliente = String(clienteLegado.documento || cliente.cnpj || '').replace(/\D/g, '')
+      const documentoAtual = String(atualLegado.documento || clienteAtual.cnpj || '').replace(/\D/g, '')
+      return Boolean(documentoCliente && documentoAtual && documentoCliente === documentoAtual)
+    }
     const aplicarEmails = (lista: Cliente[]) => {
-      const clienteServidor = lista.find((cliente) =>
-        String(cliente.codigo || '') === String(clienteAtual.codigo || ''),
-      ) || clienteAtual
+      const clienteServidor = lista.find(mesmoCliente) || clienteAtual
       const locais = normalizarEnderecosEntrega(clienteServidor)
       const clienteAtualizado: Cliente = {
         ...clienteServidor,
@@ -1858,16 +1892,18 @@ function PedidoForm() {
           '',
         enderecosEntrega: enderecoId
           ? locais.map((local) => local.id === enderecoId
-            ? { ...local, emailEnvio: emailPrincipal }
+            ? { ...local, emailEnvio: emailPrincipal, emailsCopiaEnvio: copias }
             : local)
-          : locais,
+          : locais.length === 1
+            ? locais.map((local) => ({ ...local, emailEnvio: emailPrincipal, emailsCopiaEnvio: copias }))
+            : locais,
         emailsCopiaDocumentos: copias,
       }
 
       return {
         clienteAtualizado,
         clientesAtualizados: lista.map((cliente) =>
-          String(cliente.codigo) === String(clienteAtualizado.codigo)
+          mesmoCliente(cliente)
             ? clienteAtualizado
             : cliente,
         ),
@@ -4948,8 +4984,7 @@ Synergias Distribuidora`,
   useEffect(() => {
     if (impressaoAutomaticaExecutada.current || typeof window === 'undefined') return
 
-    const parametros = new URLSearchParams(window.location.search)
-    if (parametros.get('print') !== '1') return
+    if (parametroUrlAtual('print') !== '1') return
     if (!id || !venda.numeroPedido) return
 
     impressaoAutomaticaExecutada.current = true

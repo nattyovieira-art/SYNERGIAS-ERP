@@ -625,6 +625,16 @@
   font-weight: 750;
 }
 
+.estoque-lista-card .estoque-table th:first-child,
+.estoque-lista-card .estoque-table td:first-child {
+  width: 38%;
+}
+
+.estoque-lista-card .estoque-table th:nth-child(2),
+.estoque-lista-card .estoque-table td:nth-child(2) {
+  width: 14%;
+}
+
 .estoque-status,
 .estoque-tipo {
   display: inline-flex !important;

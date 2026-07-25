@@ -1,6 +1,7 @@
 import { corrigirOrcamento2492LifeSquare } from './corrigirOrcamento2492LifeSquare'
 import { corrigirOrcamento2151Pedido2453PorDescricao } from './corrigirOrcamento2151Pedido2453PorDescricao'
 import { criarOrcamentoOttoClub } from './criarOrcamentoOttoClub'
+import { criarOrcamentosJoy } from './criarOrcamentosJoy'
 import { inserirOrcamento2380Pedido2458Nfe2358 } from './inserirOrcamento2380Pedido2458Nfe2358'
 import { inserirOrcamento2355Pedido2428Nfe2325 } from './inserirOrcamento2355Pedido2428Nfe2325'
 import { inserirOrcamento2396Vitoria } from './inserirOrcamento2396Vitoria'
@@ -1100,6 +1101,7 @@ export async function inicializarArmazenamentoCentral(): Promise<void> {
   }
   try {
   vendasEstaveis = await criarOrcamentoOttoClub(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [], atualizarRegistroColecaoCentral, carregarColecaoCentral)
+  vendasEstaveis = await criarOrcamentosJoy(vendasEstaveis, Array.isArray(produtos.data) ? produtos.data : [], Array.isArray(clientes.data) ? clientes.data : [], atualizarRegistroColecaoCentral, carregarColecaoCentral)
   } catch (erro) {
     console.warn('[Synergias ERP] Orçamento OTTO CLUB não criado.', erro)
   }

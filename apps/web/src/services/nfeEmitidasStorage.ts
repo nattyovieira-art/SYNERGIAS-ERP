@@ -120,7 +120,7 @@ function localizarProdutoPorDescricaoExata(
 
   const encontrados = produtos.filter(
     (produto) =>
-      normalizarDescricaoProdutoHistorico(produto.descricao) ===
+      normalizarDescricaoProdutoHistorico(produto.descricao || produto.nome) ===
       descricaoNormalizada,
   )
 
@@ -182,7 +182,7 @@ function localizarProdutoPorDescricaoSemelhante(
       produto,
       score: calcularSimilaridadeDescricao(
         historica,
-        normalizarDescricaoProdutoHistorico(produto.descricao),
+        normalizarDescricaoProdutoHistorico(produto.descricao || produto.nome),
       ),
     }))
     .sort((a, b) => b.score - a.score)
@@ -210,7 +210,7 @@ function aplicarVinculoNoItem(
     chaveProdutoHistorico: criarChaveHistorica(item),
     codigoProduto: String(produto.codigo || ''),
     codigoBarras: produto.codigoBarras || item.codigoBarras || '',
-    descricao: produto.descricao || item.descricao,
+    descricao: produto.descricao || produto.nome || item.descricao,
     produtoVinculado: true,
     vinculoProdutoOrigem: origem,
   }
@@ -492,6 +492,38 @@ export function listarPendenciasProdutosHistoricos(): PendenciaProdutoHistorico[
       'pt-BR',
     ),
   )
+}
+
+export function vincularAutomaticamenteProdutosHistoricosStorage() {
+  const produtos = listarProdutosStorage()
+  const mapaProdutos = listarMapaProdutosHistoricos()
+  const vendas = listarVendasStorage()
+  let itensVinculados = 0
+  let houveAlteracao = false
+
+  const vendasAtualizadas = vendas.map((venda) => {
+    if (venda.tipo !== 'Pedido' || !venda.importacaoHistorica) return venda
+
+    let vendaAlterada = false
+    const itens = venda.itens.map((item) => {
+      if (item.produtoVinculado) return item
+
+      const preparado = prepararItemHistorico(item, produtos, mapaProdutos)
+      if (!preparado.item.produtoVinculado) return item
+
+      vendaAlterada = true
+      houveAlteracao = true
+      itensVinculados += 1
+      return preparado.item
+    })
+
+    return vendaAlterada
+      ? { ...venda, itens, atualizadoEm: new Date().toISOString() } as Venda
+      : venda
+  })
+
+  if (houveAlteracao) salvarVendasStorage(vendasAtualizadas)
+  return itensVinculados
 }
 
 export function vincularProdutoHistoricoStorage(

@@ -25,6 +25,7 @@ import { listarContasReceberStorage } from '../../services/financeiroStorage'
 import { excluirVendaStorageConfirmado, listarVendasStorage as listarVendasCentral, salvarVendaStorageConfirmado, salvarVendasStorage as salvarVendasCentral } from '../../services/vendasStorage'
 import { ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
 import { determinarEstadoRealOrcamento } from '../../services/orcamentoEstado'
+import OrcamentoTextoModal from './OrcamentoTextoModal'
 
 import '../../styles/vendas.css'
 import '../../styles/vendas-toolbar-ajustes.css'
@@ -568,6 +569,7 @@ function Vendas() {
   const [filtroCliente, setFiltroCliente] = useState('')
   const [filtroVendedor, setFiltroVendedor] = useState('')
   const [filtroVinculo, setFiltroVinculo] = useState<'TODOS' | 'COM' | 'SEM'>('TODOS')
+  const [orcamentoTextoAberto, setOrcamentoTextoAberto] = useState(false)
 
   useEffect(() => {
     const atualizar = () => setVendas(carregarVendasStorage())
@@ -833,10 +835,11 @@ function Vendas() {
       return
     }
 
-    const destino =
+    const rotaImpressao =
       abaAtiva === 'pedidos'
         ? `/vendas/pedidos/editar/${venda.id}?print=1`
         : `/vendas/orcamentos/editar/${venda.id}?print=1`
+    const destino = `${window.location.origin}${window.location.pathname}#${rotaImpressao}`
 
     // V213_IMPRESSAO_ORCAMENTO_LISTA_NOVA_JANELA
     // A abertura ocorre diretamente no clique para preservar a permissão
@@ -1102,6 +1105,9 @@ function Vendas() {
             </div>
 
             <div className="vendas-toolbar-acoes-direita">
+              {abaAtiva === 'orcamentos' && <button type="button" className="vendas-btn-logistica" onClick={() => setOrcamentoTextoAberto(true)} title="Criar orçamento por texto">
+                <FileText size={22} /><span>POR TEXTO</span>
+              </button>}
               <button
                 type="button"
                 className="vendas-btn-logistica"
@@ -1140,6 +1146,7 @@ function Vendas() {
               <button type="button" className="vendas-clear-filters" onClick={() => { setFiltroStatus('TODOS'); setDataInicio(''); setDataFim(''); setFiltroCliente(''); setFiltroVendedor(''); setFiltroVinculo('TODOS') }}>Limpar filtros</button>
             </section>
           )}
+          <OrcamentoTextoModal aberto={orcamentoTextoAberto} onClose={() => setOrcamentoTextoAberto(false)} onPreparar={(rascunho) => navigate('/vendas/orcamentos/novo', { state: { orcamentoTexto: rascunho } })} />
 
           <section className="vendas-cards">
             <article className="vendas-card">

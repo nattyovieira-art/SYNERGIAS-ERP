@@ -101,6 +101,9 @@ function normalizarProduto(produto: any, produtosExistentes: Produto[] = []): Pr
   const codigo = obterCodigoProduto(produto, produtosExistentes)
   const id = textoSeguro(produto?.id) || codigo || gerarIdProduto()
   const descricao = obterDescricaoProdutoBase(produto)
+  const quantidadePorEmbalagemCompra =
+    numeroSeguro(produto?.quantidadePorEmbalagemCompra) ||
+    (textoSeguro(produto?.codigoBarras).replace(/\D/g, '') === '7901210137' ? 8 : 1)
 
   const custoInformado = numeroSeguro(produto?.custo)
   const custoMedioAtual =
@@ -172,6 +175,7 @@ function normalizarProduto(produto: any, produtosExistentes: Produto[] = []): Pr
     situacao: textoSeguro(produto?.situacao) || 'Ativo',
     imagem: textoSeguro(produto?.imagem),
     imagemUrl: textoSeguro(produto?.imagemUrl),
+    quantidadePorEmbalagemCompra,
 
     custo,
     custoMedioAtual,

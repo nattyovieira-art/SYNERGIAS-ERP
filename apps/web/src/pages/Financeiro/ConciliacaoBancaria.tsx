@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -13,6 +13,11 @@ import {
   X,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { consultarCobrancaInter } from '../../services/interCobrancaApi'
+import {
+  listarVendasStorage,
+  salvarVendaStorageConfirmado,
+} from '../../services/vendasStorage'
 
 import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
@@ -895,10 +900,19 @@ function desfazerConciliacao(lancamento: LancamentoOfx) {
 function ConciliacaoBancaria() {
   const navigate = useNavigate()
   const inputOfxRef = useRef<HTMLInputElement>(null)
+  const conciliacaoInterInicialRef = useRef(false)
 
   const [lancamentos, setLancamentos] = useState<LancamentoOfx[]>(listarLancamentosOfxStorage())
   const [bancoSelecionado, setBancoSelecionado] = useState('')
   const [importando, setImportando] = useState(false)
+  const [sincronizandoInter, setSincronizandoInter] = useState(false)
+  const [mensagemInter, setMensagemInter] = useState('')
+
+  useEffect(() => {
+    if (conciliacaoInterInicialRef.current) return
+    conciliacaoInterInicialRef.current = true
+    void conciliarBancoInter()
+  }, [])
   const [busca, setBusca] = useState('')
   const [tipoFiltro, setTipoFiltro] = useState<'todos' | 'entradas' | 'saidas'>('todos')
   const [vinculoFiltro, setVinculoFiltro] = useState<'todos' | 'vinculadas' | 'nao-vinculadas'>('todos')
@@ -975,19 +989,35 @@ function ConciliacaoBancaria() {
       .sort((a, b) => pontuarConta(lancamentoAberto, b).pontuacao - pontuarConta(lancamentoAberto, a).pontuacao)
   }, [lancamentoAberto, buscaContaManual, periodoManual])
 
+  const contasPendentes = useMemo(() => {
+    const termo = normalizarTexto(busca)
+    return [
+      ...mapearContasConciliaveis('Credito'),
+      ...mapearContasConciliaveis('Debito'),
+    ].filter((conta) => {
+      const tipoOk =
+        tipoFiltro === 'todos' ||
+        (tipoFiltro === 'entradas' && conta.tipo === 'receber') ||
+        (tipoFiltro === 'saidas' && conta.tipo === 'pagar')
+      const textoConta = normalizarTexto(
+        `${conta.nome} ${conta.documento} ${conta.origem} ${conta.referencia} ${conta.descricao} ${conta.valorAberto}`,
+      )
+      return tipoOk && (!termo || textoConta.includes(termo))
+    })
+  }, [lancamentos, busca, tipoFiltro])
+
   const resumo = useMemo(() => {
     const creditos = lancamentos.filter((item) => item.tipo === 'Credito')
     const debitos = lancamentos.filter((item) => item.tipo === 'Debito')
     const conciliados = lancamentos.filter((item) => item.conciliado)
-    const pendentes = lancamentos.filter((item) => !item.conciliado && !item.descartado)
     return {
       totalLancamentos: lancamentos.length,
       totalCreditos: creditos.reduce((total, item) => total + Number(item.valor || 0), 0),
       totalDebitos: debitos.reduce((total, item) => total + Number(item.valor || 0), 0),
       conciliados: conciliados.length,
-      pendentes: pendentes.length,
+      pendentes: contasPendentes.length,
     }
-  }, [lancamentos])
+  }, [lancamentos, contasPendentes])
 
   function dinheiro(valor: number) {
     return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -1214,6 +1244,104 @@ function ConciliacaoBancaria() {
     return undefined
   }
 
+  async function conciliarBancoInter() {
+    if (sincronizandoInter) return
+    setSincronizandoInter(true)
+    setMensagemInter('')
+    let baixas = 0
+
+    try {
+      const vendas = listarVendasStorage()
+      for (const venda of vendas) {
+        if (venda.tipo !== 'Pedido') continue
+        let alterou = false
+        const parcelas: typeof venda.parcelas = []
+
+        for (const parcela of venda.parcelas || []) {
+          const codigo = String(
+            parcela.idCobrancaBanco ||
+            parcela.idCobrancaApi ||
+            parcela.nossoNumero ||
+            parcela.numeroBoleto ||
+            parcela.seuNumero ||
+            '',
+          ).trim()
+          if (!codigo || String(parcela.statusBoleto || '').toLowerCase() === 'pago') {
+            parcelas.push(parcela)
+            continue
+          }
+
+          const cobranca = await consultarCobrancaInter(codigo)
+          const status = normalizarTexto(cobranca.status)
+          const paga = ['pago', 'recebido', 'liquidado', 'concluido'].some((termo) =>
+            status.includes(termo))
+
+          if (!paga) {
+            parcelas.push(parcela)
+            continue
+          }
+
+          const valorRecebido = Number(cobranca.valorRecebido || parcela.valor || 0)
+          const dataRecebimento = String(cobranca.dataPagamento || hoje()).slice(0, 10)
+          parcelas.push({
+            ...parcela,
+            statusBoleto: 'Pago' as const,
+            valorRecebido,
+            dataPagamentoBoleto: dataRecebimento,
+          })
+          alterou = true
+          baixas += 1
+
+          const conta = listarContasReceberStorage().find((item) =>
+            (String(item.pedidoId || '') === String(venda.id) ||
+              String(item.pedidoNumero || '') === String(venda.numeroPedido || '')) &&
+            (!item.parcelaNumero || Number(item.parcelaNumero) === Number(parcela.numero || 1)))
+          if (conta && conta.status !== 'Paga') {
+            salvarContaReceberStorage({
+              ...conta,
+              valorRecebido,
+              valorPrincipalRecebido: Number(conta.valorOriginal || valorRecebido),
+              saldoAberto: 0,
+              dataRecebimento,
+              contaRecebimento: 'Banco Inter',
+              conciliado: true,
+              status: 'Paga',
+            })
+          }
+        }
+
+        if (alterou) {
+          const boletos = parcelas.filter((parcela) =>
+            Boolean(
+              parcela.idCobrancaBanco ||
+              parcela.idCobrancaApi ||
+              parcela.nossoNumero ||
+              parcela.numeroBoleto ||
+              parcela.seuNumero,
+            ))
+          const todosPagos = boletos.length > 0 &&
+            boletos.every((parcela) => String(parcela.statusBoleto || '').toLowerCase() === 'pago')
+          await salvarVendaStorageConfirmado({
+            ...venda,
+            parcelas,
+            conciliado: todosPagos || venda.conciliado,
+            dataConciliacao: todosPagos ? hoje() : venda.dataConciliacao,
+            atualizadoEm: agoraIso(),
+          })
+        }
+      }
+
+      atualizarDadosTela()
+      setMensagemInter(baixas
+        ? `${baixas} pagamento(s) confirmado(s) pelo Banco Inter.`
+        : 'Nenhum novo pagamento confirmado pelo Banco Inter.')
+    } catch (erro) {
+      setMensagemInter(erro instanceof Error ? erro.message : 'Não foi possível consultar o Banco Inter.')
+    } finally {
+      setSincronizandoInter(false)
+    }
+  }
+
   return (
     <main className="financeiro-page">
       <Sidebar />
@@ -1241,6 +1369,7 @@ function ConciliacaoBancaria() {
             </button>
           </div>
         </div>
+        {mensagemInter && <div className="financeiro-aviso">{mensagemInter}</div>}
 
         <div className="financeiro-resumo-grid conciliacao-resumo-grid">
           <div className="financeiro-card-resumo"><span>Lançamentos importados</span><strong>{resumo.totalLancamentos}</strong></div>
@@ -1268,6 +1397,31 @@ function ConciliacaoBancaria() {
             </button>
           </div>
         </div>
+
+        <section className="financeiro-tabela-card">
+          <div className="financeiro-table-header">
+            <div>
+              <h3>Compras e vendas pendentes de conciliação</h3>
+              <p>Contas em aberto aguardando identificação do pagamento no banco.</p>
+            </div>
+          </div>
+          <div className="financeiro-tabela-wrapper">
+            <table className="financeiro-tabela">
+              <thead><tr><th>Origem</th><th>Cliente / fornecedor</th><th>Documento</th><th>Vencimento</th><th>Valor em aberto</th><th>Situação</th></tr></thead>
+              <tbody>
+                {contasPendentes.map((conta) => <tr key={`${conta.tipo}-${conta.id}`}>
+                  <td><strong>{conta.tipo === 'receber' ? 'Venda' : 'Compra'}</strong><small>{conta.origem}</small></td>
+                  <td><strong>{conta.nome}</strong><small>{conta.descricao}</small></td>
+                  <td>{conta.referencia || conta.documento || '-'}</td>
+                  <td>{formatarData(conta.vencimento)}</td>
+                  <td><strong>{dinheiro(conta.valorAberto)}</strong></td>
+                  <td>{conta.status}</td>
+                </tr>)}
+                {!contasPendentes.length && <tr><td colSpan={6} className="financeiro-tabela-vazia">Nenhuma compra ou venda pendente de conciliação.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <section className="conciliacao-lancamentos-lista">
           {lancamentosFiltrados.length > 0 ? (

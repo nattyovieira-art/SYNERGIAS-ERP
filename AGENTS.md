@@ -44,6 +44,34 @@ esse teste para fazer uma alteração passar.
 5. Estas regras não podem ser removidas ou enfraquecidas sem autorização explícita
    do usuário.
 
+## Custos de compras
+
+1. ICMS destacado, IPI e ICMS-ST informados na NF-e de compra devem compor o
+   custo do produto.
+2. Esses tributos devem ser rateados pela quantidade convertida para calcular o
+   custo unitário.
+3. Importações, confirmações e edições de compras devem preservar esta regra.
+4. Quando a NF-e de compra tiver alíquota interestadual de ICMS de 4%, o sistema
+   deve calcular automaticamente o DIFAL usando a alíquota interna cadastrada
+   para o NCM e somá-lo ao custo.
+5. A nota só deve permanecer em revisão por esse motivo quando a alíquota interna
+   necessária ao cálculo não estiver cadastrada.
+6. Todo produto sujeito a ICMS-ST deve ter o imposto calculado automaticamente e
+   incluído no custo. Quando o XML trouxer o ICMS-ST destacado, usar o valor do
+   XML; quando não trouxer, calcular pela regra confirmada do NCM/CEST, usando
+   MVA e alíquotas cadastradas.
+7. A revisão manual de ICMS-ST só deve ser exigida quando faltarem dados fiscais
+   indispensáveis ao cálculo ou houver divergência.
+8. Os NCMs 48181000 e 48182000 são sujeitos a ICMS-ST para esta operação, mesmo
+   quando o imposto não estiver destacado no XML. O sistema deve reconhecer
+   esses NCMs, calcular a ST pela regra fiscal cadastrada e incluí-la no custo.
+9. A falta de dados para calcular ST ou DIFAL não pode bloquear a importação,
+   confirmação ou entrada da NF-e. O sistema deve gravar o custo provisório com
+   os valores disponíveis e registrar a pendência fiscal.
+10. Quando o imposto pendente for calculado, atualizar apenas a diferença do
+    custo e do financeiro vinculados, sem gerar nova entrada ou movimentar o
+    estoque novamente.
+
 ## Endereços de entrega e e-mail
 
 1. Cada endereço de entrega possui seu próprio e-mail de envio.
@@ -65,3 +93,13 @@ esse teste para fazer uma alteração passar.
 4. O sistema deve perguntar, uma vez em cada turno, às 12h e às 16h, se houve
    diárias. A resposta de um turno não substitui a pergunta do outro.
 5. Cada diária de cada funcionário em cada turno tem valor fixo de R$ 50,00.
+
+## Histórico financeiro
+
+1. Contas a Receber deve exibir vendas pendentes, parcialmente pagas, vencidas e
+   pagas; a baixa não pode remover o registro da listagem.
+2. Contas a Pagar deve exibir compras pendentes, vencidas, canceladas e pagas; o
+   pagamento não pode remover o registro da listagem.
+3. A página de Conciliação Bancária deve destacar somente compras e vendas que
+   ainda aguardam conciliação, preservando o histórico completo nas páginas de
+   Contas a Receber e Contas a Pagar.
