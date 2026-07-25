@@ -727,6 +727,29 @@
   background: #f8fcf9;
 }
 
+.conciliacao-pendencias-tabela {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.conciliacao-pendencias-tabela :is(th, td):nth-child(1) { width: 14%; }
+.conciliacao-pendencias-tabela :is(th, td):nth-child(2) { width: 34%; }
+.conciliacao-pendencias-tabela :is(th, td):nth-child(3) { width: 16%; }
+.conciliacao-pendencias-tabela :is(th, td):nth-child(4) { width: 14%; }
+.conciliacao-pendencias-tabela :is(th, td):nth-child(5) { width: 14%; }
+.conciliacao-pendencias-tabela :is(th, td):nth-child(6) { width: 8%; }
+
+.conciliacao-pendencias-tabela td:nth-child(2) {
+  white-space: normal;
+}
+
+.conciliacao-pendencias-tabela td:nth-child(2) strong {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 .financeiro-vazio,
 .financeiro-tabela-vazia {
   text-align: center;

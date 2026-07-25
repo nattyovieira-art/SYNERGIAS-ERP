@@ -463,6 +463,7 @@
 .relatorios-tabela th {
   min-height: 58px;
   padding: 16px 14px;
+  text-align: center !important;
   border-bottom: 1px solid var(--area-border);
   background: var(--area-soft);
   color: var(--area-color);
@@ -479,6 +480,7 @@
   color: #475569;
   font-size: 12px;
   line-height: 1.35;
+  text-transform: uppercase;
 }
 
 .relatorios-tabela tbody tr:last-child td {
@@ -1294,48 +1296,62 @@
   min-width: 125px !important;
 }
 
+.relatorios-workspace-vendas .relatorios-resultado-produto .relatorios-tabela :is(th,td).col-produto { width:50% !important; min-width:480px !important; }
+.relatorios-workspace-vendas .relatorios-resultado-produto .relatorios-tabela :is(th,td).col-quantidade { width:8% !important; min-width:76px !important; }
+.relatorios-workspace-vendas .relatorios-resultado-produto .relatorios-tabela :is(th,td).col-pedidos { width:10% !important; min-width:86px !important; }
+.relatorios-workspace-vendas .relatorios-resultado-produto .relatorios-tabela :is(th,td).col-medio { width:15% !important; min-width:118px !important; }
+.relatorios-workspace-vendas .relatorios-resultado-produto .relatorios-tabela :is(th,td).col-faturamento { width:17% !important; min-width:130px !important; }
+
 .relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-classe {
   width: 8% !important;
   min-width: 72px !important;
 }
 
 .relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-produto {
-  width: 44% !important;
-  min-width: 420px !important;
+  width: 52% !important;
+  min-width: 500px !important;
 }
 
 .relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-quantidade,
-.relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-faturamento,
+.relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-faturamento {
+  width: 11% !important;
+  min-width: 96px !important;
+}
+
 .relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-participacao,
 .relatorios-workspace-produtos .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-acumulado {
-  width: 12% !important;
-  min-width: 112px !important;
+  width: 9% !important;
+  min-width: 84px !important;
 }
 
 .relatorios-workspace-produtos .relatorios-resultado-lucratividade .relatorios-tabela :is(th,td).col-produto {
-  width: 45% !important;
-  min-width: 430px !important;
+  width: 49% !important;
+  min-width: 470px !important;
 }
 
 .relatorios-workspace-produtos .relatorios-resultado-lucratividade .relatorios-tabela :is(th,td).col-quantidade {
-  width: 8% !important;
-  min-width: 76px !important;
+  width: 7% !important;
+  min-width: 66px !important;
 }
 
 .relatorios-workspace-produtos .relatorios-resultado-lucratividade .relatorios-tabela :is(th,td).col-custo {
-  width: 12% !important;
-  min-width: 108px !important;
+  width: 11% !important;
+  min-width: 98px !important;
 }
 
-.relatorios-workspace-produtos .relatorios-resultado-lucratividade .relatorios-tabela :is(th,td).col-receita,
+.relatorios-workspace-produtos .relatorios-resultado-lucratividade .relatorios-tabela :is(th,td).col-receita {
+  width: 12% !important;
+  min-width: 104px !important;
+}
+
 .relatorios-workspace-produtos .relatorios-resultado-lucratividade .relatorios-tabela :is(th,td).col-lucro {
-  width: 14% !important;
-  min-width: 118px !important;
+  width: 13% !important;
+  min-width: 112px !important;
 }
 
 .relatorios-workspace-produtos .relatorios-resultado-lucratividade .relatorios-tabela :is(th,td).col-margem {
-  width: 7% !important;
-  min-width: 72px !important;
+  width: 8% !important;
+  min-width: 82px !important;
 }
 
 .relatorios-workspace-produtos .relatorios-resultado-mais-vendidos .relatorios-tabela :is(th,td).col-posicao {
@@ -1378,13 +1394,12 @@
 .relatorios-workspace-produtos .relatorios-resultado-precos .relatorios-tabela :is(th,td).col-menor,
 .relatorios-workspace-produtos .relatorios-resultado-precos .relatorios-tabela :is(th,td).col-maior { width: 10.8% !important; min-width: 100px !important; }
 
-.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-produto { width: 30% !important; min-width: 300px !important; }
-.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-fornecedor { width: 20% !important; min-width: 190px !important; }
-.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-data { width: 8% !important; }
-.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-compra,
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-produto { width: 48% !important; min-width: 460px !important; }
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-data { width: 10% !important; min-width: 90px !important; }
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-compra { width: 12% !important; min-width: 108px !important; }
 .relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-anterior,
 .relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-novo { width: 10% !important; min-width: 96px !important; }
-.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-variacao { width: 12% !important; min-width: 100px !important; }
+.relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-variacao { width: 10% !important; min-width: 90px !important; }
 
 .relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-data { width: 11% !important; min-width: 108px !important; }
 .relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-produto { width: 35% !important; min-width: 330px !important; }
@@ -1422,13 +1437,13 @@
 .relatorios-workspace-estoque .relatorios-resultado-valor .relatorios-tabela :is(th,td).col-categoria { width: 44% !important; min-width: 390px !important; }
 .relatorios-workspace-estoque .relatorios-resultado-valor .relatorios-tabela :is(th,td):not(.col-categoria) { width: 14% !important; min-width: 112px !important; }
 
-.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-posicao { width: 5% !important; }
-.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-classe { width: 6% !important; }
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-posicao { width: 4% !important; min-width: 42px !important; }
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-classe { width: 8% !important; min-width: 76px !important; }
 .relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-cliente { width: 41% !important; min-width: 390px !important; }
-.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-pedidos,
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-pedidos { width: 10% !important; min-width: 82px !important; }
 .relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-faturamento,
-.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-ticket,
-.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-participacao { width: 12% !important; min-width: 105px !important; }
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-ticket { width: 13% !important; min-width: 108px !important; }
+.relatorios-workspace-clientes .relatorios-resultado-abc .relatorios-tabela :is(th,td).col-participacao { width: 11% !important; min-width: 96px !important; }
 
 .relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela :is(th,td).col-posicao { width: 6% !important; }
 .relatorios-workspace-clientes .relatorios-resultado-ranking .relatorios-tabela :is(th,td).col-cliente { width: 46% !important; min-width: 420px !important; }
@@ -1445,8 +1460,12 @@
 .relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela :is(th,td).col-contato { width: 22% !important; min-width: 200px !important; }
 .relatorios-workspace-clientes :is(.relatorios-resultado-sem-comprar,.relatorios-resultado-ultima-compra) .relatorios-tabela :is(th,td):not(.col-cliente):not(.col-contato) { width: 11% !important; min-width: 96px !important; }
 
-.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela :is(th,td).col-cliente { width: 38% !important; min-width: 360px !important; }
-.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela :is(th,td):not(.col-cliente) { width: 12.4% !important; min-width: 108px !important; }
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela :is(th,td).col-cliente { width: 45% !important; min-width: 430px !important; }
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela :is(th,td).col-pedidos { width: 7% !important; min-width: 66px !important; }
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela :is(th,td).col-intervalo,
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela :is(th,td).col-ultima { width: 12% !important; min-width: 105px !important; }
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela :is(th,td).col-faturamento { width: 14% !important; min-width: 118px !important; }
+.relatorios-workspace-clientes .relatorios-resultado-frequencia .relatorios-tabela :is(th,td).col-perfil { width: 10% !important; min-width: 92px !important; }
 
 .relatorios-workspace-clientes .relatorios-resultado-ticket .relatorios-tabela :is(th,td).col-cliente { width: 44% !important; min-width: 410px !important; }
 .relatorios-workspace-clientes .relatorios-resultado-ticket .relatorios-tabela :is(th,td):not(.col-cliente) { width: 14% !important; min-width: 112px !important; }
@@ -1514,6 +1533,43 @@
   width: 11% !important;
   min-width: 88px !important;
 }
+
+.relatorios-workspace-financeiro .relatorios-resultado-cobrancas .relatorios-tabela :is(th,td).col-cliente { width:30% !important; min-width:280px !important; }
+.relatorios-workspace-financeiro .relatorios-resultado-cobrancas .relatorios-tabela :is(th,td).col-tipo { width:25% !important; min-width:220px !important; }
+.relatorios-workspace-financeiro .relatorios-resultado-cobrancas .relatorios-tabela :is(th,td).col-numero { width:15% !important; min-width:130px !important; }
+.relatorios-workspace-financeiro .relatorios-resultado-cobrancas .relatorios-tabela :is(th,td).col-vencimento { width:12% !important; }
+.relatorios-workspace-financeiro .relatorios-resultado-cobrancas .relatorios-tabela :is(th,td).col-valor { width:10% !important; }
+.relatorios-workspace-financeiro .relatorios-resultado-cobrancas .relatorios-tabela :is(th,td).col-status { width:8% !important; }
+
+.relatorios-workspace-compras .relatorios-resultado-realizadas .relatorios-tabela :is(th,td).col-compra { width:10% !important; min-width:92px !important; }
+.relatorios-workspace-compras .relatorios-resultado-realizadas .relatorios-tabela :is(th,td).col-emissao { width:11% !important; min-width:96px !important; }
+.relatorios-workspace-compras .relatorios-resultado-realizadas .relatorios-tabela :is(th,td).col-fornecedor { width:40% !important; min-width:380px !important; }
+.relatorios-workspace-compras .relatorios-resultado-realizadas .relatorios-tabela :is(th,td).col-itens { width:6% !important; min-width:58px !important; }
+.relatorios-workspace-compras .relatorios-resultado-realizadas .relatorios-tabela :is(th,td).col-status { width:11% !important; min-width:96px !important; }
+.relatorios-workspace-compras .relatorios-resultado-realizadas .relatorios-tabela :is(th,td).col-nfe { width:10% !important; min-width:88px !important; }
+.relatorios-workspace-compras .relatorios-resultado-realizadas .relatorios-tabela :is(th,td).col-total { width:12% !important; min-width:105px !important; }
+
+.relatorios-workspace-compras .relatorios-resultado-fornecedor .relatorios-tabela :is(th,td).col-fornecedor { width:48% !important; min-width:440px !important; }
+.relatorios-workspace-compras .relatorios-resultado-fornecedor .relatorios-tabela :is(th,td).col-compras { width:10% !important; min-width:86px !important; }
+.relatorios-workspace-compras .relatorios-resultado-fornecedor .relatorios-tabela :is(th,td).col-itens { width:7% !important; min-width:62px !important; }
+.relatorios-workspace-compras .relatorios-resultado-fornecedor .relatorios-tabela :is(th,td).col-total { width:18% !important; min-width:135px !important; }
+.relatorios-workspace-compras .relatorios-resultado-fornecedor .relatorios-tabela :is(th,td).col-medio { width:17% !important; min-width:130px !important; }
+
+.relatorios-workspace-compras .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-data { width:9% !important; min-width:88px !important; }
+.relatorios-workspace-compras .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-compra { width:9% !important; min-width:82px !important; }
+.relatorios-workspace-compras .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-fornecedor { width:24% !important; min-width:225px !important; }
+.relatorios-workspace-compras .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-produto { width:34% !important; min-width:330px !important; }
+.relatorios-workspace-compras .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-quantidade { width:7% !important; min-width:66px !important; }
+.relatorios-workspace-compras .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-custo { width:8% !important; min-width:76px !important; }
+.relatorios-workspace-compras .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-total { width:9% !important; min-width:84px !important; }
+
+.relatorios-workspace-compras .relatorios-resultado-recebimentos .relatorios-tabela :is(th,td).col-compra { width:10% !important; min-width:92px !important; }
+.relatorios-workspace-compras .relatorios-resultado-recebimentos .relatorios-tabela :is(th,td).col-fornecedor { width:35% !important; min-width:340px !important; }
+.relatorios-workspace-compras .relatorios-resultado-recebimentos .relatorios-tabela :is(th,td).col-emissao,
+.relatorios-workspace-compras .relatorios-resultado-recebimentos .relatorios-tabela :is(th,td).col-previsao { width:11% !important; min-width:96px !important; }
+.relatorios-workspace-compras .relatorios-resultado-recebimentos .relatorios-tabela :is(th,td).col-nfe { width:7% !important; min-width:66px !important; }
+.relatorios-workspace-compras .relatorios-resultado-recebimentos .relatorios-tabela :is(th,td).col-status { width:12% !important; min-width:100px !important; }
+.relatorios-workspace-compras .relatorios-resultado-recebimentos .relatorios-tabela :is(th,td).col-total { width:14% !important; min-width:112px !important; }
 
 .relatorios-tabela-scroll,
 .relatorios-tabela-wrap {

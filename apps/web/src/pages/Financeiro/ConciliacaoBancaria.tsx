@@ -1258,15 +1258,26 @@ function ConciliacaoBancaria() {
         const parcelas: typeof venda.parcelas = []
 
         for (const parcela of venda.parcelas || []) {
+          const bancoCobranca = normalizarTexto(
+            parcela.bancoCobranca ||
+            venda.bancoCobranca ||
+            venda.bancoBoleto ||
+            parcela.tipoCobranca ||
+            venda.tipoCobranca ||
+            '',
+          )
           const codigo = String(
             parcela.idCobrancaBanco ||
             parcela.idCobrancaApi ||
-            parcela.nossoNumero ||
-            parcela.numeroBoleto ||
-            parcela.seuNumero ||
             '',
           ).trim()
-          if (!codigo || String(parcela.statusBoleto || '').toLowerCase() === 'pago') {
+          const codigoSolicitacaoValido =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(codigo)
+          if (
+            !bancoCobranca.includes('inter') ||
+            !codigoSolicitacaoValido ||
+            String(parcela.statusBoleto || '').toLowerCase() === 'pago'
+          ) {
             parcelas.push(parcela)
             continue
           }
@@ -1406,7 +1417,7 @@ function ConciliacaoBancaria() {
             </div>
           </div>
           <div className="financeiro-tabela-wrapper">
-            <table className="financeiro-tabela">
+            <table className="financeiro-tabela conciliacao-pendencias-tabela">
               <thead><tr><th>Origem</th><th>Cliente / fornecedor</th><th>Documento</th><th>Vencimento</th><th>Valor em aberto</th><th>Situação</th></tr></thead>
               <tbody>
                 {contasPendentes.map((conta) => <tr key={`${conta.tipo}-${conta.id}`}>

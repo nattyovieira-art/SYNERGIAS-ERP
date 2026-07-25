@@ -539,7 +539,6 @@ function gerarFinanceiro(
       colunas: [
         { chave: 'cliente', titulo: 'Cliente' },
         { chave: 'tipo', titulo: 'Cobrança' },
-        { chave: 'banco', titulo: 'Banco' },
         { chave: 'numero', titulo: 'Número' },
         { chave: 'vencimento', titulo: 'Vencimento', alinhar: 'center' },
         { chave: 'valor', titulo: 'Valor', alinhar: 'right' },
@@ -548,7 +547,6 @@ function gerarFinanceiro(
       linhas: cobrancas.map((conta) => ({
         cliente: conta.clienteNome,
         tipo: conta.tipoCobranca || conta.formaPagamento || '-',
-        banco: conta.bancoCobranca || '-',
         numero: conta.numeroBoleto || '-',
         vencimento: dataBr(conta.dataVencimento),
         valor: dinheiro(numero(conta.valorOriginal)),
@@ -773,7 +771,15 @@ function gerarVendas(id: string, vendas: Venda[], produtos: Produto[]): Resultad
   }
 
   if (id === 'pagamento') {
-    const grupos = agruparNormalizado(pedidos, (venda) => venda.formaPagamento || venda.tipoCobranca || 'Não informado')
+    const grupos = agruparNormalizado(pedidos, (venda) => {
+      const forma = String(venda.formaPagamento || venda.tipoCobranca || '').trim()
+      if (!normalizar(forma).includes('boleto')) return forma || 'Não informado'
+      const parcelaComBanco = (venda.parcelas || []).find((parcela) => parcela.bancoCobranca)
+      const banco = String(venda.bancoCobranca || venda.bancoBoleto || parcelaComBanco?.bancoCobranca || '').trim()
+      if (normalizar(banco).includes('inter') || normalizar(forma).includes('inter')) return 'BOLETO BANCO INTER'
+      if (normalizar(banco).includes('cora') || normalizar(forma).includes('cora')) return 'BOLETO BANCO CORA'
+      return 'BOLETO SEM BANCO INFORMADO'
+    })
     const linhas = Array.from(grupos.values())
       .map(({ rotulo: forma, itens: lista }) => {
         const total = lista.reduce((s, venda) => s + valorVenda(venda), 0)
@@ -1334,7 +1340,6 @@ function gerarProdutos(id: string, vendas: Venda[], produtos: Produto[]): Result
         produto: produto.descricao,
         data: dataBr(historico.dataEntrada || historico.data || historico.criadoEm),
         compra: historico.numeroNFe || historico.numeroCompra || '-',
-        fornecedor: historico.fornecedorNome || '-',
         anterior: dinheiro(numero(historico.custoMedioAnterior ?? historico.custoAnterior)),
         compraValor: dinheiro(numero(historico.custoCompra)),
         novo: dinheiro(numero(historico.custoMedioNovo ?? historico.custoNovo)),
@@ -1351,7 +1356,6 @@ function gerarProdutos(id: string, vendas: Venda[], produtos: Produto[]): Result
         { chave: 'produto', titulo: 'Produto' },
         { chave: 'data', titulo: 'Data', alinhar: 'center' },
         { chave: 'compra', titulo: 'Compra / NF-e' },
-        { chave: 'fornecedor', titulo: 'Fornecedor' },
         { chave: 'anterior', titulo: 'Custo anterior', alinhar: 'right' },
         { chave: 'novo', titulo: 'Novo custo', alinhar: 'right' },
         { chave: 'variacao', titulo: 'Variação', alinhar: 'right' },
@@ -2009,7 +2013,7 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
 
         <nav className="relatorios-nav" aria-label="RelatÃ³rios disponÃ­veis">
           {relatoriosPrincipais.map((relatorio) => <button key={relatorio.id} type="button" className={relatorioAtivo === relatorio.id ? 'is-active' : ''} onClick={() => selecionarRelatorio(relatorio.id)}>{relatorio.titulo}</button>)}
-          {relatoriosExtras.length > 0 && <div className="relatorios-mais" ref={maisRef}><button type="button" className={relatoriosExtras.some((item) => item.id === relatorioAtivo) ? 'is-active' : ''} onClick={() => setMenuMaisAberto((aberto) => !aberto)}>Mais relatÃ³rios <ChevronDown size={16} /></button>{menuMaisAberto && <div className="relatorios-mais-menu">{relatoriosExtras.map((relatorio) => <button key={relatorio.id} type="button" onClick={() => selecionarRelatorio(relatorio.id)}><strong>{relatorio.titulo}</strong><small>{relatorio.descricao}</small></button>)}</div>}</div>}
+          {relatoriosExtras.length > 0 && <div className="relatorios-mais" ref={maisRef}><button type="button" className={relatoriosExtras.some((item) => item.id === relatorioAtivo) ? 'is-active' : ''} onClick={() => setMenuMaisAberto((aberto) => !aberto)}>Mais relatórios <ChevronDown size={16} /></button>{menuMaisAberto && <div className="relatorios-mais-menu">{relatoriosExtras.map((relatorio) => <button key={relatorio.id} type="button" onClick={() => selecionarRelatorio(relatorio.id)}><strong>{relatorio.titulo}</strong><small>{relatorio.descricao}</small></button>)}</div>}</div>}
         </nav>
 
         <section className={`relatorios-workspace relatorios-workspace-${configuracao.corClasse}`}>

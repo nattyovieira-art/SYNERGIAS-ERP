@@ -16,3 +16,9 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   background: #061225;
 }
+
+/* Padrão visual das listas do ERP: cabeçalhos e dados sempre em maiúsculas. */
+table th,
+table td {
+  text-transform: uppercase;
+}

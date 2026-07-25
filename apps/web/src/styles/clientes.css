@@ -1156,23 +1156,34 @@
 .clientes-page .data-table td:nth-child(1),
 .clientes-page .data-table td:nth-child(3) { overflow-wrap:anywhere; }
 
+.clientes-page .data-table th {
+  padding: 12px 10px !important;
+  font-size: 11px !important;
+  letter-spacing: 0.04em;
+}
+
+.clientes-page .data-table td {
+  padding: 12px 10px !important;
+  font-size: 12px !important;
+}
+
 .clientes-page .table-actions {
   display:flex;
   align-items:center;
   justify-content:center;
   flex-wrap:nowrap;
-  gap:8px;
+  gap:6px;
 }
 .clientes-page .table-actions button {
-  width:40px;
-  height:40px;
-  min-width:40px;
+  width:36px;
+  height:36px;
+  min-width:36px;
   padding:0;
   display:inline-grid;
   place-items:center;
   border-radius:10px;
 }
-.clientes-page .table-actions button svg { width:19px; height:19px; }
+.clientes-page .table-actions button svg { width:17px; height:17px; }
 .clientes-page .table-actions button.danger {
   border-color:#fecaca;
   background:#ef252d;
