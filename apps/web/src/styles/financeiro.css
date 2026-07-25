@@ -675,6 +675,15 @@
   overflow-y: hidden;
 }
 
+.financeiro-table-header {
+  padding: 18px 20px 12px;
+}
+
+.financeiro-table-header h3,
+.financeiro-table-header p {
+  margin: 0;
+}
+
 .financeiro-tabela {
   width: 100%;
   min-width: 1060px;
@@ -732,12 +741,19 @@
   table-layout: fixed;
 }
 
-.conciliacao-pendencias-tabela :is(th, td):nth-child(1) { width: 14%; }
+.conciliacao-pendencias-tabela :is(th, td):nth-child(1) { width: 13%; }
 .conciliacao-pendencias-tabela :is(th, td):nth-child(2) { width: 34%; }
-.conciliacao-pendencias-tabela :is(th, td):nth-child(3) { width: 16%; }
-.conciliacao-pendencias-tabela :is(th, td):nth-child(4) { width: 14%; }
-.conciliacao-pendencias-tabela :is(th, td):nth-child(5) { width: 14%; }
-.conciliacao-pendencias-tabela :is(th, td):nth-child(6) { width: 8%; }
+.conciliacao-pendencias-tabela :is(th, td):nth-child(3) { width: 14%; }
+.conciliacao-pendencias-tabela :is(th, td):nth-child(4) { width: 13%; }
+.conciliacao-pendencias-tabela :is(th, td):nth-child(5) { width: 16%; }
+.conciliacao-pendencias-tabela :is(th, td):nth-child(6) { width: 10%; }
+
+.conciliacao-pendencias-tabela th {
+  padding-left: 10px;
+  padding-right: 10px;
+  font-size: 11px;
+  white-space: normal;
+}
 
 .conciliacao-pendencias-tabela td:nth-child(2) {
   white-space: normal;
@@ -748,6 +764,30 @@
   overflow: visible;
   text-overflow: clip;
   white-space: normal;
+}
+
+.conciliacao-pendencias-tabela td {
+  max-width: 0;
+  overflow: hidden;
+}
+
+.conciliacao-pendencias-tabela td:nth-child(3) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.25;
+  font-size: 11px;
+}
+
+.conciliacao-pendencias-tabela td:nth-child(4),
+.conciliacao-pendencias-tabela td:nth-child(5),
+.conciliacao-pendencias-tabela td:nth-child(6) {
+  white-space: nowrap;
+}
+
+.conciliacao-pendencias-tabela td:nth-child(6) {
+  white-space: pre-line;
+  line-height: 1.2;
 }
 
 .financeiro-vazio,

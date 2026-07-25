@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
   Filter,
@@ -12,18 +12,11 @@ import { useNavigate } from 'react-router-dom'
 import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import type { Venda } from '../../types/Venda'
+import { ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
+import { listarVendasStorage } from '../../services/vendasStorage'
 
 import '../../styles/relatorios.css'
 import '../../styles/brindes.css'
-
-function lerVendas(): Venda[] {
-  try {
-    const dados = JSON.parse(localStorage.getItem('synergias_vendas') || '[]')
-    return Array.isArray(dados) ? dados : []
-  } catch {
-    return []
-  }
-}
 
 function normalizar(valor: string) {
   return String(valor || '')
@@ -38,21 +31,34 @@ function dataBr(valor: string) {
 
 export default function RelatorioBrindes() {
   const navigate = useNavigate()
+  const [vendas, setVendas] = useState<Venda[]>(() => listarVendasStorage())
   const [buscaDigitada, setBuscaDigitada] = useState('')
   const [buscaAplicada, setBuscaAplicada] = useState('')
   const [filtrosAbertos, setFiltrosAbertos] = useState(false)
   const [inicio, setInicio] = useState('')
   const [fim, setFim] = useState('')
 
+  useEffect(() => {
+    const atualizar = () => setVendas(listarVendasStorage())
+    const aoAtualizarStorage = (evento: Event) => {
+      const detalhe = (evento as CustomEvent<{ collection?: string }>).detail
+      if (!detalhe?.collection || detalhe.collection === 'vendas') atualizar()
+    }
+
+    atualizar()
+    window.addEventListener(ERP_STORAGE_UPDATED_EVENT, aoAtualizarStorage)
+    return () => window.removeEventListener(ERP_STORAGE_UPDATED_EVENT, aoAtualizarStorage)
+  }, [])
+
   const brindes = useMemo(
     () =>
-      lerVendas().flatMap((venda) =>
+      vendas.flatMap((venda) =>
         (venda.brindes || []).map((brinde) => ({
           ...brinde,
           pedido: venda.numeroPedido || '-',
         })),
       ),
-    [],
+    [vendas],
   )
 
   const totalFiltrosAtivos = Number(Boolean(inicio)) + Number(Boolean(fim))

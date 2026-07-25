@@ -350,7 +350,7 @@ function ContasReceber() {
               onChange={(e) => setStatusFiltro(e.target.value as StatusFiltro)}
             >
               <option value="">Todos os status</option>
-              <option value="Aberta">Aberta</option>
+              <option value="Aberta">Pendente</option>
               <option value="Parcialmente paga">Parcialmente paga</option>
               <option value="Paga">Paga</option>
               <option value="Vencida">Vencida</option>

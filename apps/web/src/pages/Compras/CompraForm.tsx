@@ -357,15 +357,19 @@ function CompraForm({ modo }: CompraFormProps) {
         const quantidadeFiscal = numero(atualizado.quantidadeFiscal)
         const custoUnitarioFiscal = numero(atualizado.custoUnitarioFiscal)
         const fatorConversao = Math.max(1, numero(atualizado.fatorConversao || 1))
-
         const quantidadeConvertida = quantidadeFiscal * fatorConversao
+        const totalFiscal = quantidadeFiscal * custoUnitarioFiscal
+        const custosAdicionais = Math.max(
+          0,
+          numero(item.custoFinalItem) - numero(item.totalFiscal),
+        )
+        const custoFinalItem = totalFiscal + custosAdicionais
         const custoUnitarioConvertido =
-          numero(atualizado.custoFinalItem) > 0 && quantidadeConvertida > 0
-            ? numero(atualizado.custoFinalItem) / quantidadeConvertida
+          custoFinalItem > 0 && quantidadeConvertida > 0
+            ? custoFinalItem / quantidadeConvertida
             : fatorConversao > 0
               ? custoUnitarioFiscal / fatorConversao
               : 0
-        const totalFiscal = quantidadeFiscal * custoUnitarioFiscal
 
         return {
           ...atualizado,
@@ -374,6 +378,7 @@ function CompraForm({ modo }: CompraFormProps) {
           custoUnitario: custoUnitarioFiscal,
           total: totalFiscal,
           totalFiscal,
+          custoFinalItem,
           fatorConversao,
           quantidadeConvertida,
           custoUnitarioConvertido,
@@ -534,6 +539,69 @@ function CompraForm({ modo }: CompraFormProps) {
     })
   }
 
+  function atualizarCustosProdutosAposCorrecao(
+    compraAnterior: Compra | undefined,
+    compraCorrigida: Compra,
+  ) {
+    if (!compraAnterior?.movimentouEstoque || !compraCorrigida.movimentouEstoque) return
+
+    const produtos = listarProdutosStorage()
+    const agora = new Date().toISOString()
+
+    compraCorrigida.itens.forEach((itemNovo) => {
+      if (itemNovo.incluidoNoSistema === false || !itemNovo.produtoCodigo) return
+      const itemAntigo = compraAnterior.itens.find((item) =>
+        item.id === itemNovo.id || item.produtoCodigo === itemNovo.produtoCodigo)
+      if (!itemAntigo) return
+
+      const quantidade = numero(itemNovo.quantidadeConvertida || itemNovo.quantidade)
+      if (quantidade <= 0) return
+      const custoAntigo = numero(itemAntigo.custoFinalItem) > 0
+        ? numero(itemAntigo.custoFinalItem) / quantidade
+        : numero(itemAntigo.custoUnitarioConvertido)
+      const custoNovo = numero(itemNovo.custoFinalItem) > 0
+        ? numero(itemNovo.custoFinalItem) / quantidade
+        : numero(itemNovo.custoUnitarioConvertido)
+      if (Math.abs(custoNovo - custoAntigo) < 0.000001) return
+
+      const produto = produtos.find((item) => String(item.codigo) === String(itemNovo.produtoCodigo))
+      if (!produto) return
+      const estoqueAtual = numero(
+        produto.estoqueAtual ?? produto.estoque ?? produto.quantidadeEstoque ?? produto.saldoEstoque,
+      )
+      const custoMedioAtual = numero(produto.custoMedioAtual ?? produto.custo)
+      const custoMedioCorrigido = estoqueAtual > 0
+        ? Math.max(0, custoMedioAtual + ((custoNovo - custoAntigo) * quantidade) / estoqueAtual)
+        : Math.max(0, custoNovo)
+
+      salvarProdutoStorage({
+        ...produto,
+        custoAnteriorUltimaCompra: custoAntigo,
+        ultimoCustoCompra: custoNovo,
+        custoMedioAtual: custoMedioCorrigido,
+        custo: custoMedioCorrigido,
+        valorEstoqueAtual: estoqueAtual * custoMedioCorrigido,
+        historicoCustos: [{
+          id: `correcao-compra-${compraCorrigida.id}-${itemNovo.id}-${Date.now()}`,
+          data: hoje(),
+          criadoEm: agora,
+          origem: 'correcao_compra',
+          documentoOrigem: compraCorrigida.numeroNFe || compraCorrigida.numeroCompra,
+          numeroCompra: compraCorrigida.numeroCompra,
+          numeroNFe: compraCorrigida.numeroNFe,
+          fornecedorNome: compraCorrigida.fornecedorNome,
+          quantidadeEntrada: 0,
+          custoAnterior: custoMedioAtual,
+          custoCompra: custoNovo,
+          custoNovo: custoMedioCorrigido,
+          custoMedioAnterior: custoMedioAtual,
+          custoMedioNovo: custoMedioCorrigido,
+        }, ...(produto.historicoCustos || [])].slice(0, 100),
+        atualizadoEm: agora,
+      })
+    })
+  }
+
   async function salvarCompra(voltar = false) {
     if (!compra.fornecedorNome.trim()) {
       alert('Informe o fornecedor.')
@@ -558,6 +626,7 @@ function CompraForm({ modo }: CompraFormProps) {
       return
     }
 
+    const compraAnterior = buscarCompraStorage(compra.id)
     const compraAtualizada = compraAtualizadaParaSalvar()
     const notaDuplicada = encontrarCompraComNotaDuplicada(compraAtualizada)
     if (notaDuplicada) {
@@ -579,6 +648,8 @@ function CompraForm({ modo }: CompraFormProps) {
     try {
       await aguardarSincronizacaoCentral('produtos')
       await salvarCompraStorageConfirmado(compraAtualizada)
+      atualizarCustosProdutosAposCorrecao(compraAnterior, compraAtualizada)
+      await aguardarSincronizacaoCentral('produtos')
     } catch (erro) {
       alert(erro instanceof Error ? erro.message : 'Não foi possível salvar a compra.')
       return
@@ -1352,8 +1423,17 @@ function CompraForm({ modo }: CompraFormProps) {
                           <label>
                             Custo unitário NF-e
                             <input
-                              value={dinheiro(numero(item.custoUnitarioFiscal))}
-                              disabled
+                              type="number"
+                              min="0"
+                              step="0.0001"
+                              value={numero(item.custoUnitarioFiscal)}
+                              onChange={(event) =>
+                                atualizarItem(
+                                  item.id,
+                                  'custoUnitarioFiscal',
+                                  Number(event.target.value),
+                                )
+                              }
                             />
                           </label>
 
@@ -1463,7 +1543,6 @@ function CompraForm({ modo }: CompraFormProps) {
                   onChange={(event) =>
                     atualizarCompra('desconto', Number(event.target.value))
                   }
-                  disabled={compra.movimentouEstoque}
                 />
               </label>
 
@@ -1477,7 +1556,6 @@ function CompraForm({ modo }: CompraFormProps) {
                   onChange={(event) =>
                     atualizarCompra('frete', Number(event.target.value))
                   }
-                  disabled={compra.movimentouEstoque}
                 />
               </label>
 
@@ -1494,7 +1572,6 @@ function CompraForm({ modo }: CompraFormProps) {
                       Number(event.target.value),
                     )
                   }
-                  disabled={compra.movimentouEstoque}
                 />
               </label>
             </div>

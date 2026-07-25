@@ -1386,8 +1386,9 @@
 .relatorios-workspace-produtos .relatorios-resultado-item-cliente .relatorios-tabela :is(th,td).col-quantidade,
 .relatorios-workspace-produtos .relatorios-resultado-item-cliente .relatorios-tabela :is(th,td).col-valor { width: 10% !important; min-width: 92px !important; }
 
-.relatorios-workspace-produtos .relatorios-resultado-precos .relatorios-tabela :is(th,td).col-codigo { width: 7% !important; }
-.relatorios-workspace-produtos .relatorios-resultado-precos .relatorios-tabela :is(th,td).col-produto { width: 39% !important; min-width: 380px !important; }
+.relatorios-workspace-produtos .relatorios-resultado-precos .relatorios-tabela :is(th,td).col-codigo { width: 9% !important; }
+.relatorios-workspace-produtos .relatorios-resultado-precos .relatorios-tabela th.col-codigo { white-space: nowrap !important; }
+.relatorios-workspace-produtos .relatorios-resultado-precos .relatorios-tabela :is(th,td).col-produto { width: 37% !important; min-width: 360px !important; }
 .relatorios-workspace-produtos .relatorios-resultado-precos .relatorios-tabela :is(th,td).col-varejo,
 .relatorios-workspace-produtos .relatorios-resultado-precos .relatorios-tabela :is(th,td).col-atacado,
 .relatorios-workspace-produtos .relatorios-resultado-precos .relatorios-tabela :is(th,td).col-medio,
@@ -1401,14 +1402,19 @@
 .relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-novo { width: 10% !important; min-width: 96px !important; }
 .relatorios-workspace-produtos .relatorios-resultado-custos .relatorios-tabela :is(th,td).col-variacao { width: 10% !important; min-width: 90px !important; }
 
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-data { width: 11% !important; min-width: 108px !important; }
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-produto { width: 35% !important; min-width: 330px !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-data { width: 10% !important; min-width: 96px !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-produto { width: 43% !important; min-width: 390px !important; }
 .relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-tipo { width: 9% !important; min-width: 82px !important; }
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-origem { width: 7% !important; min-width: 66px !important; }
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-documento { width: 10% !important; min-width: 88px !important; }
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-quantidade { width: 9% !important; min-width: 80px !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-origem { width: 6% !important; min-width: 58px !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-documento,
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-quantidade { width: 8% !important; min-width: 72px !important; }
 .relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-anterior,
-.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-atual { width: 9.5% !important; min-width: 84px !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela :is(th,td).col-atual { width: 8% !important; min-width: 72px !important; }
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela th.col-anterior,
+.relatorios-workspace-estoque .relatorios-resultado-kardex .relatorios-tabela th.col-atual {
+  white-space: pre-line !important;
+  line-height: 1.15 !important;
+}
 
 .relatorios-workspace-estoque :is(.relatorios-resultado-baixo,.relatorios-resultado-negativo) .relatorios-tabela :is(th,td).col-codigo { width: 8% !important; }
 .relatorios-workspace-estoque :is(.relatorios-resultado-baixo,.relatorios-resultado-negativo) .relatorios-tabela :is(th,td).col-produto { width: 45% !important; min-width: 420px !important; }
@@ -1416,6 +1422,10 @@
 .relatorios-workspace-estoque :is(.relatorios-resultado-baixo,.relatorios-resultado-negativo) .relatorios-tabela :is(th,td).col-estoque,
 .relatorios-workspace-estoque :is(.relatorios-resultado-baixo,.relatorios-resultado-negativo) .relatorios-tabela :is(th,td).col-minimo,
 .relatorios-workspace-estoque :is(.relatorios-resultado-baixo,.relatorios-resultado-negativo) .relatorios-tabela :is(th,td).col-diferenca { width: 10% !important; min-width: 92px !important; }
+.relatorios-workspace-estoque :is(.relatorios-resultado-baixo,.relatorios-resultado-negativo) .relatorios-tabela :is(th.col-estoque,th.col-minimo) {
+  white-space: pre-line !important;
+  line-height: 1.15 !important;
+}
 
 .relatorios-workspace-estoque .relatorios-resultado-perdas .relatorios-tabela :is(th,td).col-produto { width: 34% !important; min-width: 330px !important; }
 .relatorios-workspace-estoque .relatorios-resultado-perdas .relatorios-tabela :is(th,td).col-observacao { width: 24% !important; min-width: 220px !important; }
@@ -1570,6 +1580,35 @@
 .relatorios-workspace-compras .relatorios-resultado-recebimentos .relatorios-tabela :is(th,td).col-nfe { width:7% !important; min-width:66px !important; }
 .relatorios-workspace-compras .relatorios-resultado-recebimentos .relatorios-tabela :is(th,td).col-status { width:12% !important; min-width:100px !important; }
 .relatorios-workspace-compras .relatorios-resultado-recebimentos .relatorios-tabela :is(th,td).col-total { width:14% !important; min-width:112px !important; }
+
+/* Todos os cabeçalhos usam exatamente a mesma cor, sem destaque por coluna. */
+.relatorios-tabela thead th,
+.relatorios-tabela thead th:first-child {
+  background: #f3e8ff !important;
+}
+
+/* Código deve permanecer legível e em uma única linha em todos os relatórios. */
+.relatorios-tabela :is(th, td).col-codigo {
+  width: 9% !important;
+}
+
+.relatorios-tabela th.col-codigo {
+  white-space: nowrap !important;
+  overflow-wrap: normal;
+}
+
+/* O relatório de margem segue a mesma altura compacta das demais tabelas. */
+.relatorios-resultado-margem .relatorios-tabela {
+  height: auto !important;
+}
+
+.relatorios-resultado-margem .relatorios-tabela thead tr,
+.relatorios-resultado-margem .relatorios-tabela thead th,
+.relatorios-resultado-margem .relatorios-tabela tbody tr,
+.relatorios-resultado-margem .relatorios-tabela tbody td {
+  height: 52px !important;
+  min-height: 0 !important;
+}
 
 .relatorios-tabela-scroll,
 .relatorios-tabela-wrap {

@@ -200,6 +200,14 @@ function normalizarTexto(valor?: string | number) {
     .trim()
 }
 
+function exibirStatusPagamento(valor?: string) {
+  const status = normalizarTexto(valor)
+  if (status.includes('parcial')) return 'Pago\nparcialmente'
+  if (['paga', 'pago', 'liquidado', 'conciliado', 'concluido'].some((termo) => status.includes(termo))) return 'Pago'
+  if (['aberta', 'aberto', 'em aberto', 'pendente'].includes(status)) return 'Pendente'
+  return valor || '-'
+}
+
 function converterMoeda(valor?: string | number) {
   const texto = String(valor ?? '').replace(/[^\d,.-]/g, '')
   if (!texto) return 0
@@ -1375,7 +1383,14 @@ function ConciliacaoBancaria() {
             </select>
           </div>
           <div className="financeiro-toolbar-right-actions">
-            <button type="button" className="financeiro-icon-button financeiro-icon-refresh" onClick={atualizarDadosTela} title="Atualizar" aria-label="Atualizar">
+            <button
+              type="button"
+              className="financeiro-icon-button financeiro-icon-refresh"
+              onClick={() => void conciliarBancoInter()}
+              disabled={sincronizandoInter}
+              title="Atualizar e conciliar Banco Inter"
+              aria-label="Atualizar e conciliar Banco Inter"
+            >
               <RefreshCw size={25} strokeWidth={2.4} />
             </button>
           </div>
@@ -1426,7 +1441,7 @@ function ConciliacaoBancaria() {
                   <td>{conta.referencia || conta.documento || '-'}</td>
                   <td>{formatarData(conta.vencimento)}</td>
                   <td><strong>{dinheiro(conta.valorAberto)}</strong></td>
-                  <td>{conta.status}</td>
+                  <td>{exibirStatusPagamento(conta.status)}</td>
                 </tr>)}
                 {!contasPendentes.length && <tr><td colSpan={6} className="financeiro-tabela-vazia">Nenhuma compra ou venda pendente de conciliação.</td></tr>}
               </tbody>

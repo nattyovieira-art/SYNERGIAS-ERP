@@ -46,6 +46,12 @@ function dataBrasil(valor?: string) {
   return ano && mes && dia ? `${dia}/${mes}/${ano}` : valor
 }
 
+function statusExibicao(status: Conta['status']) {
+  if (status === 'Paga') return 'Pago'
+  if (status === 'Em aberto') return 'Pendente'
+  return status
+}
+
 export default function ContasPagar() {
   const navigate = useNavigate()
   const [lista, setLista] = useState<Conta[]>(ler)
@@ -135,10 +141,10 @@ export default function ContasPagar() {
           </div>
         </div>
 
-        {mostrarFiltros && <div className="financeiro-filtros-panel"><label>Status<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Todos</option><option>Em aberto</option><option>Paga</option><option>Cancelada</option></select></label><button onClick={() => setStatus('')}>Limpar filtros</button></div>}
+        {mostrarFiltros && <div className="financeiro-filtros-panel"><label>Status<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Todos</option><option value="Em aberto">Pendente</option><option value="Paga">Pago</option><option value="Cancelada">Cancelada</option></select></label><button onClick={() => setStatus('')}>Limpar filtros</button></div>}
 
         <section className="novo-resumo">
-          <div className="novo-resumo-card"><span>Em aberto</span><strong>{moeda(resumo.aberto)}</strong></div>
+          <div className="novo-resumo-card"><span>Pendente</span><strong>{moeda(resumo.aberto)}</strong></div>
           <div className="novo-resumo-card"><span>Pago</span><strong>{moeda(resumo.pago)}</strong></div>
           <div className="novo-resumo-card"><span>Vencidas</span><strong>{resumo.vencidas}</strong></div>
           <div className="novo-resumo-card"><span>Total de contas</span><strong>{resumo.total}</strong></div>
@@ -149,7 +155,7 @@ export default function ContasPagar() {
             <table className="novo-table">
               <thead><tr><th>Fornecedor</th><th>Descrição</th><th>Categoria</th><th>Emissão</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
               <tbody>
-                {filtradas.map((conta) => <tr key={conta.id}><td><strong>{conta.fornecedor}</strong></td><td>{conta.descricao}</td><td>{conta.categoria || 'Despesas gerais'}</td><td>{dataBrasil(conta.emissao)}</td><td>{dataBrasil(conta.vencimento)}</td><td><strong>{moeda(conta.valor)}</strong></td><td><span className={`novo-status ${conta.status === 'Paga' ? 'success' : conta.status === 'Cancelada' ? 'danger' : 'warning'}`}>{conta.status}</span></td><td><div className="financeiro-conciliacao-acoes">{conta.status === 'Em aberto' && <button type="button" onClick={() => marcarPaga(conta)}>Marcar paga</button>}<button type="button" onClick={() => excluir(conta)} title="Excluir"><Trash2 size={17} /></button></div></td></tr>)}
+                {filtradas.map((conta) => <tr key={conta.id}><td><strong>{conta.fornecedor}</strong></td><td>{conta.descricao}</td><td>{conta.categoria || 'Despesas gerais'}</td><td>{dataBrasil(conta.emissao)}</td><td>{dataBrasil(conta.vencimento)}</td><td><strong>{moeda(conta.valor)}</strong></td><td><span className={`novo-status ${conta.status === 'Paga' ? 'success' : conta.status === 'Cancelada' ? 'danger' : 'warning'}`}>{statusExibicao(conta.status)}</span></td><td><div className="financeiro-conciliacao-acoes">{conta.status === 'Em aberto' && <button type="button" onClick={() => marcarPaga(conta)}>Marcar paga</button>}<button type="button" onClick={() => excluir(conta)} title="Excluir"><Trash2 size={17} /></button></div></td></tr>)}
                 {!filtradas.length && <tr><td colSpan={8} className="novo-empty">Nenhuma conta a pagar encontrada.</td></tr>}
               </tbody>
             </table>

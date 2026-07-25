@@ -1426,8 +1426,8 @@ function gerarEstoque(
         { chave: 'origem', titulo: 'Origem' },
         { chave: 'documento', titulo: 'Documento' },
         { chave: 'quantidade', titulo: 'Quantidade', alinhar: 'right' },
-        { chave: 'anterior', titulo: 'Saldo anterior', alinhar: 'right' },
-        { chave: 'atual', titulo: 'Saldo atual', alinhar: 'right' },
+        { chave: 'anterior', titulo: 'Saldo\nanterior', alinhar: 'right' },
+        { chave: 'atual', titulo: 'Saldo\natual', alinhar: 'right' },
       ],
       linhas: [...movimentacoes]
         .sort((a, b) => `${b.data} ${b.hora}`.localeCompare(`${a.data} ${a.hora}`))
@@ -1460,8 +1460,8 @@ function gerarEstoque(
         { chave: 'codigo', titulo: 'Código' },
         { chave: 'produto', titulo: 'Produto' },
         { chave: 'categoria', titulo: 'Categoria' },
-        { chave: 'estoque', titulo: 'Estoque atual', alinhar: 'right' },
-        { chave: 'minimo', titulo: 'Estoque mínimo', alinhar: 'right' },
+        { chave: 'estoque', titulo: 'Estoque\natual', alinhar: 'right' },
+        { chave: 'minimo', titulo: 'Estoque\nmínimo', alinhar: 'right' },
         { chave: 'diferenca', titulo: 'Diferença', alinhar: 'right' },
       ],
       linhas: lista
