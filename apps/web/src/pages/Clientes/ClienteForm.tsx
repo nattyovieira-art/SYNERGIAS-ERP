@@ -56,7 +56,13 @@ function ClienteForm({ modo }: ClienteFormProps) {
     bloqueado: clienteEncontrado?.bloqueado || false,
 
     cpf: clienteEncontrado?.cpf || '',
-    cnpj: clienteEncontrado?.cnpj || '',
+    cnpj: String(
+      clienteEncontrado?.cnpj ||
+      (clienteEncontrado as any)?.cpfCnpj ||
+      (clienteEncontrado as any)?.cnpjCpf ||
+      (clienteEncontrado as any)?.documento ||
+      '',
+    ).replace(/\D/g, '').slice(0, 14),
 
     telefone: clienteEncontrado?.telefone || '',
     celular: clienteEncontrado?.celular || '',
@@ -370,7 +376,12 @@ function ClienteForm({ modo }: ClienteFormProps) {
   async function prepararClienteComCodigoIbge(clienteAtual: Cliente): Promise<Cliente> {
     const atual: any = clienteAtual
     const cnpj = String(atual.cnpj || '').replace(/\D/g, '')
-    if (String(atual.tipoPessoa || '') === 'Jurídica' && cnpj.length !== 14) {
+    const tipoPessoa = String(atual.tipoPessoa || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toUpperCase()
+    if (tipoPessoa.includes('JURID') && cnpj.length !== 14) {
       throw new Error('O CNPJ precisa conter exatamente 14 números.')
     }
     const codigoFiscal = await resolverCodigoIbgeMunicipio(atual.cidade, atual.estado, atual.codigoIbgeMunicipio)
@@ -379,7 +390,16 @@ function ClienteForm({ modo }: ClienteFormProps) {
       atual.estadoEntrega || atual.estado,
       atual.codigoIbgeMunicipioEntrega || codigoFiscal,
     )
-    return { ...atual, cnpj, consumidorFinal: atual.consumidorFinal ?? true, codigoIbgeMunicipio: codigoFiscal, codigoIbgeMunicipioEntrega: codigoEntrega } as Cliente
+    return {
+      ...atual,
+      cnpj,
+      cpfCnpj: cnpj,
+      cnpjCpf: cnpj,
+      documento: cnpj,
+      consumidorFinal: atual.consumidorFinal ?? true,
+      codigoIbgeMunicipio: codigoFiscal,
+      codigoIbgeMunicipioEntrega: codigoEntrega,
+    } as Cliente
   }
 
   async function salvarCliente() {

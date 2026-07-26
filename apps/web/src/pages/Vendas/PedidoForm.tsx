@@ -1557,12 +1557,24 @@ function PedidoForm() {
     setEmailsCopiaTexto(copiasCorretas.join('; '))
     setVenda((atual) => {
       const copiasAtuais = Array.isArray(atual.emailsCopiaEnvio) ? atual.emailsCopiaEnvio : []
-      const clienteAny = clienteSelecionado as Cliente & { documento?: string; logradouro?: string; uf?: string; codigoIbgeMunicipio?: string }
+      const clienteAny = clienteSelecionado as Cliente & {
+        documento?: string
+        cpfCnpj?: string
+        cnpjCpf?: string
+        logradouro?: string
+        uf?: string
+        codigoIbgeMunicipio?: string
+      }
       const documentoAtual = somenteNumerosCredito(atual.clienteDocumento || '')
       const documentoCadastro = somenteNumerosCredito(
-        clienteSelecionado.cnpj || clienteSelecionado.cpf || clienteAny.documento || '',
+        clienteSelecionado.cnpj ||
+        clienteSelecionado.cpf ||
+        clienteAny.cpfCnpj ||
+        clienteAny.cnpjCpf ||
+        clienteAny.documento ||
+        '',
       )
-      const documentoCorreto = [documentoAtual, documentoCadastro]
+      const documentoCorreto = [documentoCadastro, documentoAtual]
         .find((documento) => documento.length === 11 || documento.length === 14) || documentoCadastro || documentoAtual
       const primeiroTexto = (...valores: Array<string | number | undefined | null>) =>
         valores.map((valor) => String(valor ?? '').trim()).find(Boolean) || ''
@@ -2351,7 +2363,14 @@ function PedidoForm() {
 
       clienteCodigo: cliente.codigo,
       clienteNome: nome,
-      clienteDocumento: somenteNumerosCredito(cliente.cnpj || cliente.cpf || ''),
+      clienteDocumento: somenteNumerosCredito(
+        cliente.cnpj ||
+        cliente.cpf ||
+        (cliente as Cliente & { cpfCnpj?: string; cnpjCpf?: string; documento?: string }).cpfCnpj ||
+        (cliente as Cliente & { cpfCnpj?: string; cnpjCpf?: string; documento?: string }).cnpjCpf ||
+        (cliente as Cliente & { cpfCnpj?: string; cnpjCpf?: string; documento?: string }).documento ||
+        '',
+      ),
       clienteIeRg: cliente.inscricaoEstadual || '',
       clienteIndicadorIE: cliente.indicadorIE || (somenteNumerosCredito(cliente.inscricaoEstadual || '') ? '1' : '9'),
       clienteEmail: emailSelecionado,
