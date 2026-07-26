@@ -102,6 +102,7 @@ export type ItemVenda = {
   origem?: string
   cest?: string
   classificacao?: string
+  tipoFiscalVenda?: string
   csosn?: string
   cstIcms?: string
   modalidadeBcIcms?: string

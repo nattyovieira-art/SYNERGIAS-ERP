@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowDownToLine,
@@ -31,7 +31,7 @@ import {
   listarProdutosStorage,
   salvarProdutoStorage,
 } from '../../services/produtosStorage'
-import { parseNFeCompraXml } from '../../services/nfeCompraXml'
+import { inferirFatorEmbalagemNFe, parseNFeCompraXml } from '../../services/nfeCompraXml'
 import {
   confirmarEntradaCompraComCustoMedioStorage,
   movimentarEstoqueStorage,
@@ -120,9 +120,12 @@ function normalizarItem(item: ItemCompra): ItemCompra {
     item.custoUnitarioFiscal ?? item.custoUnitario,
   )
   const totalFiscal = numero(item.totalFiscal ?? item.total)
-  const fatorConversao = Math.max(1, numero(item.fatorConversao || 1))
-  const quantidadeConvertida =
-    numero(item.quantidadeConvertida) || quantidadeFiscal * fatorConversao
+  const fatorInformado = Math.max(1, numero(item.fatorConversao || 1))
+  const fatorDescricao = inferirFatorEmbalagemNFe(item.descricao, unidadeFiscal)
+  const fatorConversao = Math.max(fatorInformado, fatorDescricao)
+  const quantidadeConvertida = fatorDescricao > fatorInformado
+    ? quantidadeFiscal * fatorConversao
+    : numero(item.quantidadeConvertida) || quantidadeFiscal * fatorConversao
   const custoUnitarioConvertido =
     numero(item.custoFinalItem) > 0 && quantidadeConvertida > 0
       ? numero(item.custoFinalItem) / quantidadeConvertida
@@ -159,6 +162,7 @@ function CompraForm({ modo }: CompraFormProps) {
   const [buscasProduto, setBuscasProduto] = useState<Record<string, string>>({})
   const [produtoBuscaAberta, setProdutoBuscaAberta] = useState<string | null>(null)
   const [processandoRecebimento, setProcessandoRecebimento] = useState(false)
+  const dadosFiscaisSincronizados = useRef(false)
   const [indiceSugestaoProduto, setIndiceSugestaoProduto] = useState<Record<string, number>>({})
   const [mostrarFiltrosFormulario, setMostrarFiltrosFormulario] = useState(false)
   const [filtroFormulario, setFiltroFormulario] = useState<'todos' | 'fornecedor' | 'produtos' | 'pagamento'>('todos')
@@ -211,6 +215,13 @@ function CompraForm({ modo }: CompraFormProps) {
       movimentouEstoque: false,
     }
   })
+
+  useEffect(() => {
+    if (!compraEncontrada || dadosFiscaisSincronizados.current) return
+    dadosFiscaisSincronizados.current = true
+    sincronizarDadosFiscaisProdutos(compra)
+    void aguardarSincronizacaoCentral('produtos')
+  }, [compraEncontrada?.id])
 
   const subtotal = useMemo(
     () =>
@@ -592,6 +603,20 @@ function CompraForm({ modo }: CompraFormProps) {
     })
   }
 
+  function sincronizarDadosFiscaisProdutos(compraBase: Compra) {
+    const produtos = listarProdutosStorage()
+    compraBase.itens.forEach((item) => {
+      if (item.incluidoNoSistema === false || !item.produtoCodigo || !item.ncm) return
+      const produto = produtos.find((atual) => String(atual.codigo) === String(item.produtoCodigo))
+      if (!produto || String(produto.ncm || '').replace(/\D/g, '') === String(item.ncm).replace(/\D/g, '')) return
+      salvarProdutoStorage({
+        ...produto,
+        ncm: String(item.ncm).replace(/\D/g, '').slice(0, 8),
+        atualizadoEm: new Date().toISOString(),
+      })
+    })
+  }
+
   function atualizarCustosProdutosAposCorrecao(
     compraAnterior: Compra | undefined,
     compraCorrigida: Compra,
@@ -608,9 +633,10 @@ function CompraForm({ modo }: CompraFormProps) {
       if (!itemAntigo) return
 
       const quantidade = numero(itemNovo.quantidadeConvertida || itemNovo.quantidade)
-      if (quantidade <= 0) return
+      const quantidadeAntiga = numero(itemAntigo.quantidadeConvertida || itemAntigo.quantidade)
+      if (quantidade <= 0 || quantidadeAntiga <= 0) return
       const custoAntigo = numero(itemAntigo.custoFinalItem) > 0
-        ? numero(itemAntigo.custoFinalItem) / quantidade
+        ? numero(itemAntigo.custoFinalItem) / quantidadeAntiga
         : numero(itemAntigo.custoUnitarioConvertido)
       const custoNovo = numero(itemNovo.custoFinalItem) > 0
         ? numero(itemNovo.custoFinalItem) / quantidade
@@ -689,14 +715,7 @@ function CompraForm({ modo }: CompraFormProps) {
 
     cadastrarProdutosPendentes(compraAtualizada)
 
-    produtosDisponiveis.forEach((produto) => {
-      const item = compra.itens.find((atual) =>
-        atual.incluidoNoSistema !== false &&
-        atual.produtoCodigo === produto.codigo &&
-        atual.ncm && atual.ncm !== produto.ncm,
-      )
-      if (item) salvarProdutoStorage({ ...produto, ncm: item.ncm })
-    })
+    sincronizarDadosFiscaisProdutos(compraAtualizada)
 
     try {
       await aguardarSincronizacaoCentral('produtos')
@@ -803,6 +822,7 @@ function CompraForm({ modo }: CompraFormProps) {
         return
       }
       cadastrarProdutosPendentes(compraRecebida)
+      sincronizarDadosFiscaisProdutos(compraRecebida)
       await aguardarSincronizacaoCentral('produtos')
       await salvarCompraStorageConfirmado(compraRecebida)
       sincronizarContasPagarCompra(compraRecebida)
@@ -854,6 +874,7 @@ function CompraForm({ modo }: CompraFormProps) {
     if (!confirmar) return
 
     cadastrarProdutosPendentes(compraParaConfirmar)
+    sincronizarDadosFiscaisProdutos(compraParaConfirmar)
     await aguardarSincronizacaoCentral('produtos')
 
     const resultadoEntrada = confirmarEntradaCompraComCustoMedioStorage({

@@ -1374,6 +1374,40 @@ function OrcamentoForm() {
     setClienteSugestoesAbertas(false)
   }
 
+  async function salvarDocumentoEmailNoCadastro() {
+    if (!clienteId) return
+    const documento = String(clienteDocumento || '').replace(/\D/g, '')
+    const email = String(clienteEmailNotaFiscal || '').trim()
+    if (documento && ![11, 14].includes(documento.length)) {
+      alert('Informe um CPF com 11 dígitos ou CNPJ com 14 dígitos.')
+      return
+    }
+    try {
+      const resposta = await carregarColecaoCentral<Cliente>('clientes')
+      const lista = Array.isArray(resposta.data) ? resposta.data : []
+      const atualizados = lista.map((cliente) => {
+        const legado = cliente as Cliente & { id?: string; documento?: string; cpfCnpj?: string; cnpjCpf?: string }
+        if (String(cliente.codigo || legado.id || '') !== String(clienteId)) return cliente
+        return {
+          ...cliente,
+          tipoPessoa: documento.length === 14 ? 'Jurídica' : documento.length === 11 ? 'Física' : cliente.tipoPessoa,
+          cnpj: documento.length === 14 ? documento : '',
+          cpf: documento.length === 11 ? documento : '',
+          documento,
+          cpfCnpj: documento,
+          cnpjCpf: documento,
+          email: email || cliente.email || '',
+          emailNotaFiscal: email || (cliente as any).emailNotaFiscal || cliente.email || '',
+          atualizadoEm: new Date().toISOString(),
+        } as Cliente
+      })
+      await salvarClientesStorageConfirmado(atualizados)
+      setClientes(mapearClientesOrcamento(atualizados))
+    } catch {
+      alert('Não foi possível gravar o CNPJ/e-mail no cadastro do cliente.')
+    }
+  }
+
   function compactarEnderecosEntrega(texto: string) {
     return String(texto || '')
       .split(/\n\s*\n+/)
@@ -3447,7 +3481,8 @@ function abrirImpressaoOrcamento() {
                 <label>CNPJ / CPF</label>
                 <input
                   value={clienteDocumento}
-                  onChange={(event) => setClienteDocumento(event.target.value)}
+                  onChange={(event) => setClienteDocumento(event.target.value.replace(/\D/g, '').slice(0, 14))}
+                  onBlur={() => { void salvarDocumentoEmailNoCadastro() }}
                   placeholder="CNPJ ou CPF"
                 />
               </div>
@@ -3760,7 +3795,7 @@ function abrirImpressaoOrcamento() {
                             <label><span>Cidade</span><input value={enderecosEntregaDados[indice]?.cidade || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'cidade', event.target.value)} /></label>
                             <label><span>UF</span><input maxLength={2} value={enderecosEntregaDados[indice]?.uf || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'uf', event.target.value.toUpperCase())} /></label>
                             <label><span>Código IBGE</span><input value={enderecosEntregaDados[indice]?.codigoIbgeMunicipio || ''} readOnly /></label>
-                            <label className="campo-logradouro"><span>E-mail deste endereço</span><input type="email" value={enderecosEntregaDados[indice]?.emailEnvio || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'emailEnvio', event.target.value)} placeholder="email@cliente.com.br" /></label>
+                            <label className="campo-logradouro"><span>E-mail deste endereço</span><input type="email" value={enderecosEntregaDados[indice]?.emailEnvio || ''} onChange={(event) => atualizarEnderecoEntregaEstruturado(indice, 'emailEnvio', event.target.value)} onBlur={() => { void persistirEnderecosEntregaCliente(enderecosEntregaLista, enderecosEntregaDados) }} placeholder="email@cliente.com.br" /></label>
                             <div className="endereco-entrega-editor-acoes">
                               <button
                                 type="button"

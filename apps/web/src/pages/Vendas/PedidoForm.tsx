@@ -2821,6 +2821,48 @@ function PedidoForm() {
     })
   }
 
+  async function salvarDocumentoEmailNoCadastro() {
+    const documento = somenteNumerosCredito(venda.clienteDocumento || '')
+    const email = String(venda.clienteEmailNotaFiscal || venda.clienteEmail || '').trim()
+    if (documento && ![11, 14].includes(documento.length)) {
+      alert('Informe um CPF com 11 dígitos ou CNPJ com 14 dígitos.')
+      return
+    }
+
+    try {
+      const resposta = await carregarColecaoCentral<Cliente>('clientes')
+      const lista = Array.isArray(resposta.data) ? resposta.data : []
+      const codigo = String(venda.clienteCodigo || '').trim()
+      const nome = normalizarBuscaCredito(venda.clienteNome || '')
+      let localizado = false
+      const atualizados = lista.map((cliente) => {
+        const legado = cliente as Cliente & { id?: string; documento?: string; cpfCnpj?: string; cnpjCpf?: string }
+        const mesmoCliente =
+          (codigo && String(cliente.codigo || legado.id || '') === codigo) ||
+          (nome && normalizarBuscaCredito(montarNomeClienteBase(cliente)) === nome)
+        if (!mesmoCliente) return cliente
+        localizado = true
+        return {
+          ...cliente,
+          tipoPessoa: documento.length === 14 ? 'Jurídica' : documento.length === 11 ? 'Física' : cliente.tipoPessoa,
+          cnpj: documento.length === 14 ? documento : '',
+          cpf: documento.length === 11 ? documento : '',
+          documento,
+          cpfCnpj: documento,
+          cnpjCpf: documento,
+          email: email || cliente.email || '',
+          emailNotaFiscal: email || (cliente as any).emailNotaFiscal || cliente.email || '',
+          atualizadoEm: new Date().toISOString(),
+        } as Cliente
+      })
+      if (!localizado) return
+      await salvarClientesStorageConfirmado(atualizados)
+      setClientes(atualizados)
+    } catch {
+      alert('Não foi possível gravar o CNPJ/e-mail no cadastro do cliente.')
+    }
+  }
+
   function montarPedidoAtualizado(): Venda {
     const totalAtual = calcularTotais(venda)
     const clienteAtual = localizarClienteAtualParaDocumento(venda)
@@ -3265,7 +3307,7 @@ function PedidoForm() {
         descricao: String(item.descricao || produto?.descricao || ''),
         ncm: somenteDigitosFiscal(item.ncm || produto?.ncm, 8),
         cfop: cfopAutomatico || somenteDigitosFiscal(item.cfop, 4),
-        tipoFiscal: String(produto?.tipoFiscal || 'Mercadoria para Revenda'),
+        tipoFiscal: String(item.tipoFiscalVenda || 'Material de Uso e Consumo'),
         origem: obterOrigemFiscal(produto?.origem),
       }
     }).filter((item) => item.ncm.length !== 8 || item.cfop.length !== 4)
@@ -3381,7 +3423,6 @@ function PedidoForm() {
         salvarProdutoStorage({
           ...produto,
           ncm: somenteDigitosFiscal(ajuste.ncm, 8),
-          tipoFiscal: ajuste.tipoFiscal,
           origem: ajuste.origem,
         })
       }
@@ -3396,6 +3437,7 @@ function PedidoForm() {
           ...item,
           ncm: somenteDigitosFiscal(ajuste.ncm, 8),
           cfop: somenteDigitosFiscal(ajuste.cfop, 4),
+          tipoFiscalVenda: ajuste.tipoFiscal,
         }
       }),
     }))
@@ -6072,6 +6114,7 @@ Synergias Distribuidora`,
                   onChange={(e) =>
                     atualizarVenda('clienteDocumento', e.target.value)
                   }
+                  onBlur={() => { void salvarDocumentoEmailNoCadastro() }}
                 />
               </label>
 
@@ -6082,6 +6125,7 @@ Synergias Distribuidora`,
                   onChange={(e) =>
                     atualizarVenda('clienteEmail', e.target.value)
                   }
+                  onBlur={() => { void salvarDocumentoEmailNoCadastro() }}
                 />
               </label>
 

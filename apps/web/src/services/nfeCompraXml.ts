@@ -15,6 +15,15 @@ const normalize = (value: unknown) => String(value || '')
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .replace(/[^A-Z0-9]+/gi, ' ').trim().toUpperCase()
 
+export function inferirFatorEmbalagemNFe(descricao: unknown, unidade: unknown) {
+  if (!/^(CX|CAIXA)$/i.test(String(unidade || '').trim())) return 1
+  const texto = normalize(descricao)
+  const fatores = [...texto.matchAll(/\bC\s*0*(\d+)\s*(?:BOB(?:INA)?S?|REFIS?|REFIL|ROLOS?)\b/g)]
+    .map((achado) => Number(achado[1]))
+    .filter((valor) => Number.isFinite(valor) && valor > 1)
+  return fatores.at(-1) || 1
+}
+
 function matchProduct(products: Produto[], eanTrib: string, eanCom: string, description: string) {
   const barcode = (product: Produto) => digits(product.codigoBarras || product.codigo || product.id)
   let candidates = products.filter((product) => eanTrib && barcode(product) === digits(eanTrib))
@@ -53,7 +62,8 @@ export function parseNFeCompraXml(xml: string, products: Produto[], numeroCompra
     const matched = matchProduct(products, eanTrib, eanCom, description)
     const factorXml = qCom > 0 && qTrib > 0 ? qTrib / qCom : 1
     const factorProduct = Math.max(1, Number(matched.product?.quantidadePorEmbalagemCompra || 1))
-    const factor = Math.max(factorXml, factorProduct)
+    const factorDescription = inferirFatorEmbalagemNFe(description, unitCom)
+    const factor = Math.max(factorXml, factorProduct, factorDescription)
     const convertedQty = qCom * factor
     const st = num(text(detail, 'vICMSST'))
     const ipi = num(text(detail, 'vIPI'))

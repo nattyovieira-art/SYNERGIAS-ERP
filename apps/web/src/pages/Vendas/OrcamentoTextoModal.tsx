@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { ImagePlus, X } from 'lucide-react'
+import { FileText, ImagePlus, X } from 'lucide-react'
+import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 import { listarClientesStorage } from '../../services/clientesStorage'
 import { listarProdutosStorage } from '../../services/produtosStorage'
 
@@ -102,6 +103,64 @@ export default function OrcamentoTextoModal({ aberto, onClose, onPreparar }: Pro
     }
   }
 
+  async function lerPdf(arquivo?: File) {
+    if (!arquivo) return
+    setLendoImagem(true)
+    setProgressoOcr(0)
+    try {
+      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+      pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+      const pdf = await pdfjs.getDocument({ data: await arquivo.arrayBuffer() }).promise
+      const paginas: string[] = []
+
+      for (let numeroPagina = 1; numeroPagina <= pdf.numPages; numeroPagina += 1) {
+        const pagina = await pdf.getPage(numeroPagina)
+        const conteudo = await pagina.getTextContent()
+        let paginaTexto = ''
+        for (const item of conteudo.items as Array<{ str?: string; hasEOL?: boolean }>) {
+          const trecho = String(item.str || '').trim()
+          if (trecho) paginaTexto += `${paginaTexto && !paginaTexto.endsWith('\n') ? ' ' : ''}${trecho}`
+          if (item.hasEOL) paginaTexto += '\n'
+        }
+        paginas.push(paginaTexto.trim())
+        setProgressoOcr(Math.round((numeroPagina / pdf.numPages) * 100))
+      }
+
+      let extraido = paginas.filter(Boolean).join('\n')
+      if (extraido.replace(/\s/g, '').length < 20) {
+        const { createWorker } = await import('tesseract.js')
+        const worker = await createWorker('por')
+        const paginasOcr: string[] = []
+        const limite = Math.min(pdf.numPages, 10)
+        for (let numeroPagina = 1; numeroPagina <= limite; numeroPagina += 1) {
+          const pagina = await pdf.getPage(numeroPagina)
+          const viewport = pagina.getViewport({ scale: 1.8 })
+          const canvas = document.createElement('canvas')
+          canvas.width = Math.ceil(viewport.width)
+          canvas.height = Math.ceil(viewport.height)
+          const contexto = canvas.getContext('2d')
+          if (!contexto) continue
+          await pagina.render({ canvas, canvasContext: contexto, viewport }).promise
+          const resultado = await worker.recognize(canvas)
+          paginasOcr.push(String(resultado.data.text || '').trim())
+          setProgressoOcr(Math.round((numeroPagina / limite) * 100))
+        }
+        await worker.terminate()
+        extraido = paginasOcr.filter(Boolean).join('\n')
+      }
+
+      if (!extraido.trim()) return alert('Não foi possível extrair texto desse PDF.')
+      setTexto((atual) => [atual.trim(), extraido.trim()].filter(Boolean).join('\n'))
+      setLinhas([])
+    } catch (erro) {
+      console.error('[Synergias ERP] Falha ao ler PDF do orçamento.', erro)
+      alert('Não foi possível ler o PDF. Tente outro arquivo ou cole o texto.')
+    } finally {
+      setLendoImagem(false)
+      setProgressoOcr(0)
+    }
+  }
+
   function preparar() {
     if (!cliente) return alert('Selecione o cliente.')
     if (!linhas.length) return alert('Analise o texto primeiro.')
@@ -150,10 +209,12 @@ export default function OrcamentoTextoModal({ aberto, onClose, onPreparar }: Pro
       <label>Pedido escrito<textarea rows={9} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Cole, digite ou extraia o pedido de uma imagem..." /></label>
       <div className="orcamento-texto-fontes">
         <label className="orcamento-texto-imagem"><ImagePlus size={20}/>{lendoImagem ? `Lendo imagem... ${progressoOcr}%` : 'Anexar imagem'}<input type="file" accept="image/*" disabled={lendoImagem} onChange={(e) => void lerImagem(e.target.files?.[0])}/></label>
+        <label className="orcamento-texto-imagem"><FileText size={20}/>{lendoImagem ? `Lendo arquivo... ${progressoOcr}%` : 'Anexar PDF'}<input type="file" accept="application/pdf,.pdf" disabled={lendoImagem} onChange={(e) => void lerPdf(e.target.files?.[0])}/></label>
         <button className="orcamento-texto-analisar" onClick={analisar} disabled={lendoImagem || !texto.trim()}>Analisar texto</button>
       </div>
       {analisado && <div className="orcamento-texto-itens">{linhas.map((linha) => {
-        return <div key={linha.id}><input type="number" min="0.01" step="0.01" value={linha.quantidade} onChange={(e) => setLinhas((atuais) => atuais.map((item) => item.id === linha.id ? { ...item, quantidade: Number(e.target.value) } : item))} /><span>{linha.texto}</span><input
+        const candidatos = sugestoes(linha.produtoBusca || linha.texto, produtos)
+        return <div key={linha.id}><input type="number" min="0.01" step="0.01" value={linha.quantidade} onChange={(e) => setLinhas((atuais) => atuais.map((item) => item.id === linha.id ? { ...item, quantidade: Number(e.target.value) } : item))} /><span>{linha.texto}</span><div className="orcamento-texto-produto-campo"><input
           list={`produtos-texto-${linha.id}`}
           value={linha.produtoBusca}
           placeholder="Digite para localizar o produto"
@@ -168,7 +229,26 @@ export default function OrcamentoTextoModal({ aberto, onClose, onPreparar }: Pro
         /><datalist id={`produtos-texto-${linha.id}`}>
           {produtos.map((produto) =>
             <option key={produto.codigo} value={produto.descricao || produto.nome} />)}
-        </datalist></div>
+        </datalist>{!linha.produtoCodigo && <select
+          className="orcamento-texto-sugestoes"
+          value=""
+          onChange={(e) => {
+            const produto = produtos.find((item) => String(item.codigo) === e.target.value)
+            if (!produto) return
+            setLinhas((atuais) => atuais.map((item) => item.id === linha.id
+              ? {
+                  ...item,
+                  produtoCodigo: String(produto.codigo || ''),
+                  produtoBusca: String(produto.descricao || produto.nome || ''),
+                }
+              : item))
+          }}
+        >
+          <option value="">{candidatos.length ? 'Ver produtos sugeridos...' : 'Nenhuma sugestão — digite para buscar'}</option>
+          {candidatos.map(({ produto, pontos }) => <option key={produto.codigo} value={produto.codigo}>
+            {`${produto.descricao || produto.nome} (${Math.round(pontos * 100)}%)`}
+          </option>)}
+        </select>}</div></div>
       })}</div>}
       <footer><span>{pendentes ? `${pendentes} item(ns) precisam de confirmação` : analisado ? 'Todos os itens associados' : ''}</span><button onClick={preparar} disabled={!analisado || pendentes > 0}>Preparar orçamento aberto</button></footer>
     </section>
