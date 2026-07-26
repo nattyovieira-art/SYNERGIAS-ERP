@@ -691,6 +691,22 @@
   color: #334155;
 }
 
+.itens-adicionados th:last-child,
+.itens-adicionados td:last-child {
+  position: sticky;
+  right: 0;
+  width: 64px;
+  min-width: 64px;
+  text-align: center;
+  background: #ffffff;
+  z-index: 2;
+  box-shadow: -8px 0 12px -12px #334155;
+}
+
+.itens-adicionados th:last-child {
+  z-index: 3;
+}
+
 .qtd-tabela {
   display: grid;
   grid-template-columns: 34px 70px 34px;

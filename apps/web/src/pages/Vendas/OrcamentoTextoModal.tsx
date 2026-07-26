@@ -45,6 +45,27 @@ function sugestoes(texto: string, produtos: any[]) {
   }).filter((item) => item.pontos > 0).sort((a, b) => b.pontos - a.pontos).slice(0, 12)
 }
 
+function extrairSomenteItensDoPdf(texto: string) {
+  const linear = texto.replace(/\s+/g, ' ').trim()
+  const itens: string[] = []
+  const padrao = /\b\d{8,14}\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s+R\$\s*[\d.,]+\s+R\$\s*[\d.,]+/gi
+  let resultado: RegExpExecArray | null
+
+  while ((resultado = padrao.exec(linear)) !== null) {
+    const descricaoCompleta = resultado[1].replace(/\s+/g, ' ').trim()
+    const quantidade = resultado[2]
+    itens.push(`${quantidade} ${descricaoCompleta}`)
+  }
+
+  if (itens.length) return itens.join('\n')
+
+  const inicio = texto.search(/\b(?:c[oó]digo|refer[eê]ncia)\s+descri[cç][aã]o\b/i)
+  if (inicio < 0) return texto
+  const tabela = texto.slice(inicio)
+  const fim = tabela.search(/\b(?:quantidade\s+de\s+itens|valor\s+total\s+dos\s+itens|total\s+dos\s+itens)\b/i)
+  return (fim >= 0 ? tabela.slice(0, fim) : tabela).trim()
+}
+
 export default function OrcamentoTextoModal({ aberto, onClose, onPreparar }: Props) {
   const clientes = listarClientesStorage()
   const produtos = listarProdutosStorage()
@@ -150,7 +171,8 @@ export default function OrcamentoTextoModal({ aberto, onClose, onPreparar }: Pro
       }
 
       if (!extraido.trim()) return alert('Não foi possível extrair texto desse PDF.')
-      setTexto((atual) => [atual.trim(), extraido.trim()].filter(Boolean).join('\n'))
+      const itensExtraidos = extrairSomenteItensDoPdf(extraido)
+      setTexto((atual) => [atual.trim(), itensExtraidos].filter(Boolean).join('\n'))
       setLinhas([])
     } catch (erro) {
       console.error('[Synergias ERP] Falha ao ler PDF do orçamento.', erro)
@@ -206,7 +228,21 @@ export default function OrcamentoTextoModal({ aberto, onClose, onPreparar }: Pro
           {nomesClientes.map((item) => <option key={item.codigo} value={item.razaoSocial || item.nomeFantasia} />)}
         </datalist>
       </label>
-      <label>Pedido escrito<textarea rows={9} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Cole, digite ou extraia o pedido de uma imagem..." /></label>
+      <label>Pedido escrito<textarea
+        rows={9}
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onPaste={(e) => {
+          const colado = e.clipboardData.getData('text/plain')
+          if (!colado) return
+          e.preventDefault()
+          const inicio = e.currentTarget.selectionStart
+          const fim = e.currentTarget.selectionEnd
+          setTexto((atual) => `${atual.slice(0, inicio)}${colado}${atual.slice(fim)}`)
+          setLinhas([])
+        }}
+        placeholder="Cole com Ctrl+V, digite ou extraia o pedido de uma imagem..."
+      /></label>
       <div className="orcamento-texto-fontes">
         <label className="orcamento-texto-imagem"><ImagePlus size={20}/>{lendoImagem ? `Lendo imagem... ${progressoOcr}%` : 'Anexar imagem'}<input type="file" accept="image/*" disabled={lendoImagem} onChange={(e) => void lerImagem(e.target.files?.[0])}/></label>
         <label className="orcamento-texto-imagem"><FileText size={20}/>{lendoImagem ? `Lendo arquivo... ${progressoOcr}%` : 'Anexar PDF'}<input type="file" accept="application/pdf,.pdf" disabled={lendoImagem} onChange={(e) => void lerPdf(e.target.files?.[0])}/></label>
