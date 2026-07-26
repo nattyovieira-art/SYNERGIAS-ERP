@@ -87,6 +87,7 @@ type VendaLista = {
   pedidoGeradoId?: string
   dataConversao?: string
   statusPedido?: string
+  dispensaEmissaoNfe?: boolean
   orcamentoOrigemId?: string
   orcamentoOrigemNumero?: string
   criadoEm?: string
@@ -202,6 +203,14 @@ function somenteDigitosV306D(valor: unknown) {
   return String(valor || '').replace(/\D/g, '')
 }
 
+function tipoIndicaOrcamento(venda: VendaLista) {
+  const tipo = normalizarTexto(venda.tipo)
+  return (
+    tipo.includes('orcamento') ||
+    (tipo.startsWith('or') && tipo.endsWith('amento'))
+  )
+}
+
 function ehPedido(venda: VendaLista) {
   const tipo = normalizarTexto(venda.tipo)
   const status = obterStatus(venda)
@@ -210,7 +219,7 @@ function ehPedido(venda: VendaLista) {
 
   // O tipo explícito é soberano. Orçamentos históricos podem carregar campos
   // fiscais copiados e nunca devem virar Pedido apenas por possuírem NF-e.
-  if (tipo.includes('orcamento')) return false
+  if (tipoIndicaOrcamento(venda)) return false
   if (tipo.includes('pedido')) return true
   if (possuiStatusPedido) return true
 
@@ -468,7 +477,7 @@ function obterStatusVisualPedido(venda: VendaLista) {
     return { rotulo: 'CANCELADO', classe: 'cancelado' }
   }
 
-  const nfeEmitida = Boolean(obterNumeroNfe(venda))
+  const nfeEmitida = Boolean(obterNumeroNfe(venda)) || venda.dispensaEmissaoNfe === true
   const boletoEmitido = pagamentoDispensaBoleto(venda) || pedidoTemBoletoEmitido(venda)
   const entregue = pedidoFoiEntregue(venda)
 
@@ -585,9 +594,26 @@ function Vendas() {
   const orcamentos = useMemo(() => {
     const vistos = new Set<string>()
     const orcamento2483 = selecionarOrcamento2483(vendas)
-    const lista = vendas.filter((venda, indice) => {
-      if (numeroOrcamentoLogico(venda) === '2483') return false
-      if ((venda as any).ocultoListagem || ehPedido(venda)) return false
+    const pontuarOrcamento = (venda: VendaLista) =>
+      (tipoIndicaOrcamento(venda) ? 1000 : 0) +
+      (numeroOrcamentoLogico(venda) ? 300 : 0) +
+      (Array.isArray(venda.itens) ? venda.itens.length * 10 : 0) +
+      (Number(obterTotal(venda)) > 0 ? 100 : 0) +
+      (obterCliente(venda) !== '-' ? 50 : 0) +
+      ((venda as any).ocultoListagem ? 0 : 20) +
+      (venda.pedidoGeradoId || venda.numeroPedido ? 30 : 0)
+
+    const candidatos = vendas
+      .filter((venda) => {
+        if (numeroOrcamentoLogico(venda) === '2483') return false
+        if (ehPedido(venda)) return false
+        // Uma marca técnica antiga nunca pode ocultar um orçamento explícito.
+        if ((venda as any).ocultoListagem && !tipoIndicaOrcamento(venda)) return false
+        return true
+      })
+      .sort((a, b) => pontuarOrcamento(b) - pontuarOrcamento(a))
+
+    const lista = candidatos.filter((venda, indice) => {
 
       const numero = numeroOrcamentoLogico(venda)
       const chave = numero
@@ -630,13 +656,19 @@ function Vendas() {
 
   const statusDisponiveis = useMemo(() => {
     const statusDaAba = Array.from(
-      new Set(vendasDaAba.map((venda) => obterStatus(venda))),
+      new Set(
+        vendasDaAba.map((venda) =>
+          abaAtiva === 'pedidos'
+            ? obterStatusVisualPedido(venda).rotulo
+            : obterStatus(venda),
+        ),
+      ),
     )
       .filter(Boolean)
       .filter((status) => abaAtiva === 'pedidos' || status !== 'PENDENTE')
 
     const ordemOrcamentos = ['NOVO', 'ABERTO', 'APROVADO', 'REPROVADO', 'CONCLUÍDO']
-    const ordemPedidos = ['ABERTO', 'PENDENTE', 'CONCLUÍDO', 'ENTREGUE', 'CANCELADO']
+    const ordemPedidos = ['ABERTO', 'PENDENTE', 'CONCLUÍDO', 'CANCELADO']
     const ordem = abaAtiva === 'orcamentos' ? ordemOrcamentos : ordemPedidos
 
     return statusDaAba.sort((a, b) => {
@@ -673,7 +705,9 @@ function Vendas() {
     const termo = normalizarTexto(busca)
 
     return vendasDaAba.filter((venda) => {
-      const status = obterStatus(venda)
+      const status = abaAtiva === 'pedidos'
+        ? obterStatusVisualPedido(venda).rotulo
+        : obterStatus(venda)
       const passaStatus = filtroStatus === 'TODOS' || status === filtroStatus
       const dataEmissao = dataParaIso(obterDataEmissao(venda))
       const passaDataInicio = !dataInicio || (dataEmissao && dataEmissao >= dataInicio)
@@ -1225,7 +1259,7 @@ function Vendas() {
                     ? estadoOrcamento.convertido
                       ? 'GERADO'
                       : estadoOrcamento.situacao.toUpperCase()
-                    : obterStatus(venda)
+                    : obterStatusVisualPedido(venda).rotulo
                   const classeStatusOrcamento = estadoOrcamento.convertido
                     ? 'convertido'
                     : status.toLowerCase()
@@ -1285,6 +1319,9 @@ function Vendas() {
                           </>
                         ) : (
                           <>
+                            <span className="vendas-orcamento-origem">
+                              Nº ORÇAMENTO: <strong>{venda.numeroOrcamento || '-'}</strong>
+                            </span>
                             <span>
                               PEDIDO EMITIDO: <strong>{formatarData(obterDataEmissao(venda))}</strong>
                             </span>

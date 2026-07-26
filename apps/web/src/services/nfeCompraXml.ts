@@ -16,8 +16,29 @@ const normalize = (value: unknown) => String(value || '')
   .replace(/[^A-Z0-9]+/gi, ' ').trim().toUpperCase()
 
 export function inferirFatorEmbalagemNFe(descricao: unknown, unidade: unknown) {
-  if (!/^(CX|CAIXA)$/i.test(String(unidade || '').trim())) return 1
+  const unidadeFiscal = String(unidade || '').trim()
   const texto = normalize(descricao)
+
+  if (/^(FD|FARDO)$/i.test(unidadeFiscal)) {
+    const composicao = texto.match(
+      /\b0*(\d+)\s*X\s*0*(\d+)\s*C\s*0*(\d+)\s*ROLOS?\b/,
+    )
+    if (composicao) {
+      const volumes = Number(composicao[1])
+      const unidadesPorVolume = Number(composicao[2])
+      const total = Number(composicao[3])
+      if (
+        volumes > 1 &&
+        unidadesPorVolume > 0 &&
+        volumes * unidadesPorVolume === total
+      ) {
+        return volumes
+      }
+    }
+    return 1
+  }
+
+  if (!/^(CX|CAIXA)$/i.test(unidadeFiscal)) return 1
   const fatores = [...texto.matchAll(/\bC\s*0*(\d+)\s*(?:BOB(?:INA)?S?|REFIS?|REFIL|ROLOS?)\b/g)]
     .map((achado) => Number(achado[1]))
     .filter((valor) => Number.isFinite(valor) && valor > 1)

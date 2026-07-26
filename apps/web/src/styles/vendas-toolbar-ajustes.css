@@ -2099,3 +2099,18 @@
       158px !important;
   }
 }
+.vendas-documento-row.is-pedidos .vendas-documento-numero {
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-pedido-numero-botao,
+.vendas-documento-row.is-pedidos .vendas-pedido-status-unico {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.vendas-documento-row.is-pedidos .vendas-orcamento-origem {
+  white-space: nowrap;
+}

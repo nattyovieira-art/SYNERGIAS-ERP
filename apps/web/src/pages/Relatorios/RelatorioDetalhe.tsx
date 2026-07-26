@@ -27,6 +27,7 @@ import type { Venda } from '../../types/Venda'
 import { ERP_STORAGE_UPDATED_EVENT, obterColecaoMemoria } from '../../services/erpApi'
 import { consolidarVendasRelatorios } from '../../services/relatoriosData'
 import { listarComprasStorage } from '../../services/comprasStorage'
+import { EVENTO_CONTAS_PAGAR_ATUALIZADAS } from '../../services/diariasFinanceiro'
 
 
 
@@ -71,6 +72,21 @@ type ConfiguracaoArea = {
   subtitulo: string
   corClasse: string
   relatorios: DefinicaoRelatorio[]
+}
+
+type ContaPagarRelatorio = {
+  id: string
+  fornecedor: string
+  documento?: string
+  descricao: string
+  categoria?: string
+  emissao?: string
+  vencimento: string
+  valor: number
+  status: 'Em aberto' | 'Paga' | 'Cancelada'
+  dataPagamento?: string
+  conciliado?: boolean
+  valorPago?: number
 }
 
 const CONFIGURACOES: Record<TipoRelatorio, ConfiguracaoArea> = {
@@ -402,6 +418,7 @@ function calcularCurvaABC<T>(
 function gerarFinanceiro(
   id: string,
   contas: ContaReceber[],
+  contasPagar: ContaPagarRelatorio[],
   lancamentos: LancamentoOFX[],
   vendas: Venda[],
   produtos: Produto[],
@@ -450,7 +467,41 @@ function gerarFinanceiro(
     { chave: 'status', titulo: 'Situação', alinhar: 'center' },
   ]
 
-  if (id === 'pagamentos' || id === 'recebimentos') {
+  if (id === 'pagamentos') {
+    const pagas = contasPagar.filter((conta) => conta.status === 'Paga')
+    const total = pagas.reduce(
+      (soma, conta) => soma + numero(conta.valorPago ?? conta.valor),
+      0,
+    )
+    return {
+      indicadores: [
+        ['Pagamentos', inteiro(pagas.length)],
+        ['Total pago', dinheiro(total)],
+        ['Fornecedores', inteiro(new Set(pagas.map((conta) => conta.fornecedor).filter(Boolean)).size)],
+        ['Média paga', dinheiro(pagas.length ? total / pagas.length : 0)],
+      ],
+      colunas: [
+        { chave: 'fornecedor', titulo: 'Fornecedor' },
+        { chave: 'descricao', titulo: 'Descrição' },
+        { chave: 'vencimento', titulo: 'Vencimento', alinhar: 'center' },
+        { chave: 'pagamento', titulo: 'Pagamento', alinhar: 'center' },
+        { chave: 'valor', titulo: 'Valor pago', alinhar: 'right' },
+        { chave: 'situacao', titulo: 'Situação', alinhar: 'center' },
+      ],
+      linhas: pagas
+        .sort((a, b) => texto(b.dataPagamento).localeCompare(texto(a.dataPagamento)))
+        .map((conta) => ({
+          fornecedor: conta.fornecedor,
+          descricao: conta.descricao,
+          vencimento: dataBr(conta.vencimento),
+          pagamento: dataBr(conta.dataPagamento),
+          valor: dinheiro(numero(conta.valorPago ?? conta.valor)),
+          situacao: 'Pago',
+        })),
+    }
+  }
+
+  if (id === 'recebimentos') {
     const pagas = contas.filter((conta) => numero(conta.valorRecebido) > 0)
     const total = pagas.reduce((soma, conta) => soma + numero(conta.valorRecebido), 0)
     const clientes = new Set(pagas.map((conta) => conta.clienteNome).filter(Boolean)).size
@@ -1637,11 +1688,41 @@ function gerarEstoque(
 
 function gerarClientes(id: string, clientes: Cliente[], vendas: Venda[]): ResultadoRelatorio {
   const pedidos = somentePedidos(vendas)
-  const vendasPorCliente = agrupar(pedidos, (venda) => venda.clienteCodigo || venda.clienteNome)
   const hoje = hojeIso()
 
   function dadosCliente(cliente: Cliente) {
-    const lista = vendasPorCliente.get(cliente.codigo) || vendasPorCliente.get(cliente.razaoSocial) || []
+    const cadastro = cliente as Cliente & Record<string, unknown>
+    const identificadoresCliente = new Set(
+      [
+        cadastro.id,
+        cadastro.codigo,
+        cadastro.cpfCnpj,
+        cadastro.cnpjCpf,
+        cadastro.cnpj,
+        cadastro.documento,
+        cadastro.razaoSocial,
+        cadastro.nomeRazaoSocial,
+        cadastro.nomeFantasia,
+        cadastro.nome,
+      ]
+        .map((valor) => normalizar(valor))
+        .filter(Boolean),
+    )
+    const lista = pedidos.filter((venda) => {
+      const pedido = venda as Venda & Record<string, unknown>
+      return [
+        pedido.clienteId,
+        pedido.clienteCodigo,
+        pedido.clienteDocumento,
+        pedido.cpfCnpj,
+        pedido.cnpjCpf,
+        pedido.clienteNome,
+        pedido.cliente,
+      ]
+        .map((valor) => normalizar(valor))
+        .filter(Boolean)
+        .some((valor) => identificadoresCliente.has(valor))
+    })
     const ordenadas = [...lista].sort((a, b) => dataVenda(a).localeCompare(dataVenda(b)))
     const faturamento = lista.reduce((s, venda) => s + valorVenda(venda), 0)
     const ultimaData = ordenadas.length ? dataVenda(ordenadas[ordenadas.length - 1]) : ''
@@ -1856,13 +1937,20 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
   useEffect(() => {
     const atualizar = () => setVersaoDados((valor) => valor + 1)
     window.addEventListener(ERP_STORAGE_UPDATED_EVENT, atualizar)
-    return () => window.removeEventListener(ERP_STORAGE_UPDATED_EVENT, atualizar)
+    window.addEventListener(EVENTO_CONTAS_PAGAR_ATUALIZADAS, atualizar)
+    window.addEventListener('storage', atualizar)
+    return () => {
+      window.removeEventListener(ERP_STORAGE_UPDATED_EVENT, atualizar)
+      window.removeEventListener(EVENTO_CONTAS_PAGAR_ATUALIZADAS, atualizar)
+      window.removeEventListener('storage', atualizar)
+    }
   }, [])
 
   const dados = useMemo(() => {
     void versaoDados
     return {
       contas: lerStorage<ContaReceber>('synergias_contas_receber'),
+      contasPagar: lerStorage<ContaPagarRelatorio>('synergias_contas_pagar'),
       lancamentos: lerStorage<LancamentoOFX>('synergias_lancamentos_ofx'),
       vendas: obterColecaoMemoria<Venda>('vendas'),
       compras: listarComprasStorage(),
@@ -1875,6 +1963,7 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
 
   const dadosFiltrados = useMemo(() => ({
     contas: dados.contas.filter((item) => dentroPeriodo(dataIso(item.dataRecebimento || item.dataEmissao || item.dataVencimento), dataInicial, dataFinal)),
+    contasPagar: dados.contasPagar.filter((item) => dentroPeriodo(dataIso(item.dataPagamento || item.emissao || item.vencimento), dataInicial, dataFinal)),
     lancamentos: dados.lancamentos.filter((item) => dentroPeriodo(dataIso(item.data), dataInicial, dataFinal)),
     vendas: consolidarVendasRelatorios(dados.vendas).vendas.filter((item) => {
       if (!dentroPeriodo(dataVenda(item), dataInicial, dataFinal)) return false
@@ -1895,7 +1984,7 @@ function RelatorioDetalhe({ tipo }: RelatorioDetalheProps) {
 
   const resultado = useMemo(() => {
     if (tipo === 'financeiro') {
-      return gerarFinanceiro(relatorioAtivo, dadosFiltrados.contas, dadosFiltrados.lancamentos, dadosFiltrados.vendas, dadosFiltrados.produtos, dadosFiltrados.contasBancarias)
+      return gerarFinanceiro(relatorioAtivo, dadosFiltrados.contas, dadosFiltrados.contasPagar, dadosFiltrados.lancamentos, dadosFiltrados.vendas, dadosFiltrados.produtos, dadosFiltrados.contasBancarias)
     }
     if (tipo === 'vendas') {
       return gerarVendas(relatorioAtivo, dadosFiltrados.vendas, dadosFiltrados.produtos)

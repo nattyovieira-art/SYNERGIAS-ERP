@@ -700,7 +700,6 @@
   text-align: center;
   background: #ffffff;
   z-index: 2;
-  box-shadow: -8px 0 12px -12px #334155;
 }
 
 .itens-adicionados th:last-child {

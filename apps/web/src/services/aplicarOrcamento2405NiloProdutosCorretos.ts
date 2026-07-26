@@ -210,8 +210,12 @@ function montarItens2405(produtos: any[]): any[] | null {
 
 function atualizarRegistro2405(atual: any, itens: any[], papel: 'ORCAMENTO_2405' | 'PEDIDO_2498'): any {
   const subtotal = 2884.48
+  const ehOrcamento = papel === 'ORCAMENTO_2405'
   return {
     ...atual,
+    tipo: ehOrcamento ? 'Orçamento' : 'Pedido',
+    numeroOrcamento: ehOrcamento ? '2405' : atual?.numeroOrcamento,
+    numeroPedido: ehOrcamento ? atual?.numeroPedido : '2498',
     itens: itens.map((item) => ({ ...item })),
     itensEditadosManual: true,
     tipoDesconto: 'valor',

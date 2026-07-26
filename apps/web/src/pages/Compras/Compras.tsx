@@ -25,6 +25,7 @@ import {
 } from '../../services/comprasStorage'
 import { listarProdutosStorage } from '../../services/produtosStorage'
 import { parseNFeCompraXml } from '../../services/nfeCompraXml'
+import { extrairTextoDocumentoCompra } from '../../services/documentoCompra'
 
 import '../../styles/compras.css'
 
@@ -155,7 +156,7 @@ function Compras() {
   function importarXmlVisual() {
     const input = document.createElement('input')
     input.type = 'file'
-    input.accept = '.xml,text/xml,application/xml'
+    input.accept = '.xml,text/xml,application/xml,.pdf,application/pdf,image/*'
 
     input.onchange = async () => {
       const arquivo = input.files?.[0]
@@ -163,6 +164,21 @@ function Compras() {
       if (!arquivo) return
 
       try {
+        const ehXml = arquivo.type.includes('xml') || arquivo.name.toLowerCase().endsWith('.xml')
+        if (!ehXml) {
+          const textoDocumento = await extrairTextoDocumentoCompra(arquivo)
+          if (!textoDocumento) {
+            alert('Não foi possível ler esse documento. Tente uma imagem mais nítida ou outro PDF.')
+            return
+          }
+          navigate('/compras/novo', {
+            state: {
+              documentoCompraTexto: textoDocumento,
+              documentoCompraNome: arquivo.name,
+            },
+          })
+          return
+        }
         const xml = await arquivo.text()
         const numeroCompra = String(
           Math.max(
@@ -361,12 +377,12 @@ function Compras() {
             <button
               type="button"
               className="compras-action-btn compras-action-import erp-action-descriptive erp-action-import-xml"
-              title="Importar XML"
-              aria-label="Importar XML"
+              title="Importar XML, PDF ou imagem"
+              aria-label="Importar XML, PDF ou imagem"
               onClick={importarXmlVisual}
             >
               <FileUp size={22} strokeWidth={2.4} />
-              <span>Importar XML</span>
+              <span>Importar NF-e</span>
             </button>
 
             <button

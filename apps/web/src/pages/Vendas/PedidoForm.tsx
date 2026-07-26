@@ -1281,7 +1281,40 @@ function PedidoForm() {
     vendaInicial?.bancoCobranca,
   )
 
+  const orcamentoOrigemCentral = (listarVendasCentral() as unknown as Array<any>)
+    .find((registro) => {
+      const tipo = String(registro?.tipo || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+      if (!tipo.includes('orcamento')) return false
+      return (
+        (
+          Boolean(vendaInicial?.orcamentoOrigemId) &&
+          String(registro?.id || '') === String(vendaInicial?.orcamentoOrigemId)
+        ) ||
+        (
+          Boolean(vendaInicial?.id) &&
+          String(registro?.pedidoGeradoId || registro?.pedidoId || '') ===
+            String(vendaInicial?.id)
+        ) ||
+        (
+          Boolean(vendaInicial?.numeroPedido) &&
+          String(registro?.numeroPedido || registro?.pedidoGeradoNumero || '') ===
+            String(vendaInicial?.numeroPedido)
+        )
+      )
+    })
+
+  const numeroOrcamentoOrigemCentral = String(
+    orcamentoOrigemCentral?.numeroOrcamento ||
+    orcamentoOrigemCentral?.numero ||
+    orcamentoOrigemCentral?.codigo ||
+    '',
+  ).trim()
+
   const codigoOrcamentoOrigem =
+    numeroOrcamentoOrigemCentral ||
     vendaInicial?.orcamentoOrigemNumero ||
     vendaInicial?.numeroOrcamento ||
     ''
@@ -1351,7 +1384,8 @@ function PedidoForm() {
     id: vendaInicial?.id || String(Date.now()),
     tipo: 'Pedido',
 
-    numeroOrcamento: vendaInicial?.numeroOrcamento || '',
+    numeroOrcamento:
+      numeroOrcamentoOrigemCentral || vendaInicial?.numeroOrcamento || '',
     numeroPedido: vendaEncontrada?.numeroPedido || gerarNumeroInicial(),
 
     orcamentoOrigemId: vendaInicial?.orcamentoOrigemId || '',
@@ -3075,6 +3109,57 @@ function PedidoForm() {
       alert('Pedido concluído e confirmado no MySQL.')
     } catch (erro) {
       alert(erro instanceof Error ? `Não foi possível concluir o pedido: ${erro.message}` : 'O MySQL não confirmou a conclusão do pedido.')
+    }
+  }
+
+  async function naoEmitirNotaFiscal() {
+    if (venda.numeroNotaFiscal || venda.chaveAcessoNotaFiscal) {
+      alert('Este pedido já possui nota fiscal vinculada e não pode ser marcado como sem emissão.')
+      return
+    }
+    if (!venda.itens?.length) {
+      alert('Inclua os itens do pedido antes de concluir e entregar.')
+      return
+    }
+
+    const confirmar = window.confirm(
+      `Confirmar que o pedido ${venda.numeroPedido || ''} não terá emissão de NF?\n\n` +
+      'O pedido será concluído e entregue. Se o estoque ainda não foi baixado, a entrega fará a baixa uma única vez.',
+    )
+    if (!confirmar) return
+
+    try {
+      const agora = new Date()
+      const base: Venda = {
+        ...montarPedidoAtualizado(),
+        tipo: 'Pedido',
+        statusPedido: venda.estoqueBaixado ? 'Entregue' : 'Concluído',
+        dispensaEmissaoNfe: true,
+        dispensaEmissaoNfeEm: agora.toISOString(),
+        dispensaEmissaoNfePor: 'Synergias',
+        atualizadoEm: agora.toISOString(),
+      }
+      const confirmado = await salvarVendaStorageConfirmado(base)
+
+      if (confirmado.estoqueBaixado || confirmado.statusPedido === 'Entregue') {
+        const entregue = await salvarVendaStorageConfirmado({
+          ...confirmado,
+          statusPedido: 'Entregue',
+          dataEntregaRealizada: confirmado.dataEntregaRealizada || hoje(),
+          atualizadoEm: new Date().toISOString(),
+        })
+        setVenda(entregue)
+        statusPedidoPersistidoRef.current = 'Entregue'
+      } else {
+        const resultado = await entregarPedidoCentral(String(confirmado.id || ''), 'Synergias')
+        setVenda(resultado.pedido)
+        statusPedidoPersistidoRef.current = resultado.pedido.statusPedido || 'Entregue'
+      }
+      alert('Pedido concluído e entregue sem emissão de NF.')
+    } catch (erro) {
+      alert(erro instanceof Error
+        ? `Não foi possível concluir o pedido sem NF: ${erro.message}`
+        : 'Não foi possível concluir o pedido sem NF.')
     }
   }
 
@@ -7020,11 +7105,20 @@ Synergias Distribuidora`,
                 <div className="pedido-documento-titulo pedido-documento-titulo-com-acoes">
                   <div><ReceiptText size={28} color="#0284c7" /><h3>NOTA FISCAL</h3></div>
                   <span className={`nf-status-badge status-${String(venda.statusNotaFiscal || 'Pendente').toLowerCase().replace(/\s+/g, '-')}`}>
-                    {venda.numeroNotaFiscal ? String(venda.statusNotaFiscal || 'Emitida').toUpperCase() : 'NÃO EMITIDA'}
+                    {venda.dispensaEmissaoNfe
+                      ? 'DISPENSADA'
+                      : venda.numeroNotaFiscal
+                        ? String(venda.statusNotaFiscal || 'Emitida').toUpperCase()
+                        : 'NÃO EMITIDA'}
                   </span>
                 </div>
 
-                {!venda.numeroNotaFiscal ? (
+                {venda.dispensaEmissaoNfe ? (
+                  <div className="nota-resumo-principal">
+                    <strong>Pedido sem emissão de nota fiscal</strong>
+                    <span>Dispensa registrada. O pedido não possui pendência de emissão de NF.</span>
+                  </div>
+                ) : !venda.numeroNotaFiscal ? (
                   <>
                     <div className="nota-resumo-principal"><strong>Nota fiscal não emitida</strong><span>A data de emissão será definida somente após a autorização oficial da SEFAZ.</span></div>
                     <div className="nota-data-entrega-inline nota-fiscal-dados-inline">
@@ -7057,6 +7151,7 @@ Synergias Distribuidora`,
                     <div className="documento-acoes-inline documento-acoes-principais">
                       <button type="button" className="documento-btn destaque" onClick={emitirNotaFiscal}><FileCheck size={18}/> Validar emissão</button>
                       <button type="button" className="documento-btn" onClick={editarDadosNotaFiscal}><FilePenLine size={18}/> Editar dados</button>
+                      <button type="button" className="documento-btn" onClick={naoEmitirNotaFiscal}><ReceiptText size={18}/> NÃO EMITIR NF</button>
                     </div>
                   </>
                 ) : (

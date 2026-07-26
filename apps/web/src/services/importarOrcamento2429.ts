@@ -111,7 +111,12 @@ export function garantirOrcamento2429(vendas: any[], produtos: any[], clientes: 
     }
   })
 
-  const existente = vendas.find((v) => String(v?.numeroOrcamento || '').replace(/\D/g, '') === '2429')
+  const existente = vendas.find((v) =>
+    String(v?.numeroOrcamento || '').replace(/\D/g, '') === '2429'
+    && normalizar2429(v?.tipo).includes('ORCAMENTO'))
+  const pedido2508 = vendas.find((v) =>
+    String(v?.numeroPedido || '').replace(/\D/g, '') === '2508'
+    && !normalizar2429(v?.tipo).includes('ORCAMENTO'))
   // O orçamento 2429 é importado apenas uma vez. Depois disso, o registro online
   // é a fonte de verdade e nunca pode ser recriado como Aberto durante o login.
   if (existente) return vendas
@@ -186,7 +191,24 @@ export function garantirOrcamento2429(vendas: any[], produtos: any[], clientes: 
       statusBoleto: 'Pendente',
     }],
     observacoes: '',
-    statusOrcamento: 'Aberto',
+    statusOrcamento: pedido2508 ? 'Gerado' : 'Aberto',
+    pedidoGerado: Boolean(pedido2508),
+    pedidoGeradoId: String(pedido2508?.id || ''),
+    numeroPedido: pedido2508 ? '2508' : '',
+    boletos: Array.isArray(pedido2508?.boletos) ? pedido2508.boletos : [],
+    cobrancas: Array.isArray(pedido2508?.cobrancas) ? pedido2508.cobrancas : [],
+    boletoId: pedido2508?.boletoId,
+    cobrancaId: pedido2508?.cobrancaId,
+    numeroBoleto: pedido2508?.numeroBoleto,
+    nossoNumero: pedido2508?.nossoNumero,
+    seuNumero: pedido2508?.seuNumero,
+    linhaDigitavel: pedido2508?.linhaDigitavel,
+    codigoBarrasBoleto: pedido2508?.codigoBarrasBoleto,
+    linkBoleto: pedido2508?.linkBoleto,
+    pdfBoleto: pedido2508?.pdfBoleto,
+    dataGeracaoBoleto: pedido2508?.dataGeracaoBoleto,
+    statusBoleto: pedido2508?.statusBoleto,
+    totalBoletosGerados: Number(pedido2508?.totalBoletosGerados || 0),
     criadoEm: String(existente?.criadoEm || '2026-07-06T20:23:13.000Z'),
     atualizadoEm: new Date().toISOString(),
   }

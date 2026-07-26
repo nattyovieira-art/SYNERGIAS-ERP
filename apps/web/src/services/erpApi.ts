@@ -1080,6 +1080,38 @@ export async function inicializarArmazenamentoCentral(): Promise<void> {
   // pode regravar a coleção completa durante a abertura do ERP.
   let vendasEstaveis = vendasServidor as any[]
   try {
+    const comOrcamento2429 = garantirOrcamento2429(
+      vendasEstaveis,
+      Array.isArray(produtos.data) ? produtos.data : [],
+      Array.isArray(clientes.data) ? clientes.data : [],
+    )
+    const restaurado = comOrcamento2429.find((venda: any) =>
+      String(venda?.numeroOrcamento || '').replace(/\D/g, '') === '2429'
+      && String(venda?.tipo || '').toUpperCase().includes('OR'))
+    const jaExistia = vendasEstaveis.some((venda: any) =>
+      String(venda?.id || '') === String(restaurado?.id || ''))
+    if (restaurado && !jaExistia) {
+      await atualizarRegistroColecaoCentral('vendas', restaurado)
+      const pedido2508 = vendasEstaveis.find((venda: any) =>
+        String(venda?.numeroPedido || '').replace(/\D/g, '') === '2508')
+      if (pedido2508?.id) {
+        await atualizarRegistroColecaoCentral('vendas', {
+          ...pedido2508,
+          orcamentoOrigemId: restaurado.id,
+          orcamentoOrigemNumero: '2429',
+          numeroOrcamento: '2429',
+          atualizadoEm: new Date().toISOString(),
+        })
+      }
+      const confirmacao2429 = await carregarColecaoCentral<any>('vendas')
+      vendasEstaveis = Array.isArray(confirmacao2429.data)
+        ? confirmacao2429.data
+        : vendasEstaveis
+    }
+  } catch (erro) {
+    console.warn('[Synergias ERP] Restauração do orçamento 2429 não aplicada.', erro)
+  }
+  try {
   vendasEstaveis = await corrigirPedido2508StatusBoleto(vendasEstaveis, atualizarRegistroColecaoCentral, carregarColecaoCentral)
   } catch (erro) {
     console.warn('[Synergias ERP] Ajuste V296 do Pedido 2508 não aplicado.', erro)

@@ -274,6 +274,9 @@ export type Venda = {
   logisticaObservacao?: string
 
   statusNotaFiscal?: StatusNotaFiscal
+  dispensaEmissaoNfe?: boolean
+  dispensaEmissaoNfeEm?: string
+  dispensaEmissaoNfePor?: string
   numeroNotaFiscal?: string
   serieNotaFiscal?: string
   chaveAcessoNotaFiscal?: string

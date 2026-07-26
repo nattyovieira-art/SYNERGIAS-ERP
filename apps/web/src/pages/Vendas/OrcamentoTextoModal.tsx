@@ -229,18 +229,11 @@ export default function OrcamentoTextoModal({ aberto, onClose, onPreparar }: Pro
         </datalist>
       </label>
       <label>Pedido escrito<textarea
+        autoFocus
         rows={9}
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
-        onPaste={(e) => {
-          const colado = e.clipboardData.getData('text/plain')
-          if (!colado) return
-          e.preventDefault()
-          const inicio = e.currentTarget.selectionStart
-          const fim = e.currentTarget.selectionEnd
-          setTexto((atual) => `${atual.slice(0, inicio)}${colado}${atual.slice(fim)}`)
-          setLinhas([])
-        }}
+        onInput={() => setLinhas([])}
         placeholder="Cole com Ctrl+V, digite ou extraia o pedido de uma imagem..."
       /></label>
       <div className="orcamento-texto-fontes">

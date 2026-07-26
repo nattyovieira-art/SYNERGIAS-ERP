@@ -32,6 +32,7 @@ import {
   salvarProdutoStorage,
 } from '../../services/produtosStorage'
 import { inferirFatorEmbalagemNFe, parseNFeCompraXml } from '../../services/nfeCompraXml'
+import { criarItensCompraDocumento, extrairTextoDocumentoCompra } from '../../services/documentoCompra'
 import {
   confirmarEntradaCompraComCustoMedioStorage,
   movimentarEstoqueStorage,
@@ -178,7 +179,12 @@ function CompraForm({ modo }: CompraFormProps) {
     }
 
     const dataEmissao = hoje()
-    const xmlRecebido = (location.state as { xmlCompra?: string } | null)?.xmlCompra
+    const estadoImportacao = location.state as {
+      xmlCompra?: string
+      documentoCompraTexto?: string
+      documentoCompraNome?: string
+    } | null
+    const xmlRecebido = estadoImportacao?.xmlCompra
     if (modo === 'novo' && xmlRecebido) {
       return parseNFeCompraXml(
         xmlRecebido,
@@ -186,6 +192,11 @@ function CompraForm({ modo }: CompraFormProps) {
         gerarNumeroCompraStorage(),
       )
     }
+
+    const itensDocumento = modo === 'novo' && estadoImportacao?.documentoCompraTexto
+      ? criarItensCompraDocumento(estadoImportacao.documentoCompraTexto, listarProdutosStorage())
+      : []
+    const subtotalDocumento = itensDocumento.reduce((soma, item) => soma + numero(item.total), 0)
 
     return {
       id: criarId(),
@@ -197,15 +208,17 @@ function CompraForm({ modo }: CompraFormProps) {
       fornecedorDocumento: '',
       fornecedorEmail: '',
       fornecedorTelefone: '',
-      itens: [],
+      itens: itensDocumento,
       desconto: 0,
       frete: 0,
       outrosCustos: 0,
-      subtotal: 0,
-      totalFinal: 0,
+      subtotal: subtotalDocumento,
+      totalFinal: subtotalDocumento,
       formaPagamento: '',
       condicaoPagamento: '',
-      observacoes: '',
+      observacoes: estadoImportacao?.documentoCompraTexto
+        ? `IMPORTADO PARA CONFERÊNCIA DE ${estadoImportacao.documentoCompraNome || 'DOCUMENTO SEM NF-E'}.\n\n${estadoImportacao.documentoCompraTexto}`
+        : '',
       status: 'Rascunho',
       criadoEm: new Date().toISOString(),
       atualizadoEm: new Date().toISOString(),
@@ -219,7 +232,33 @@ function CompraForm({ modo }: CompraFormProps) {
   useEffect(() => {
     if (!compraEncontrada || dadosFiscaisSincronizados.current) return
     dadosFiscaisSincronizados.current = true
-    sincronizarDadosFiscaisProdutos(compra)
+    const compraNormalizada = {
+      ...compraEncontrada,
+      itens: compraEncontrada.itens.map(normalizarItem),
+      atualizadoEm: new Date().toISOString(),
+    }
+    const conversaoMudou = compraNormalizada.itens.some((itemNovo, indice) => {
+      const itemAntigo = compraEncontrada.itens[indice]
+      return (
+        numero(itemNovo.fatorConversao) !== numero(itemAntigo?.fatorConversao) ||
+        numero(itemNovo.quantidadeConvertida) !== numero(itemAntigo?.quantidadeConvertida) ||
+        Math.abs(
+          numero(itemNovo.custoUnitarioConvertido) -
+          numero(itemAntigo?.custoUnitarioConvertido),
+        ) > 0.000001
+      )
+    })
+
+    sincronizarDadosFiscaisProdutos(compraNormalizada)
+    if (conversaoMudou) {
+      void (async () => {
+        await salvarCompraStorageConfirmado(compraNormalizada)
+        atualizarCustosProdutosAposCorrecao(compraEncontrada, compraNormalizada)
+        await aguardarSincronizacaoCentral('produtos')
+        setCompra(compraNormalizada)
+      })()
+      return
+    }
     void aguardarSincronizacaoCentral('produtos')
   }, [compraEncontrada?.id])
 
@@ -258,7 +297,7 @@ function CompraForm({ modo }: CompraFormProps) {
   function importarXmlVisual() {
     const input = document.createElement('input')
     input.type = 'file'
-    input.accept = '.xml,text/xml,application/xml'
+    input.accept = '.xml,text/xml,application/xml,.pdf,application/pdf,image/*'
 
     input.onchange = async () => {
       const arquivo = input.files?.[0]
@@ -266,6 +305,25 @@ function CompraForm({ modo }: CompraFormProps) {
       if (!arquivo) return
 
       try {
+        const ehXml = arquivo.type.includes('xml') || arquivo.name.toLowerCase().endsWith('.xml')
+        if (!ehXml) {
+          const textoDocumento = await extrairTextoDocumentoCompra(arquivo)
+          const itens = criarItensCompraDocumento(textoDocumento, listarProdutosStorage())
+          const subtotalDocumento = itens.reduce((soma, item) => soma + numero(item.total), 0)
+          setCompra((atual) => ({
+            ...atual,
+            itens,
+            subtotal: subtotalDocumento,
+            totalFinal: subtotalDocumento,
+            origem: 'MANUAL',
+            numeroNFe: undefined,
+            chaveAcessoNFe: undefined,
+            observacoes: `IMPORTADO PARA CONFERÊNCIA DE ${arquivo.name}.\n\n${textoDocumento}`,
+            atualizadoEm: new Date().toISOString(),
+          }))
+          alert(`${itens.length} item(ns) identificado(s). Confira fornecedor, quantidades e valores antes de salvar.`)
+          return
+        }
         const xml = await arquivo.text()
         const importada = parseNFeCompraXml(xml, listarProdutosStorage(), compra.numeroCompra)
         const duplicada = listarComprasStorage().find(
@@ -529,6 +587,11 @@ function CompraForm({ modo }: CompraFormProps) {
       (soma, item) => soma + Math.max(0, numero(item.totalFiscal ?? item.total)),
       0,
     )
+    const quantidadeTotalRateio = itensIncluidos.reduce(
+      (soma, item) =>
+        soma + Math.max(0, numero(item.quantidadeConvertida || item.quantidade)),
+      0,
+    )
     const ultimoItemId = itensIncluidos.at(-1)?.id
     let freteRateado = 0
     let outrosRateados = 0
@@ -545,9 +608,31 @@ function CompraForm({ modo }: CompraFormProps) {
       return centavos / 100
     }
 
+    const ratearFretePorQuantidade = (
+      valor: number,
+      item: ItemCompra,
+      acumulado: number,
+    ) => {
+      const total = Math.max(0, Math.round(numero(valor) * 100))
+      if (!total || !itensIncluidos.length) return 0
+      if (item.id === ultimoItemId) return (total - acumulado) / 100
+      const quantidadeItem = Math.max(
+        0,
+        numero(item.quantidadeConvertida || item.quantidade),
+      )
+      const centavos = quantidadeTotalRateio > 0
+        ? Math.floor((total * quantidadeItem) / quantidadeTotalRateio)
+        : Math.floor(total / itensIncluidos.length)
+      return centavos / 100
+    }
+
     const itensComRateio = itensNormalizados.map((item) => {
       if (item.incluidoNoSistema === false) return item
-      const freteItem = ratear(compra.frete, item, Math.round(freteRateado * 100))
+      const freteItem = ratearFretePorQuantidade(
+        compra.frete,
+        item,
+        Math.round(freteRateado * 100),
+      )
       const outrosItem = ratear(compra.outrosCustos, item, Math.round(outrosRateados * 100))
       const descontoItem = ratear(compra.desconto, item, Math.round(descontoRateado * 100))
       freteRateado += freteItem
@@ -1057,12 +1142,12 @@ function CompraForm({ modo }: CompraFormProps) {
             <button
               type="button"
               className="compras-action-btn compras-action-import erp-action-descriptive erp-action-import-xml"
-              title="Importar XML"
-              aria-label="Importar XML"
+              title="Importar XML, PDF ou imagem"
+              aria-label="Importar XML, PDF ou imagem"
               onClick={importarXmlVisual}
             >
               <FileUp size={22} strokeWidth={2.4} />
-              <span>Importar XML</span>
+              <span>Importar NF-e</span>
             </button>
 
             <button
