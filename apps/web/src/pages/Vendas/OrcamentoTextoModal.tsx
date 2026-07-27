@@ -52,14 +52,26 @@ function sugestoes(texto: string, produtos: any[]) {
 }
 
 function extrairSomenteItensDoPdf(texto: string) {
-  const linear = texto.replace(/\s+/g, ' ').trim()
+  const inicioTabela = texto.search(/\bITENS\s+DO\s+OR[CÇ]AMENTO\b/i)
+  const textoTabela = inicioTabela >= 0 ? texto.slice(inicioTabela) : texto
+  const fimTabela = textoTabela.search(
+    /\b(?:QUANTIDADE\s+DE\s+ITENS|VALOR\s+TOTAL\s+DOS\s+ITENS|TOTAL\s+DOS\s+ITENS)\b/i,
+  )
+  const linear = (fimTabela >= 0 ? textoTabela.slice(0, fimTabela) : textoTabela)
+    .replace(/\s+/g, ' ')
+    .trim()
   const itens: string[] = []
-  const padrao = /\b\d{8,14}\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s+R\$\s*[\d.,]+\s+R\$\s*[\d.,]+/gi
+  /*
+   * Cada linha válida começa pelo código interno/EAN e termina pelos três
+   * valores monetários. Assim, códigos não viram quantidade e descrições
+   * quebradas em várias linhas permanecem em um único produto.
+   */
+  const padrao = /\b(\d{8,14})\s+(.+?)\s+(?:UNIDADE|UN|PC|PCT|CX|FD)\s+(\d+(?:[.,]\d+)?)\s+R\$\s*[\d.,]+\s+R\$\s*[\d.,]+\s+R\$\s*[\d.,]+(?=\s+\d{8,14}\b|$)/gi
   let resultado: RegExpExecArray | null
 
   while ((resultado = padrao.exec(linear)) !== null) {
-    const descricaoCompleta = resultado[1].replace(/\s+/g, ' ').trim()
-    const quantidade = resultado[2]
+    const descricaoCompleta = resultado[2].replace(/\s+/g, ' ').trim()
+    const quantidade = resultado[3]
     itens.push(`${quantidade} ${descricaoCompleta}`)
   }
 
