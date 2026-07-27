@@ -242,7 +242,44 @@ function salvarComSeguranca(produtos: Produto[]) {
 }
 
 export function listarProdutosStorage(): Produto[] {
-  const produtos = obterColecaoMemoria<Produto>('produtos')
+  let produtos = obterColecaoMemoria<Produto>('produtos')
+
+  /*
+   * Conversão única da bobina comprada em caixa com 8 unidades.
+   * Impede que custo/preço da caixa seja usado como valor de uma unidade.
+   */
+  const indiceBobina8 = produtos.findIndex((item) =>
+    textoSeguro((item as any).codigoBarras || (item as any).codigo).replace(/\D/g, '') === '7901210137',
+  )
+  const bobina8: any = indiceBobina8 >= 0 ? produtos[indiceBobina8] : undefined
+  if (
+    bobina8 &&
+    !bobina8.conversaoCaixa8Aplicada &&
+    numeroSeguro(bobina8.vendaVarejo || bobina8.valorVenda || bobina8.precoVenda) >= 100
+  ) {
+    const porUnidade = (valor: unknown) => Number((numeroSeguro(valor) / 8).toFixed(4))
+    const custoUnitario = porUnidade(bobina8.custoMedioAtual || bobina8.custo || bobina8.ultimoCustoCompra)
+    const vendaVarejo = Math.max(16.8, calcularPrecoMinimo(custoUnitario))
+    const corrigida = {
+      ...bobina8,
+      quantidadePorEmbalagemCompra: 8,
+      custo: porUnidade(bobina8.custo),
+      custoMedioAtual: porUnidade(bobina8.custoMedioAtual || bobina8.custo),
+      ultimoCustoCompra: porUnidade(bobina8.ultimoCustoCompra || bobina8.custo),
+      valorEstoqueAtual: porUnidade(bobina8.valorEstoqueAtual),
+      vendaVarejo,
+      valorVenda: vendaVarejo,
+      precoVenda: vendaVarejo,
+      vendaAtacado: Math.max(porUnidade(bobina8.vendaAtacado), calcularPrecoMinimo(custoUnitario)),
+      margemLucroVarejo: calcularMargemLucro(custoUnitario, vendaVarejo),
+      conversaoCaixa8Aplicada: true,
+      atualizadoEm: new Date().toISOString(),
+    } as Produto
+    produtos = produtos.map((item, indice) => indice === indiceBobina8 ? corrigida : item)
+    definirColecaoMemoria('produtos', produtos)
+    sincronizarColecaoCentral('produtos', produtos)
+  }
+
   const codigo67 = '7901211467'
   const codigo68 = '7901211468'
   const existe67 = produtos.some((item) => String((item as any).codigoBarras || (item as any).codigo || '') === codigo67)

@@ -21,7 +21,13 @@ const sinonimos: Record<string, string> = {
 
 function extrair(texto: string) {
   return texto.split(/\r?\n/).map((linha) => linha
-    .replace(/^\[[^\]]+\]\s*[^:]+:\s*/, '').trim())
+    .replace(/^\[[^\]]+\]\s*[^:]+:\s*/, '')
+    /* Remove numeração de lista antes de interpretar a quantidade. */
+    .replace(/^\s*\d+(?:\.\d+)+\s*[*•-]\s*/, '')
+    .replace(/^\s*\d+\s*[.)-]\s*[*•-]\s*/, '')
+    .replace(/^\s*\d+\s*[.)-]\s*(?=\d+(?:[.,]\d+)?\s)/, '')
+    .replace(/^\s*[*•-]\s*/, '')
+    .trim())
     .filter(Boolean)
     .map((linha, indice) => {
       const achado = linha.match(/^(\d+(?:[.,]\d+)?)\s*(?:unid(?:ades?)?|undi|und|pcte?s?|pct|fardos?|cx|caixas?)?\s*(?:de\s+)?(.+)$/i)
@@ -243,7 +249,12 @@ export default function OrcamentoTextoModal({ aberto, onClose, onPreparar }: Pro
       </div>
       {analisado && <div className="orcamento-texto-itens">{linhas.map((linha) => {
         const candidatos = sugestoes(linha.produtoBusca || linha.texto, produtos)
-        return <div key={linha.id}><input type="number" min="0.01" step="0.01" value={linha.quantidade} onChange={(e) => setLinhas((atuais) => atuais.map((item) => item.id === linha.id ? { ...item, quantidade: Number(e.target.value) } : item))} /><span>{linha.texto}</span><div className="orcamento-texto-produto-campo"><input
+        return <div key={linha.id}><input type="number" min="0.01" step="1" value={linha.quantidade} onChange={(e) => {
+          const quantidade = e.currentTarget.valueAsNumber
+          setLinhas((atuais) => atuais.map((item) => item.id === linha.id
+            ? { ...item, quantidade: Number.isFinite(quantidade) ? quantidade : item.quantidade }
+            : item))
+        }} /><span>{linha.texto}</span><div className="orcamento-texto-produto-campo"><input
           list={`produtos-texto-${linha.id}`}
           value={linha.produtoBusca}
           placeholder="Digite para localizar o produto"

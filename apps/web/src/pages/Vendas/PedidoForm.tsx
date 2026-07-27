@@ -1262,8 +1262,30 @@ function PedidoForm() {
   }, [id, vendaEncontrada])
   const clientesIniciais = listarClientesStorage()
   const orcamentoOrigemEncontrado = !id ? buscarOrcamentoOrigemUrl() : undefined
+  const pedidoExistenteDoOrcamento = orcamentoOrigemEncontrado
+    ? (listarVendasCentral() as unknown as Array<Record<string, any>>).find((registro) => {
+        const tipo = String(registro?.tipo || '').toLowerCase()
+        if (!tipo.includes('pedido') && !registro?.numeroPedido) return false
+        return (
+          (
+            Boolean(orcamentoOrigemEncontrado.pedidoGeradoId) &&
+            String(registro?.id || '') === String(orcamentoOrigemEncontrado.pedidoGeradoId)
+          ) ||
+          (
+            Boolean(orcamentoOrigemEncontrado.id) &&
+            String(registro?.orcamentoOrigemId || '') === String(orcamentoOrigemEncontrado.id)
+          ) ||
+          (
+            Boolean(orcamentoOrigemEncontrado.numeroOrcamento) &&
+            String(registro?.orcamentoOrigemNumero || registro?.numeroOrcamento || '') ===
+              String(orcamentoOrigemEncontrado.numeroOrcamento)
+          )
+        )
+      })
+    : undefined
   const vendaInicial =
     vendaEncontrada ||
+    pedidoExistenteDoOrcamento ||
     (orcamentoOrigemEncontrado
       ? criarPedidoAPartirDoOrcamento(orcamentoOrigemEncontrado, clientesIniciais)
       : undefined)
@@ -1386,7 +1408,7 @@ function PedidoForm() {
 
     numeroOrcamento:
       numeroOrcamentoOrigemCentral || vendaInicial?.numeroOrcamento || '',
-    numeroPedido: vendaEncontrada?.numeroPedido || gerarNumeroInicial(),
+    numeroPedido: vendaInicial?.numeroPedido || gerarNumeroInicial(),
 
     orcamentoOrigemId: vendaInicial?.orcamentoOrigemId || '',
     orcamentoOrigemNumero: codigoOrcamentoOrigem,
@@ -1878,7 +1900,7 @@ function PedidoForm() {
     return String(encontrado?.[0] || '').trim().toLowerCase()
   }
 
-  function emailsCopiaNormalizados() {
+  function emailsCopiaNormalizados(): string[] {
     const principal = extrairPrimeiroEmail(
       venda.clienteEmailNotaFiscal || venda.clienteEmail || '',
     )
@@ -1887,8 +1909,8 @@ function PedidoForm() {
       new Set(
         emailsCopiaTexto
           .split(/[;,\n]+/)
-          .map(extrairPrimeiroEmail)
-          .filter((email) => email && email !== principal),
+          .map((valor: string): string => extrairPrimeiroEmail(valor))
+          .filter((email: string): email is string => Boolean(email) && email !== principal),
       ),
     )
   }

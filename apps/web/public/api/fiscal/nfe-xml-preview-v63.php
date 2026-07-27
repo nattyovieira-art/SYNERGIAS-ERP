@@ -215,6 +215,20 @@ try {
             'valor' => $valorParcela,
         ];
     }
+    /*
+     * A SEFAZ exige que a soma das duplicatas seja idêntica ao vLiq.
+     * Diferenças de centavos causadas pelo arredondamento dos itens ficam
+     * sempre na última parcela.
+     */
+    if ($duplicatasXml) {
+        $ultimaDuplicata = count($duplicatasXml) - 1;
+        $totalDuplicatas = round(array_sum(array_column($duplicatasXml, 'valor')), 2);
+        $diferencaDuplicatas = round($vNF - $totalDuplicatas, 2);
+        $duplicatasXml[$ultimaDuplicata]['valor'] = round(
+            $duplicatasXml[$ultimaDuplicata]['valor'] + $diferencaDuplicatas,
+            2
+        );
+    }
     if ($duplicatasXml) {
         $cobr=$doc->createElement('cobr'); $inf->appendChild($cobr);
         $fat=$doc->createElement('fat'); $cobr->appendChild($fat);

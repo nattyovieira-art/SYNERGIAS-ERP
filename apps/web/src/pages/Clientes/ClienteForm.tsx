@@ -33,6 +33,7 @@ function ClienteForm({ modo }: ClienteFormProps) {
 
   const [abaAtiva, setAbaAtiva] = useState('geral')
   const [buscandoCnpj, setBuscandoCnpj] = useState(false)
+  const [buscandoCepFiscal, setBuscandoCepFiscal] = useState(false)
   const [buscandoCepEntrega, setBuscandoCepEntrega] = useState(false)
   const [enderecoEntregaSelecionado, setEnderecoEntregaSelecionado] = useState(0)
   const [locaisEntregaAbertos, setLocaisEntregaAbertos] = useState(false)
@@ -339,6 +340,39 @@ function ClienteForm({ modo }: ClienteFormProps) {
     alert(
       'A consulta automática de CPF na Receita não é pública como a de CNPJ. Podemos deixar este botão preparado para uma API paga/autorizada depois.'
     )
+  }
+
+  async function buscarCepFiscal() {
+    const cepLimpo = String(c.cep || '').replace(/\D/g, '')
+
+    if (cepLimpo.length !== 8) {
+      alert('Digite um CEP válido com 8 números.')
+      return
+    }
+
+    try {
+      setBuscandoCepFiscal(true)
+      const resposta = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const data = await resposta.json()
+
+      if (data.erro) throw new Error('CEP não encontrado')
+
+      setCliente((atual) => ({
+        ...(atual as any),
+        cep: cepLimpo,
+        endereco: data.logradouro || (atual as any).endereco,
+        bairro: data.bairro || (atual as any).bairro,
+        cidade: data.localidade || (atual as any).cidade,
+        estado: data.uf || (atual as any).estado,
+        codigoIbgeMunicipio: String(data.ibge || '').replace(/\D/g, '').slice(0, 7)
+          || resolverCodigoIbgeCliente(data.localidade, data.uf, (atual as any).codigoIbgeMunicipio),
+        pais: 'Brasil',
+      }) as Cliente)
+    } catch {
+      alert('Não foi possível buscar o CEP.')
+    } finally {
+      setBuscandoCepFiscal(false)
+    }
   }
 
   async function buscarCepEntrega() {
@@ -819,13 +853,18 @@ function ClienteForm({ modo }: ClienteFormProps) {
               <div className="form-grid endereco-principal-grid">
               <h3 className="span-2">Endereço Fiscal</h3>
 
-              <label>
-                CEP
-                <input
-                  value={c.cep || ''}
-                  onChange={(e) => atualizarCliente('cep', e.target.value)}
-                />
-              </label>
+              <div className="form-field">
+                <span>CEP</span>
+                <div className="select-plus">
+                  <input
+                    value={c.cep || ''}
+                    onChange={(e) => atualizarCliente('cep', e.target.value)}
+                  />
+                  <button type="button" onClick={buscarCepFiscal}>
+                    {buscandoCepFiscal ? '...' : <Search size={18} />}
+                  </button>
+                </div>
+              </div>
 
               <label>
                 Estado

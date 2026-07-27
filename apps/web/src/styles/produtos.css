@@ -535,6 +535,24 @@
   .produtos-listagem-table{min-width:980px!important}
 }
 
+/* Regra permanente: a descrição não amplia a tabela e nomes longos usam reticências. */
+.produtos-listagem-table th,
+.produtos-listagem-table td{box-sizing:border-box!important}
+.produtos-listagem-table .produtos-col-descricao{width:42%!important;max-width:560px!important}
+.produtos-listagem-table .produtos-col-categoria{width:16%!important}
+.produtos-listagem-table .produtos-col-estoque{width:8%!important}
+.produtos-listagem-table .produtos-col-valor{width:12%!important}
+.produtos-listagem-table .produtos-col-status{width:9%!important}
+.produtos-listagem-table .produtos-col-acoes{width:13%!important;min-width:112px!important}
+.produtos-listagem-table .produto-descricao-linha{
+  display:block!important;
+  width:100%!important;
+  max-width:560px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
 /* V95 - padrão consolidado */
 .produtos-action-refresh {
   background: #eab308 !important;

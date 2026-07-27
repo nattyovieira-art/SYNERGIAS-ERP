@@ -11,7 +11,47 @@ const CHAVE_ULT_NSU_DFE = 'synergias_erp_compras_dfe_ult_nsu'
 
 export function listarComprasStorage(): Compra[] {
   const centrais = obterColecaoMemoria<Compra>('compras')
-  if (centrais.length > 0) return centrais
+  if (centrais.length > 0) {
+    const indice2431 = centrais.findIndex((compra: any) =>
+      somenteDigitos(compra.numeroNFe) === '2431' ||
+      somenteDigitos(compra.numeroCompra) === '001454',
+    )
+    const compra2431: any = indice2431 >= 0 ? centrais[indice2431] : undefined
+    if (compra2431 && !compra2431.conversaoEmbalagensCorrigida) {
+      const itens = (compra2431.itens || []).map((item: any) => {
+        const identificacao = `${item.produtoCodigo || ''} ${item.codigoBarras || ''} ${item.descricao || ''}`
+        const bobinaCaixa8 =
+          /7901210137|(?:BOBINA\s+200\s+SACOS\s+30CMX40CM)/i.test(identificacao)
+        const fator = bobinaCaixa8 ? 8 : Math.max(1, Number(item.fatorConversao || 1))
+        const quantidadeFiscal = Number(item.quantidadeFiscal ?? item.quantidade ?? 0)
+        const quantidadeConvertida = quantidadeFiscal * fator
+        const custoFinalItem = Number(
+          item.custoFinalItem ?? item.totalFiscal ?? item.total ?? 0,
+        )
+        return {
+          ...item,
+          fatorConversao: fator,
+          quantidadeConvertida,
+          custoUnitarioConvertido: quantidadeConvertida > 0
+            ? custoFinalItem / quantidadeConvertida
+            : 0,
+        }
+      })
+      const corrigidas = centrais.map((compra, indice) => indice === indice2431
+        ? {
+            ...compra2431,
+            itens,
+            conversaoEmbalagensCorrigida: true,
+            atualizadoEm: new Date().toISOString(),
+          } as Compra
+        : compra)
+      definirColecaoMemoria('compras', corrigidas)
+      localStorage.setItem(CHAVE_COMPRAS, JSON.stringify(corrigidas))
+      sincronizarColecaoCentral('compras', corrigidas)
+      return corrigidas
+    }
+    return centrais
+  }
   try {
     const dados = localStorage.getItem(CHAVE_COMPRAS)
 
