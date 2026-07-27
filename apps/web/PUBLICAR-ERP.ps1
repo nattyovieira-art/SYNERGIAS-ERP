@@ -180,6 +180,10 @@ try {
     $apiDanfeLocal = Join-Path $dist 'api\fiscal\nfe-danfe-pdf.php'
     $apiDanfeStageDir = Join-Path $stage 'api\fiscal'
     $apiDanfeStage = Join-Path $apiDanfeStageDir 'nfe-danfe-pdf.php'
+    $apiDanfeHtmlLocal = Join-Path $dist 'api\fiscal\nfe-danfe.php'
+    $apiDanfeHtmlStage = Join-Path $apiDanfeStageDir 'nfe-danfe.php'
+    $apiXmlPreviewLocal = Join-Path $dist 'api\fiscal\nfe-xml-preview-v63.php'
+    $apiXmlPreviewStage = Join-Path $apiDanfeStageDir 'nfe-xml-preview-v63.php'
     if (-not (Test-Path -LiteralPath $apiNumeracaoLocal -PathType Leaf)) {
         throw 'A API api\numeracao-fiscal.php não foi encontrada no dist.'
     }
@@ -196,7 +200,7 @@ try {
         throw 'A API api\storage.php não foi encontrada no dist.'
     }
     Copy-Item -LiteralPath $apiStorageLocal -Destination $apiStorageStage -Force
-    foreach ($apiObrigatoria in @($apiBootstrapLocal, $apiEmailLocal, $apiDanfeLocal)) {
+    foreach ($apiObrigatoria in @($apiBootstrapLocal, $apiEmailLocal, $apiDanfeLocal, $apiDanfeHtmlLocal, $apiXmlPreviewLocal)) {
         if (-not (Test-Path -LiteralPath $apiObrigatoria -PathType Leaf)) {
             throw "API de segurança não encontrada no build: $apiObrigatoria"
         }
@@ -205,6 +209,8 @@ try {
     Copy-Item -LiteralPath $apiBootstrapLocal -Destination $apiBootstrapStage -Force
     Copy-Item -LiteralPath $apiEmailLocal -Destination $apiEmailStage -Force
     Copy-Item -LiteralPath $apiDanfeLocal -Destination $apiDanfeStage -Force
+    Copy-Item -LiteralPath $apiDanfeHtmlLocal -Destination $apiDanfeHtmlStage -Force
+    Copy-Item -LiteralPath $apiXmlPreviewLocal -Destination $apiXmlPreviewStage -Force
 
     $lines = @(
         'option batch abort',
@@ -221,6 +227,8 @@ try {
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/bootstrap.php"' -f $apiBootstrapStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/enviar-nota-boleto-cliente.php"' -f $apiEmailStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/fiscal/nfe-danfe-pdf.php"' -f $apiDanfeStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/fiscal/nfe-danfe.php"' -f $apiDanfeHtmlStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/fiscal/nfe-xml-preview-v63.php"' -f $apiXmlPreviewStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/index.html"' -f $indexStage, $remoteBase),
         'exit'
     )
