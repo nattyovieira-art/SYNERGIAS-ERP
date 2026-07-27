@@ -179,7 +179,9 @@ try {
     foreach (is_array($vendasItensDanfe) ? $vendasItensDanfe : [] as $vendaItensDanfe) {
         if (!is_array($vendaItensDanfe)) continue;
         $chaveVendaDanfe = preg_replace('/\D+/', '', (string)($vendaItensDanfe['chaveAcessoNotaFiscal'] ?? $vendaItensDanfe['chaveAcesso'] ?? '')) ?: '';
-        if ($chaveVendaDanfe !== $chave) continue;
+        $numeroVendaDanfe = preg_replace('/\D+/', '', (string)($vendaItensDanfe['numeroNotaFiscal'] ?? '')) ?: '';
+        $numeroXmlDanfe = preg_replace('/\D+/', '', (string)$nNF) ?: '';
+        if ($chaveVendaDanfe !== $chave && $numeroVendaDanfe !== $numeroXmlDanfe) continue;
         foreach (is_array($vendaItensDanfe['itens'] ?? null) ? $vendaItensDanfe['itens'] : [] as $indiceItemDanfe => $itemVendaDanfe) {
             if (!is_array($itemVendaDanfe)) continue;
             $barrasItemDanfe = trim((string)($itemVendaDanfe['codigoBarras'] ?? $itemVendaDanfe['ean'] ?? $itemVendaDanfe['gtin'] ?? ''));
