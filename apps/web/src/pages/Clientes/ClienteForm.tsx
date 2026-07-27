@@ -15,6 +15,7 @@ import {
 } from '../../services/clientesStorage'
 
 import { resolverCodigoIbgeMunicipio } from '../../services/ibgeMunicipios'
+import { consultarCnpj } from '../../services/cnpjService'
 
 import '../../styles/cliente-form.css'
 import '../../styles/clientes.css'
@@ -290,44 +291,45 @@ function ClienteForm({ modo }: ClienteFormProps) {
     const cnpjLimpo = String(c.cnpj || '').replace(/\D/g, '')
 
     if (cnpjLimpo.length !== 14) {
-      alert('Digite um CNPJ válido com 14 números.')
+      alert(`O CNPJ está incompleto: foram informados ${cnpjLimpo.length} de 14 números.`)
       return
     }
 
     try {
       setBuscandoCnpj(true)
-
-      const resposta = await fetch(
-        `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`
-      )
-
-      if (!resposta.ok) {
-        throw new Error('CNPJ não encontrado')
-      }
-
-      const data = await resposta.json()
+      const data = await consultarCnpj(cnpjLimpo)
 
       setCliente((atual) => ({
         ...(atual as any),
         tipoPessoa: 'Jurídica',
-        cnpj: data.cnpj || c.cnpj,
-        razaoSocial: data.razao_social || c.razaoSocial,
-        nomeFantasia: data.nome_fantasia || c.nomeFantasia,
-        cep: data.cep || c.cep,
-        endereco: data.logradouro || c.endereco,
-        numero: data.numero || c.numero,
-        complemento: data.complemento || c.complemento,
-        bairro: data.bairro || c.bairro,
-        cidade: data.municipio || c.cidade,
-        estado: data.uf || c.estado,
-        codigoIbgeMunicipio: resolverCodigoIbgeCliente(data.municipio || c.cidade, data.uf || c.estado, (atual as any).codigoIbgeMunicipio),
+        cnpj: data.cnpj || cnpjLimpo,
+        cpfCnpj: data.cnpj || cnpjLimpo,
+        cnpjCpf: data.cnpj || cnpjLimpo,
+        documento: data.cnpj || cnpjLimpo,
+        razaoSocial: data.razaoSocial || (atual as any).razaoSocial,
+        nomeFantasia: data.nomeFantasia || (atual as any).nomeFantasia,
+        cep: data.cep || (atual as any).cep,
+        endereco: data.logradouro || (atual as any).endereco,
+        numero: data.numero || (atual as any).numero,
+        complemento: data.complemento || (atual as any).complemento,
+        bairro: data.bairro || (atual as any).bairro,
+        cidade: data.municipio || (atual as any).cidade,
+        estado: data.uf || (atual as any).estado,
+        codigoIbgeMunicipio: data.codigoIbgeMunicipio || resolverCodigoIbgeCliente(
+          data.municipio || (atual as any).cidade,
+          data.uf || (atual as any).estado,
+          (atual as any).codigoIbgeMunicipio,
+        ),
+        telefone: data.telefone || (atual as any).telefone,
+        email: data.email || (atual as any).email,
         pais: 'Brasil',
-        situacao:
-          data.descricao_situacao_cadastral === 'ATIVA' ? 'Ativo' : 'Inativo',
-        caracteristicas: data.cnae_fiscal_descricao || c.caracteristicas,
+        situacao: data.situacaoCadastral.toUpperCase() === 'ATIVA'
+          ? 'Ativo'
+          : (data.situacaoCadastral ? 'Inativo' : (atual as any).situacao),
+        caracteristicas: data.cnaePrincipalDescricao || (atual as any).caracteristicas,
       }) as Cliente)
-    } catch {
-      alert('Não foi possível buscar o CNPJ.')
+    } catch (erro) {
+      alert(erro instanceof Error ? erro.message : 'Não foi possível buscar o CNPJ.')
     } finally {
       setBuscandoCnpj(false)
     }

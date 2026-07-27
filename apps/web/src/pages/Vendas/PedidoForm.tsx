@@ -3778,6 +3778,30 @@ function PedidoForm() {
       return atualizada
     } catch (error) {
       const mensagem = error instanceof Error ? error.message : 'Falha ao emitir cobrança no Banco Inter.'
+      const codigoExistente = mensagem.match(
+        /c[oó]digo de solicita[cç][aã]o:\s*([0-9a-f-]{36})/i,
+      )?.[1]
+      if (codigoExistente) {
+        try {
+          const cobrancaExistente = await consultarCobrancaInter(codigoExistente)
+          const recuperada = aplicarRetornoInterNaParcela(
+            {
+              ...emitindo,
+              idCobrancaBanco: codigoExistente,
+              idCobrancaApi: codigoExistente,
+            },
+            { ...cobrancaExistente, codigoSolicitacao: codigoExistente },
+          )
+          return {
+            ...recuperada,
+            erroBoleto: '',
+            motivoErroBoleto: '',
+          }
+        } catch {
+          // Se a consulta do identificador informado pelo banco falhar,
+          // preserva o erro original para diagnóstico.
+        }
+      }
       return {
         ...emitindo,
         statusBoleto: 'Erro',
@@ -3833,16 +3857,25 @@ function PedidoForm() {
 
   async function atualizarCobrancas() {
     let parcelas = [...(venda.parcelas || [])]
+    const codigoRegistradoOuRetornadoNoErro = (parcela: ParcelaVenda) =>
+      String(
+        parcela.idCobrancaApi
+        || parcela.idCobrancaBanco
+        || String(parcela.erroBoleto || parcela.motivoErroBoleto || '').match(
+          /c[oó]digo de solicita[cç][aã]o:\s*([0-9a-f-]{36})/i,
+        )?.[1]
+        || '',
+      )
     const consultaveis = parcelas.filter((parcela) =>
       identificarBancoBoletoDaParcela(parcela, venda) === 'Inter' &&
-      Boolean(parcela.idCobrancaApi || parcela.idCobrancaBanco),
+      Boolean(codigoRegistradoOuRetornadoNoErro(parcela)),
     )
 
     if (consultaveis.length === 0) return alert('Nenhuma cobrança Inter emitida para consultar neste pedido.')
 
     for (let indice = 0; indice < parcelas.length; indice += 1) {
       const parcela = parcelas[indice]
-      const codigo = String(parcela.idCobrancaApi || parcela.idCobrancaBanco || '')
+      const codigo = codigoRegistradoOuRetornadoNoErro(parcela)
       if (!codigo || identificarBancoBoletoDaParcela(parcela, venda) !== 'Inter') continue
 
       try {
@@ -3851,7 +3884,11 @@ function PedidoForm() {
         if (!pdfBase64) {
           try { pdfBase64 = await obterPdfCobrancaInter(codigo) } catch { pdfBase64 = '' }
         }
-        const atualizada = aplicarRetornoInterNaParcela(parcela, cobranca, pdfBase64)
+        const atualizada = aplicarRetornoInterNaParcela({
+          ...parcela,
+          idCobrancaBanco: codigo,
+          idCobrancaApi: codigo,
+        }, { ...cobranca, codigoSolicitacao: codigo }, pdfBase64)
         atualizarContaReceberComBoleto(atualizada, cobranca)
         parcelas = parcelas.map((item, posicao) => posicao === indice ? atualizada : item)
       } catch (error) {
@@ -4906,6 +4943,52 @@ Endereço: ${EMPRESA_ENDERECO}`
     window.open(xml, '_blank', 'noopener,noreferrer')
   }
 
+  function recuperarIdentificacaoFiscalParaCancelamento() {
+    const vendaFiscal = venda as Venda & Record<string, any>
+    const historico = Array.isArray(venda.historicoNotaFiscal)
+      ? [...venda.historicoNotaFiscal].reverse()
+      : []
+    const evento = historico.find((item: any) =>
+      String(item?.numero || '') === String(venda.numeroNotaFiscal || '')
+      && ['AUTORIZADA', 'EMITIDA'].includes(String(item?.status || '').toUpperCase())
+    ) || historico.find((item: any) => item?.chaveAcesso || item?.protocolo)
+
+    let chave = String(
+      venda.chaveAcessoNotaFiscal
+      || vendaFiscal.chaveAcesso
+      || vendaFiscal.chaveNFe
+      || vendaFiscal.chaveNfe
+      || evento?.chaveAcesso
+      || '',
+    ).replace(/\D/g, '')
+    let protocolo = String(
+      venda.protocoloNotaFiscal
+      || vendaFiscal.protocoloAutorizacao
+      || vendaFiscal.protocoloNFe
+      || vendaFiscal.protocoloNfe
+      || evento?.protocolo
+      || '',
+    ).trim()
+
+    let xml = String(venda.xmlNotaFiscal || evento?.xml || '').trim()
+    if (xml && !xml.includes('<')) {
+      try {
+        xml = decodeURIComponent(escape(atob(xml.replace(/^data:[^,]+,/, '').replace(/\s+/g, ''))))
+      } catch {
+        xml = ''
+      }
+    }
+    if (xml.includes('<')) {
+      const chaveXml = xml.match(/<chNFe>(\d{44})<\/chNFe>/i)?.[1]
+        || xml.match(/Id=["']NFe(\d{44})["']/i)?.[1]
+      const protocoloXml = xml.match(/<nProt>([^<]+)<\/nProt>/i)?.[1]
+      if (chave.length !== 44 && chaveXml) chave = chaveXml
+      if (!protocolo && protocoloXml) protocolo = protocoloXml.trim()
+    }
+
+    return { chave, protocolo }
+  }
+
   async function cancelarNotaFiscal() {
     if (venda.statusNotaFiscal === 'Rejeitada' || venda.statusNotaFiscal === 'Erro na emissão') {
       if (!window.confirm('Descartar esta tentativa rejeitada e liberar o Pedido para uma nova emissão? O histórico técnico será preservado.')) return
@@ -4918,11 +5001,20 @@ Endereço: ${EMPRESA_ENDERECO}`
       return
     }
 
-    const chave = String(venda.chaveAcessoNotaFiscal || '').replace(/\D/g, '')
-    const protocolo = String(venda.protocoloNotaFiscal || '').trim()
+    const { chave, protocolo } = recuperarIdentificacaoFiscalParaCancelamento()
     if (chave.length !== 44 || !protocolo) {
-      alert('A NF-e não possui chave de acesso ou protocolo de autorização válidos para o cancelamento.')
+      alert('Não foi possível recuperar a chave e o protocolo desta NF-e. Use “Consultar” ou importe novamente o XML autorizado antes de cancelar.')
       return
+    }
+
+    if (chave !== String(venda.chaveAcessoNotaFiscal || '').replace(/\D/g, '') || protocolo !== String(venda.protocoloNotaFiscal || '').trim()) {
+      const recuperada: Venda = {
+        ...venda,
+        chaveAcessoNotaFiscal: chave,
+        protocoloNotaFiscal: protocolo,
+      }
+      salvarVendaStorage(recuperada)
+      setVenda(recuperada)
     }
 
     const justificativa = window.prompt(
