@@ -15,7 +15,7 @@ import {
 } from '../../services/clientesStorage'
 
 import { resolverCodigoIbgeMunicipio } from '../../services/ibgeMunicipios'
-import { consultarCnpj } from '../../services/cnpjService'
+import { cnpjTemDigitosValidos, consultarCnpj } from '../../services/cnpjService'
 
 import '../../styles/cliente-form.css'
 import '../../styles/clientes.css'
@@ -385,6 +385,9 @@ function ClienteForm({ modo }: ClienteFormProps) {
       .toUpperCase()
     if (tipoPessoa.includes('JURID') && cnpj.length !== 14) {
       throw new Error('O CNPJ precisa conter exatamente 14 números.')
+    }
+    if (tipoPessoa.includes('JURID') && !cnpjTemDigitosValidos(cnpj)) {
+      throw new Error('Os dígitos verificadores do CNPJ não conferem.')
     }
     const codigoFiscal = await resolverCodigoIbgeMunicipio(atual.cidade, atual.estado, atual.codigoIbgeMunicipio)
     const codigoEntrega = await resolverCodigoIbgeMunicipio(

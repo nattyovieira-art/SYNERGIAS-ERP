@@ -4969,6 +4969,13 @@ Endereço: ${EMPRESA_ENDERECO}`
       || evento?.protocolo
       || '',
     ).trim()
+    let ambiente = String(
+      evento?.ambiente
+      || vendaFiscal.ambienteNFe
+      || vendaFiscal.ambienteFiscal
+      || venda.ambienteNotaFiscal
+      || '',
+    ).toUpperCase()
 
     let xml = String(venda.xmlNotaFiscal || evento?.xml || '').trim()
     if (xml && !xml.includes('<')) {
@@ -4982,11 +4989,19 @@ Endereço: ${EMPRESA_ENDERECO}`
       const chaveXml = xml.match(/<chNFe>(\d{44})<\/chNFe>/i)?.[1]
         || xml.match(/Id=["']NFe(\d{44})["']/i)?.[1]
       const protocoloXml = xml.match(/<nProt>([^<]+)<\/nProt>/i)?.[1]
+      const ambienteXml = xml.match(/<tpAmb>([12])<\/tpAmb>/i)?.[1]
       if (chave.length !== 44 && chaveXml) chave = chaveXml
       if (!protocolo && protocoloXml) protocolo = protocoloXml.trim()
+      if (ambienteXml === '1') ambiente = 'PRODUCAO'
+      if (ambienteXml === '2') ambiente = 'HOMOLOGACAO'
     }
 
-    return { chave, protocolo }
+    if (ambiente !== 'PRODUCAO' && ambiente !== 'HOMOLOGACAO') {
+      ambiente = venda.statusNotaFiscal === 'Autorizada' || venda.statusNotaFiscal === 'Emitida'
+        ? 'PRODUCAO'
+        : 'HOMOLOGACAO'
+    }
+    return { chave, protocolo, ambiente: ambiente as 'PRODUCAO' | 'HOMOLOGACAO' }
   }
 
   async function cancelarNotaFiscal() {
@@ -5001,7 +5016,7 @@ Endereço: ${EMPRESA_ENDERECO}`
       return
     }
 
-    const { chave, protocolo } = recuperarIdentificacaoFiscalParaCancelamento()
+    const { chave, protocolo, ambiente } = recuperarIdentificacaoFiscalParaCancelamento()
     if (chave.length !== 44 || !protocolo) {
       alert('Não foi possível recuperar a chave e o protocolo desta NF-e. Use “Consultar” ou importe novamente o XML autorizado antes de cancelar.')
       return
@@ -5012,6 +5027,7 @@ Endereço: ${EMPRESA_ENDERECO}`
         ...venda,
         chaveAcessoNotaFiscal: chave,
         protocoloNotaFiscal: protocolo,
+        ambienteNotaFiscal: ambiente,
       }
       salvarVendaStorage(recuperada)
       setVenda(recuperada)
@@ -5028,7 +5044,6 @@ Endereço: ${EMPRESA_ENDERECO}`
       return
     }
 
-    const ambiente = venda.ambienteNotaFiscal === 'PRODUCAO' ? 'PRODUCAO' : 'HOMOLOGACAO'
     const confirma = window.confirm(
       `Confirma o envio do cancelamento da NF-e nº ${venda.numeroNotaFiscal || ''}, série ${venda.serieNotaFiscal || '1'}, para a SEFAZ em ${ambiente}?`,
     )

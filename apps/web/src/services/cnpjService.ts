@@ -40,6 +40,21 @@ function somenteNumeros(valor: string) {
   return valor.replace(/\D/g, '')
 }
 
+export function cnpjTemDigitosValidos(cnpjInformado: string) {
+  const cnpj = somenteNumeros(cnpjInformado)
+  if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false
+  const calcular = (base: string, pesos: number[]) => {
+    const soma = base.split('').reduce((total, numero, indice) =>
+      total + Number(numero) * pesos[indice], 0)
+    const resto = soma % 11
+    return resto < 2 ? 0 : 11 - resto
+  }
+  const base = cnpj.slice(0, 12)
+  const primeiro = calcular(base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+  const segundo = calcular(`${base}${primeiro}`, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+  return cnpj === `${base}${primeiro}${segundo}`
+}
+
 function texto(valor: unknown) {
   return typeof valor === 'string' ? valor.trim() : ''
 }
@@ -47,13 +62,19 @@ function texto(valor: unknown) {
 export async function consultarCnpj(cnpjInformado: string): Promise<DadosCnpjConsultados> {
   const cnpj = somenteNumeros(cnpjInformado)
   if (cnpj.length !== 14) throw new Error('Digite um CNPJ válido com 14 números.')
+  if (!cnpjTemDigitosValidos(cnpj)) throw new Error('Os dígitos verificadores deste CNPJ não conferem.')
 
   const resposta = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, {
     method: 'GET',
     headers: { Accept: 'application/json' },
   })
   const dados = (await resposta.json()) as BrasilApiCnpjResponse
-  if (!resposta.ok) throw new Error(texto(dados.message) || 'Não foi possível buscar o CNPJ.')
+  if (!resposta.ok) {
+    if (resposta.status === 404) {
+      throw new Error('A consulta automática não retornou os dados deste CNPJ. Se ele foi confirmado na Receita Federal, preencha os dados manualmente e salve normalmente.')
+    }
+    throw new Error('A consulta automática está indisponível. Os dados preenchidos foram preservados e podem ser salvos manualmente.')
+  }
 
   return {
     cnpj: somenteNumeros(texto(dados.cnpj) || cnpj),
