@@ -19,6 +19,65 @@ export type ResultadoPreEmissaoNFe = {
 
 const API = '/api/fiscal/nfe-preflight-v56.php'
 
+type OpcoesRequisicaoFiscal = {
+  etapa: string
+  repeticoesSeguras?: number
+  timeoutMs?: number
+  transmissaoPodeTerOcorrido?: boolean
+}
+
+function aguardar(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+async function requisicaoFiscal(
+  url: string,
+  init: RequestInit,
+  opcoes: OpcoesRequisicaoFiscal,
+): Promise<Response> {
+  const repeticoes = Math.max(0, opcoes.repeticoesSeguras || 0)
+  let ultimoErro: unknown
+
+  for (let tentativa = 0; tentativa <= repeticoes; tentativa += 1) {
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), opcoes.timeoutMs || 45000)
+    try {
+      return await fetch(url, {
+        ...init,
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+          ...(init.headers || {}),
+        },
+      })
+    } catch (erro) {
+      ultimoErro = erro
+      if (tentativa < repeticoes) {
+        await aguardar(700 * (tentativa + 1))
+        continue
+      }
+    } finally {
+      window.clearTimeout(timeout)
+    }
+  }
+
+  const expirou = ultimoErro instanceof DOMException && ultimoErro.name === 'AbortError'
+  if (opcoes.transmissaoPodeTerOcorrido) {
+    throw new Error(
+      `${opcoes.etapa}: a conexão com o servidor foi interrompida` +
+        `${expirou ? ' por tempo excedido' : ''}. ` +
+        `Não tente emitir novamente: consulte a situação da chave da NF-e para evitar duplicidade.`,
+    )
+  }
+  throw new Error(
+    `${opcoes.etapa}: não foi possível comunicar com o servidor do ERP` +
+      `${expirou ? ' dentro do tempo esperado' : ''}. ` +
+      `Nenhuma NF-e foi transmitida nesta etapa. Atualize a página e tente novamente.`,
+  )
+}
+
 const CODIGOS_IBGE_MUNICIPIOS: Record<string, string> = {
   'MARCADOR|SYNERGIAS_IBGE_CLIENTE_CADASTRO_PEDIDO_V254': '',
   'RS|PORTO ALEGRE': '4314902',
@@ -44,16 +103,41 @@ function prepararVendaComCodigoIbge(venda: Venda): Venda {
   return { ...venda, faturamentoCodigoIbge: codigo }
 }
 
+function prepararVendaParaApiFiscal(venda: Venda): Venda {
+  const {
+    xmlNotaFiscal: _xmlNotaFiscal,
+    danfePdf: _danfePdf,
+    historicoNotaFiscal: _historicoNotaFiscal,
+    xmlCancelamentoNotaFiscal: _xmlCancelamentoNotaFiscal,
+    ...dados
+  } = prepararVendaComCodigoIbge(venda)
+
+  return {
+    ...dados,
+    parcelas: (dados.parcelas || []).map((parcela) => {
+      const {
+        boletoPdfBase64: _boletoPdfBase64,
+        bancoRetornoOriginal: _bancoRetornoOriginal,
+        pixQrCode: _pixQrCode,
+        ...parcelaFiscal
+      } = parcela
+      return parcelaFiscal
+    }),
+  } as Venda
+}
+
 export async function validarPreEmissaoNFe(params: {
   venda: Venda
   fiscal: ConfiguracaoFiscalEmpresa
 }): Promise<ResultadoPreEmissaoNFe> {
-  const response = await fetch(API, {
+  const response = await requisicaoFiscal(API, {
     method: 'POST',
-    credentials: 'same-origin',
-    cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ambiente: 'PRODUCAO', ...params, venda: prepararVendaComCodigoIbge(params.venda), fiscal: { ...params.fiscal, regimeTributario: params.fiscal.regimeTributario || 'SIMPLES_NACIONAL', regimeTributarioConfirmado: true } }),
+    body: JSON.stringify({ ambiente: 'PRODUCAO', ...params, venda: prepararVendaParaApiFiscal(params.venda), fiscal: { ...params.fiscal, regimeTributario: params.fiscal.regimeTributario || 'SIMPLES_NACIONAL', regimeTributarioConfirmado: true } }),
+  }, {
+    etapa: 'Validação fiscal',
+    repeticoesSeguras: 0,
+    timeoutMs: 20000,
   })
   const contentType = response.headers.get('content-type') || ''
   const raw = await response.text()
@@ -103,12 +187,14 @@ export type ResultadoRascunhoXmlNFe = {
 
 
 async function obterProximaNumeracaoNFe(referencia: string): Promise<{ numero: number; serie: string }> {
-  const response = await fetch('/api/numeracao-fiscal.php', {
+  const response = await requisicaoFiscal('/api/numeracao-fiscal.php', {
     method: 'POST',
-    credentials: 'same-origin',
-    cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ acao: 'reservar', documento: 'NF-e', ambiente: 'PRODUCAO', serie: '1', referencia }),
+  }, {
+    etapa: 'Reserva do número da NF-e',
+    repeticoesSeguras: 0,
+    timeoutMs: 20000,
   })
   const raw = await response.text()
   let data: any = {}
@@ -131,9 +217,13 @@ export async function registrarNumeracaoNFeAutorizada(params: {
   const { numero, serie, ambiente = 'PRODUCAO', cStat, chaveAcesso, protocolo } = params
   const numeroNormalizado = Math.max(0, Number(numero) || 0)
   const serieNormalizada = String(serie || '1').replace(/\D/g, '').slice(0, 3) || '1'
-  const response = await fetch('/api/numeracao-fiscal.php', {
-      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+  const response = await requisicaoFiscal('/api/numeracao-fiscal.php', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ acao: 'confirmar_autorizada', numero: numeroNormalizado, serie: serieNormalizada, ambiente, cStat, chaveAcesso, protocolo }),
+    }, {
+      etapa: 'Confirmação do número autorizado',
+      repeticoesSeguras: 1,
+      timeoutMs: 30000,
     })
   const data = await response.json()
   if (!response.ok || data?.ok !== true || !Array.isArray(data.numeracao)) {
@@ -143,10 +233,8 @@ export async function registrarNumeracaoNFeAutorizada(params: {
 }
 
 export async function manterNumeracaoNFeRejeitada(referencia: string, numero: string | number, serie: string | number = '1') {
-  const response = await fetch('/api/numeracao-fiscal.php', {
+  const response = await requisicaoFiscal('/api/numeracao-fiscal.php', {
     method: 'POST',
-    credentials: 'same-origin',
-    cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       acao: 'manter_reserva_rejeitada',
@@ -155,6 +243,10 @@ export async function manterNumeracaoNFeRejeitada(referencia: string, numero: st
       referencia,
       numero: Number(numero),
     }),
+  }, {
+    etapa: 'Registro da rejeição fiscal',
+    repeticoesSeguras: 1,
+    timeoutMs: 30000,
   })
   const data = await response.json()
   if (!response.ok || data?.ok !== true) {
@@ -167,12 +259,14 @@ export async function gerarRascunhoXmlNFe(params: {
   fiscal: ConfiguracaoFiscalEmpresa
 }): Promise<ResultadoRascunhoXmlNFe> {
   const numeracao = await obterProximaNumeracaoNFe(String(params.venda?.id || params.venda?.numeroPedido || 'pedido-sem-id'))
-  const response = await fetch('/api/fiscal/nfe-xml-preview-v63.php', {
+  const response = await requisicaoFiscal('/api/fiscal/nfe-xml-preview-v63.php', {
     method: 'POST',
-    credentials: 'same-origin',
-    cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ambiente: 'PRODUCAO', ...params, venda: prepararVendaComCodigoIbge(params.venda), fiscal: { ...params.fiscal, regimeTributario: params.fiscal.regimeTributario || 'SIMPLES_NACIONAL', regimeTributarioConfirmado: true }, numeracao }),
+    body: JSON.stringify({ ambiente: 'PRODUCAO', ...params, venda: prepararVendaParaApiFiscal(params.venda), fiscal: { ...params.fiscal, regimeTributario: params.fiscal.regimeTributario || 'SIMPLES_NACIONAL', regimeTributarioConfirmado: true }, numeracao }),
+  }, {
+    etapa: 'Montagem do XML',
+    repeticoesSeguras: 0,
+    timeoutMs: 25000,
   })
   const raw = await response.text()
   let data: any = {}
@@ -217,16 +311,73 @@ export type ResultadoHomologacaoNFe = {
 }
 
 export async function assinarETransmitirNFeHomologacao(xmlBase64: string): Promise<ResultadoHomologacaoNFe> {
-  const response = await fetch('/api/fiscal/nfe-homologacao-v75.php', {
+  const response = await requisicaoFiscal('/api/fiscal/nfe-homologacao-v75.php', {
     method: 'POST',
-    credentials: 'same-origin',
-    cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ambiente: 'PRODUCAO', xmlBase64 }),
+  }, {
+    etapa: 'Transmissão para a SEFAZ',
+    repeticoesSeguras: 0,
+    timeoutMs: 120000,
+    transmissaoPodeTerOcorrido: true,
   })
   const raw = await response.text()
   let data: any = {}
   try { data = raw ? JSON.parse(raw) : {} } catch { throw new Error('A transmissão da NF-e retornou uma resposta inválida.') }
+  // A rejeição 204 indica que esta mesma chave já chegou à SEFAZ. Consultar a
+  // chave evita uma nova emissão e recupera a autorização existente.
+  let chaveDoXml = ''
+  try {
+    const bytes = Uint8Array.from(atob(xmlBase64), (caractere) => caractere.charCodeAt(0))
+    const xml = new TextDecoder('utf-8').decode(bytes)
+    chaveDoXml = String(
+      xml.match(/<infNFe[^>]+\bId=["']NFe(\d{44})["']/i)?.[1] || '',
+    )
+  } catch {
+    chaveDoXml = ''
+  }
+  const chaveDoMotivo = String(data?.motivo || '')
+    .match(/\b(\d{44})\b/)?.[1] || ''
+  // Na rejeição 204 a chave já autorizada pode ser diferente da nova tentativa
+  // (por exemplo, quando o cNF foi regenerado). A SEFAZ informa a chave original
+  // no motivo; ela deve ter prioridade para recuperar e vincular a NF existente.
+  const chaveDuplicada = String(chaveDoMotivo || data?.chaveAcesso || chaveDoXml)
+    .replace(/\D/g, '')
+  if (
+    String(data?.cStat || '') === '204' &&
+    chaveDuplicada.length === 44
+  ) {
+    const consulta = await requisicaoFiscal('/api/fiscal/nfe-consulta.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ambiente: 'PRODUCAO',
+        chaveAcesso: chaveDuplicada,
+      }),
+    }, {
+      etapa: 'Consulta da NF-e já existente',
+      repeticoesSeguras: 0,
+      timeoutMs: 30000,
+      transmissaoPodeTerOcorrido: true,
+    })
+    const consultaData = await consulta.json()
+    if (consulta.ok && consultaData?.ok === true && consultaData?.autorizada === true) {
+      return {
+        ...data,
+        ok: true,
+        autorizada: true,
+        chaveAcesso: chaveDuplicada,
+        cStat: String(consultaData.cStat || '100'),
+        motivo: String(consultaData.motivo || 'NF-e autorizada anteriormente.'),
+        protocolo: String(consultaData.protocolo || ''),
+        recebidoEm: String(
+          consultaData.dataRecebimento ||
+          data.recebidoEm ||
+          new Date().toISOString()
+        ),
+      } as ResultadoHomologacaoNFe
+    }
+  }
   if (!response.ok || data?.ok !== true) {
     throw new Error(data?.mensagem || `Falha HTTP ${response.status} na transmissão da NF-e.`)
   }

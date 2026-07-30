@@ -17,13 +17,15 @@ import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import type { Compra, StatusCompra } from '../../types/Compra'
 import {
-  excluirCompraStorageConfirmado,
+  excluirCompraEspecificaStorageConfirmado,
   importarComprasDFeStorage,
   listarComprasStorage,
   obterUltNSUDFeStorage,
+  salvarCompraStorageConfirmado,
   salvarUltNSUDFeStorage,
 } from '../../services/comprasStorage'
 import { listarProdutosStorage } from '../../services/produtosStorage'
+import { estornarEntradaCompraStorage } from '../../services/estoqueStorage'
 import { parseNFeCompraXml } from '../../services/nfeCompraXml'
 import { extrairTextoDocumentoCompra } from '../../services/documentoCompra'
 
@@ -103,8 +105,12 @@ function Compras() {
       const atendeOrigem =
         origem === 'Todas' || String(compra.origem || 'MANUAL') === origem
 
-      const situacaoEstoque = compra.movimentouEstoque
+      const situacaoEstoque = compra.estoqueEstornado
+        ? 'Sem estoque'
+        : compra.movimentouEstoque
         ? 'Movimentado'
+        : compra.status === 'Recebido'
+          ? 'Sem estoque'
         : compra.movimentarEstoque
           ? 'Aguardando'
           : 'Sem estoque'
@@ -131,8 +137,35 @@ function Compras() {
   }
 
   async function excluirCompra(compra: Compra) {
-    if (compra.movimentouEstoque) {
-      alert('Esta compra movimentou estoque e não pode ser excluída. Registre uma devolução ou estorno auditado.')
+    if (compra.movimentouEstoque && !compra.estoqueEstornado) {
+      const confirmarEstorno = window.confirm(
+        `Cancelar a compra nº ${compra.numeroCompra} e estornar do estoque as entradas da NF-e ${compra.numeroNFe || '-'}? A NF-e do fornecedor não será cancelada na SEFAZ.`,
+      )
+      if (!confirmarEstorno) return
+      try {
+        const estornos = await estornarEntradaCompraStorage({
+          compraId: compra.id,
+          numeroCompra: compra.numeroCompra,
+          numeroNFe: compra.numeroNFe,
+          chaveAcessoNFe: compra.chaveAcessoNFe,
+          itensFallback: compra.itens,
+          motivo: `Compra duplicada no ERP - NF-e ${compra.numeroNFe || '-'}`,
+        })
+        await salvarCompraStorageConfirmado({
+          ...compra,
+          status: 'Cancelado',
+          movimentarEstoque: false,
+          estoqueEstornado: true,
+          estoqueEstornadoEm: new Date().toISOString(),
+          idsMovimentacoesEstorno: estornos.map((item) => item.id),
+          motivoCancelamento: 'Compra já registrada no sistema anterior',
+          atualizadoEm: new Date().toISOString(),
+        })
+        setCompras(listarComprasStorage())
+        alert('Compra cancelada e estoque estornado com sucesso.')
+      } catch (erro) {
+        alert(erro instanceof Error ? erro.message : 'Não foi possível estornar a compra.')
+      }
       return
     }
     const confirmar = window.confirm(
@@ -142,7 +175,7 @@ function Compras() {
     if (!confirmar) return
 
     try {
-      await excluirCompraStorageConfirmado(compra.id)
+      await excluirCompraEspecificaStorageConfirmado(compra)
       setCompras(listarComprasStorage())
     } catch (erro) {
       alert(erro instanceof Error ? erro.message : 'Não foi possível excluir a compra.')
@@ -546,9 +579,17 @@ function Compras() {
                         <div className="compras-status-group">
                           <span className="compras-status">{compra.status}</span>
 
-                          {compra.movimentouEstoque ? (
+                          {compra.estoqueEstornado ? (
+                            <span className="compras-historico-badge">
+                              Estoque estornado
+                            </span>
+                          ) : compra.movimentouEstoque ? (
                             <span className="compras-historico-badge">
                               Estoque lançado
+                            </span>
+                          ) : compra.status === 'Recebido' ? (
+                            <span className="compras-historico-badge">
+                              Recebido sem movimentar estoque
                             </span>
                           ) : compra.movimentarEstoque ? (
                             <span className="compras-historico-badge">
@@ -587,7 +628,6 @@ function Compras() {
                             className="compras-acao excluir"
                             onClick={() => excluirCompra(compra)}
                             title="Excluir"
-                            disabled={compra.movimentouEstoque}
                           >
                             <Trash2 size={17} />
                           </button>

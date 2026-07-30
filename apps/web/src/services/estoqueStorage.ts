@@ -1,5 +1,10 @@
 import type { Produto } from '../types/Produto'
-import { definirColecaoMemoria, obterColecaoMemoria, sincronizarColecaoCentral } from './erpApi'
+import {
+  definirColecaoMemoria,
+  obterColecaoMemoria,
+  sincronizarColecaoCentral,
+  sincronizarColecaoCentralAgora,
+} from './erpApi'
 import {
   listarProdutosStorage,
   salvarProdutosStorage,
@@ -240,6 +245,137 @@ export function salvarMovimentacoesEstoque(movimentacoes: EstoqueMovimentacao[])
   localStorage.setItem(STORAGE_MOVIMENTACOES_ESTOQUE, JSON.stringify(movimentacoes))
   sincronizarColecaoCentral('movimentacoesEstoque', movimentacoes)
   return movimentacoes
+}
+
+export async function estornarEntradaCompraStorage(dados: {
+  compraId?: string
+  numeroCompra?: string
+  numeroNFe?: string
+  chaveAcessoNFe?: string
+  itensFallback?: Array<{
+    id?: string
+    produtoCodigo?: string
+    descricao?: string
+    quantidade?: number
+    quantidadeConvertida?: number
+    incluidoNoSistema?: boolean
+  }>
+  motivo?: string
+  usuario?: string
+}) {
+  const normalizarDocumento = (valor: unknown) => {
+    const texto = String(valor || '').trim()
+    const digitos = texto.replace(/\D/g, '')
+    return digitos || texto
+  }
+  const referencias = [
+    normalizarDocumento(dados.chaveAcessoNFe),
+    normalizarDocumento(dados.numeroNFe),
+    normalizarDocumento(dados.numeroCompra),
+  ].filter(Boolean)
+  const movimentacoes = listarMovimentacoesEstoque()
+  let entradas = movimentacoes.filter(
+    (movimento) =>
+      movimento.origem === 'compra' &&
+      referencias.includes(normalizarDocumento(movimento.documentoOrigem)),
+  )
+
+  if (entradas.length === 0) {
+    const itensFallback = (dados.itensFallback || []).filter(
+      (item) =>
+        item.incluidoNoSistema !== false &&
+        String(item.produtoCodigo || '').trim() &&
+        Math.abs(numeroSeguro(item.quantidadeConvertida || item.quantidade)) > 0,
+    )
+    if (itensFallback.length === 0) {
+      throw new Error('Nenhuma entrada de estoque vinculada a esta compra foi encontrada.')
+    }
+    entradas = itensFallback.map((item, indice) => ({
+      id: `legado-compra-${dados.compraId || dados.numeroNFe || dados.numeroCompra}-${item.id || indice}`,
+      data: hojeIso(),
+      hora: horaAtualBrasil(),
+      produtoCodigo: String(item.produtoCodigo || '').trim(),
+      produtoDescricao: String(item.descricao || '').trim(),
+      tipo: 'entrada',
+      origem: 'compra',
+      quantidade: Math.abs(numeroSeguro(item.quantidadeConvertida || item.quantidade)),
+      estoqueAnterior: null,
+      estoqueAtual: null,
+      motivo: 'Entrada antiga reconstruída pelos itens persistidos da compra.',
+      documentoOrigem:
+        normalizarDocumento(dados.chaveAcessoNFe) ||
+        normalizarDocumento(dados.numeroNFe) ||
+        normalizarDocumento(dados.numeroCompra),
+      criadoEm: new Date().toISOString(),
+    }))
+  }
+
+  const idsJaEstornados = new Set(
+    movimentacoes
+      .filter((movimento) => movimento.origem === 'estorno_compra')
+      .map((movimento) => String(movimento.movimentoOriginalId || ''))
+      .filter(Boolean),
+  )
+  const entradasPendentes = entradas.filter(
+    (movimento) => !idsJaEstornados.has(movimento.id),
+  )
+  if (entradasPendentes.length === 0) {
+    throw new Error('O estoque desta compra já foi estornado.')
+  }
+
+  let produtos = listarProdutosStorage()
+  const agora = new Date().toISOString()
+  const estornos: EstoqueMovimentacao[] = []
+
+  for (const entrada of entradasPendentes) {
+    const produto = localizarProduto(produtos, {
+      codigoProduto: entrada.produtoCodigo,
+      descricao: entrada.produtoDescricao,
+    })
+    if (!produto) {
+      throw new Error(`Produto não encontrado para estorno: ${entrada.produtoDescricao}.`)
+    }
+    const estoqueAnterior = obterEstoqueProduto(produto)
+    const quantidade = Math.abs(numeroSeguro(entrada.quantidade))
+    const estoqueAtual = estoqueAnterior - quantidade
+    const produtoAtualizado = aplicarEstoqueProduto(produto, estoqueAtual)
+    produtos = produtos.map((item) =>
+      mesmoProduto(item, produto) ? produtoAtualizado : item,
+    )
+    estornos.push({
+      id: gerarIdMovimentacao(),
+      data: hojeIso(),
+      hora: horaAtualBrasil(),
+      produtoId: String((produto as any).id || ''),
+      produtoCodigo: String((produto as any).codigo || entrada.produtoCodigo || ''),
+      produtoDescricao: String(
+        (produto as any).descricao || entrada.produtoDescricao || 'Produto sem descrição',
+      ),
+      tipo: 'saida',
+      origem: 'estorno_compra',
+      quantidade: arredondarQuantidade(quantidade),
+      estoqueAnterior: arredondarQuantidade(estoqueAnterior),
+      estoqueAtual: arredondarQuantidade(estoqueAtual),
+      motivo: dados.motivo || `Estorno da compra ${dados.numeroCompra || '-'}`,
+      observacao: `Estorno auditado da entrada ${entrada.id}, NF-e ${dados.numeroNFe || '-'}.`,
+      usuario: dados.usuario || 'Synergias',
+      documentoOrigem:
+        normalizarDocumento(dados.chaveAcessoNFe) ||
+        normalizarDocumento(dados.numeroNFe) ||
+        normalizarDocumento(dados.numeroCompra),
+      movimentoOriginalId: entrada.id,
+      criadoEm: agora,
+    })
+  }
+
+  salvarProdutosStorage(produtos)
+  const movimentacoesAtualizadas = [...estornos, ...movimentacoes].slice(0, 500)
+  salvarMovimentacoesEstoque(movimentacoesAtualizadas)
+  await Promise.all([
+    sincronizarColecaoCentralAgora('produtos', produtos),
+    sincronizarColecaoCentralAgora('movimentacoesEstoque', movimentacoesAtualizadas),
+  ])
+  return estornos
 }
 
 export function listarProdutosComResumoEstoque(): EstoqueProdutoResumo[] {

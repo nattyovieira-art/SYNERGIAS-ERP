@@ -131,8 +131,28 @@ export function parseNFeCompraXml(xml: string, products: Produto[], numeroCompra
   const issuedAt = text(inf, 'ide dhEmi')
   const now = new Date().toISOString()
   const fiscalValue = num(text(total, 'vNF'))
-  const financialDiscount = billing ? num(text(billing, 'vDesc')) : 0
+  const fiscalDiscount = num(text(total, 'vDesc'))
+  const financialDiscount = fiscalDiscount || (billing ? num(text(billing, 'vDesc')) : 0)
   const liquidValue = billing ? num(text(billing, 'vLiq')) : fiscalValue
+  const productBase = items.reduce((sum, item) => sum + num(String(item.totalFiscal)), 0)
+  let allocatedDiscount = 0
+  const itemsWithDiscount = items.map((item, index) => {
+    const itemDiscount = financialDiscount > 0
+      ? index === items.length - 1
+        ? financialDiscount - allocatedDiscount
+        : Number((financialDiscount * num(String(item.totalFiscal)) / productBase).toFixed(2))
+      : 0
+    allocatedDiscount += itemDiscount
+    const finalValue = Math.max(0, num(String(item.custoFinalItem)) - itemDiscount)
+    return {
+      ...item,
+      descontoRateado: itemDiscount,
+      custoFinalItem: finalValue,
+      custoUnitarioConvertido: num(String(item.quantidadeConvertida)) > 0
+        ? finalValue / num(String(item.quantidadeConvertida))
+        : 0,
+    }
+  })
   const paymentInstallments = installments.map((installment, index) => ({
     numero: text(installment, 'nDup') || String(index + 1).padStart(3, '0'),
     vencimento: text(installment, 'dVenc'),
@@ -149,9 +169,9 @@ export function parseNFeCompraXml(xml: string, products: Produto[], numeroCompra
     fornecedorEmail: '',
     fornecedorTelefone: text(emit, 'enderEmit fone'),
     fornecedorEndereco: [text(emit, 'enderEmit xLgr'), text(emit, 'enderEmit nro'), text(emit, 'enderEmit xMun'), text(emit, 'enderEmit UF')].filter(Boolean).join(', '),
-    itens: items,
+    itens: itemsWithDiscount,
     itensOriginaisNFe: items.map((item) => ({ ...item })),
-    desconto: 0,
+    desconto: financialDiscount,
     frete: num(text(total, 'vFrete')),
     outrosCustos: num(text(total, 'vOutro')),
     subtotal: items.reduce((sum, item) => sum + (item.custoFinalItem || 0), 0),
@@ -180,6 +200,9 @@ export function parseNFeCompraXml(xml: string, products: Produto[], numeroCompra
     valorFiscalNFe: fiscalValue,
     descontoFinanceiroNFe: financialDiscount,
     valorLiquidoCobrancaNFe: liquidValue,
+    decisaoDescontoFinanceiro: financialDiscount > 0
+      ? 'LIQUIDO_COM_DESCONTO'
+      : undefined,
     parcelasPagamento: paymentInstallments,
   }
 }

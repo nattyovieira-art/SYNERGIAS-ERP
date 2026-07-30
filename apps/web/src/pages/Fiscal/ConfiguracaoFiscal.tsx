@@ -49,6 +49,7 @@ function ConfiguracaoFiscal() {
   const [configuracao, setConfiguracao] =
     useState<ConfiguracaoFiscalEmpresa>(obterConfiguracaoFiscalStorage())
   const [buscandoCnpj, setBuscandoCnpj] = useState(false)
+  const [buscandoCep, setBuscandoCep] = useState(false)
   const [mensagemCnpj, setMensagemCnpj] = useState('')
 
   useEffect(() => {
@@ -113,6 +114,30 @@ function ConfiguracaoFiscal() {
       setMensagemCnpj(erro instanceof Error ? erro.message : 'Não foi possível buscar o CNPJ.')
     } finally {
       setBuscandoCnpj(false)
+    }
+  }
+
+  async function buscarCep(cepInformado = configuracao.cep) {
+    const cep = somenteNumeros(cepInformado).slice(0, 8)
+    if (cep.length !== 8) return
+    try {
+      setBuscandoCep(true)
+      const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      const dados = await resposta.json()
+      if (!resposta.ok || dados?.erro) throw new Error('CEP não encontrado')
+      setConfiguracao((atual) => ({
+        ...atual,
+        cep: cep.replace(/^(\d{5})(\d{3})$/, '$1-$2'),
+        logradouro: dados.logradouro || atual.logradouro,
+        bairro: dados.bairro || atual.bairro,
+        municipio: dados.localidade || atual.municipio,
+        uf: dados.uf || atual.uf,
+        codigoIbgeMunicipio: dados.ibge || atual.codigoIbgeMunicipio,
+      }))
+    } catch {
+      alert('Não foi possível localizar esse CEP.')
+    } finally {
+      setBuscandoCep(false)
     }
   }
 
@@ -341,7 +366,21 @@ function ConfiguracaoFiscal() {
 
             <label>
               CEP
-              <input value={configuracao.cep} onChange={(event) => atualizar('cep', somenteNumeros(event.target.value))} />
+              <div className="fiscal-cnpj-search">
+                <input
+                  value={configuracao.cep}
+                  maxLength={9}
+                  onChange={(event) => {
+                    const numeros = somenteNumeros(event.target.value).slice(0, 8)
+                    const formatado = numeros.replace(/^(\d{5})(\d{1,3})$/, '$1-$2')
+                    atualizar('cep', formatado)
+                    if (numeros.length === 8) void buscarCep(numeros)
+                  }}
+                />
+                <button type="button" onClick={() => void buscarCep()} disabled={buscandoCep} title="Buscar CEP">
+                  {buscandoCep ? <LoaderCircle size={18} className="spin" /> : <Search size={18} />}
+                </button>
+              </div>
             </label>
 
             <label>

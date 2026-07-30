@@ -44,6 +44,7 @@ const DELAY_IMPRESSAO_AUTOMATICA_PEDIDO_MS = 700
 
 import {
   listarClientesStorage,
+  salvarClienteStorageConfirmado,
   salvarClienteStorage,
   salvarClientesStorageConfirmado,
 } from '../../services/clientesStorage'
@@ -244,6 +245,8 @@ function somenteNumerosCredito(valor?: string | number) {
 }
 
 function carregarVendasCreditoStorage(): Venda[] {
+  const vendasCentrais = listarVendasCentral()
+  if (vendasCentrais.length) return vendasCentrais
   if (typeof window === 'undefined') return []
 
   try {
@@ -1262,8 +1265,30 @@ function PedidoForm() {
   }, [id, vendaEncontrada])
   const clientesIniciais = listarClientesStorage()
   const orcamentoOrigemEncontrado = !id ? buscarOrcamentoOrigemUrl() : undefined
+  const pedidoExistenteDoOrcamento = orcamentoOrigemEncontrado
+    ? (listarVendasCentral() as unknown as Array<Record<string, any>>).find((registro) => {
+        const tipo = String(registro?.tipo || '').toLowerCase()
+        if (!tipo.includes('pedido') && !registro?.numeroPedido) return false
+        return (
+          (
+            Boolean(orcamentoOrigemEncontrado.pedidoGeradoId) &&
+            String(registro?.id || '') === String(orcamentoOrigemEncontrado.pedidoGeradoId)
+          ) ||
+          (
+            Boolean(orcamentoOrigemEncontrado.id) &&
+            String(registro?.orcamentoOrigemId || '') === String(orcamentoOrigemEncontrado.id)
+          ) ||
+          (
+            Boolean(orcamentoOrigemEncontrado.numeroOrcamento) &&
+            String(registro?.orcamentoOrigemNumero || registro?.numeroOrcamento || '') ===
+              String(orcamentoOrigemEncontrado.numeroOrcamento)
+          )
+        )
+      })
+    : undefined
   const vendaInicial =
     vendaEncontrada ||
+    pedidoExistenteDoOrcamento ||
     (orcamentoOrigemEncontrado
       ? criarPedidoAPartirDoOrcamento(orcamentoOrigemEncontrado, clientesIniciais)
       : undefined)
@@ -1281,7 +1306,40 @@ function PedidoForm() {
     vendaInicial?.bancoCobranca,
   )
 
+  const orcamentoOrigemCentral = (listarVendasCentral() as unknown as Array<any>)
+    .find((registro) => {
+      const tipo = String(registro?.tipo || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+      if (!tipo.includes('orcamento')) return false
+      return (
+        (
+          Boolean(vendaInicial?.orcamentoOrigemId) &&
+          String(registro?.id || '') === String(vendaInicial?.orcamentoOrigemId)
+        ) ||
+        (
+          Boolean(vendaInicial?.id) &&
+          String(registro?.pedidoGeradoId || registro?.pedidoId || '') ===
+            String(vendaInicial?.id)
+        ) ||
+        (
+          Boolean(vendaInicial?.numeroPedido) &&
+          String(registro?.numeroPedido || registro?.pedidoGeradoNumero || '') ===
+            String(vendaInicial?.numeroPedido)
+        )
+      )
+    })
+
+  const numeroOrcamentoOrigemCentral = String(
+    orcamentoOrigemCentral?.numeroOrcamento ||
+    orcamentoOrigemCentral?.numero ||
+    orcamentoOrigemCentral?.codigo ||
+    '',
+  ).trim()
+
   const codigoOrcamentoOrigem =
+    numeroOrcamentoOrigemCentral ||
     vendaInicial?.orcamentoOrigemNumero ||
     vendaInicial?.numeroOrcamento ||
     ''
@@ -1351,8 +1409,9 @@ function PedidoForm() {
     id: vendaInicial?.id || String(Date.now()),
     tipo: 'Pedido',
 
-    numeroOrcamento: vendaInicial?.numeroOrcamento || '',
-    numeroPedido: vendaEncontrada?.numeroPedido || gerarNumeroInicial(),
+    numeroOrcamento:
+      numeroOrcamentoOrigemCentral || vendaInicial?.numeroOrcamento || '',
+    numeroPedido: vendaInicial?.numeroPedido || gerarNumeroInicial(),
 
     orcamentoOrigemId: vendaInicial?.orcamentoOrigemId || '',
     orcamentoOrigemNumero: codigoOrcamentoOrigem,
@@ -1452,6 +1511,12 @@ function PedidoForm() {
   }, [venda.entregaCidade, venda.entregaEstado, (venda as any).entregaCodigoIbge])
 
   const titulo = vendaEncontrada ? 'Editar Pedido' : 'Novo Pedido'
+  const edicaoBloqueadaPedido =
+    chaveStatusPedido(venda.statusPedido) === 'entregue' ||
+    (
+      chaveStatusPedido(venda.statusPedido) === 'concluido' &&
+      Boolean(venda.estoqueBaixado || venda.dataEntregaRealizada)
+    )
 
   const totais = useMemo(() => calcularTotais(venda), [venda, tipoDesconto])
 
@@ -1511,6 +1576,36 @@ function PedidoForm() {
     [clientes, venda.clienteCodigo, venda.clienteDocumento, venda.clienteNome],
   )
 
+  const locaisEntregaCliente = useMemo(
+    () => clienteSelecionado
+      ? normalizarEnderecosEntrega(clienteSelecionado).filter((local) => local.ativo)
+      : [],
+    [clienteSelecionado],
+  )
+
+  function selecionarLocalEntrega(localId: string) {
+    const local = locaisEntregaCliente.find((item) => item.id === localId)
+    if (!local) return
+    const emailLocal = String(local.emailEnvio || '').trim()
+    setVenda((atual) => ({
+      ...atual,
+      enderecoEntregaId: local.id,
+      enderecoEntregaNome: local.nomeLocal || 'Local de entrega',
+      enderecoEntregaSnapshot: { ...local },
+      entregaCep: formatarCepPedido(local.cep || ''),
+      entregaEndereco: local.logradouro || '',
+      entregaNumero: local.numero || '',
+      entregaComplemento: local.complemento || '',
+      entregaBairro: local.bairro || '',
+      entregaCidade: local.cidade || '',
+      entregaEstado: String(local.uf || '').toUpperCase(),
+      entregaCodigoIbge: local.codigoIbgeMunicipio || '',
+      ...(emailLocal
+        ? { clienteEmail: emailLocal, clienteEmailNotaFiscal: emailLocal, emailEnvio: emailLocal }
+        : {}),
+    }))
+  }
+
   const resumoCreditoCliente = useMemo(
     () => calcularResumoCreditoCliente(clienteSelecionado, venda, totais.totalFinal),
     [clienteSelecionado, venda, totais.totalFinal],
@@ -1557,13 +1652,50 @@ function PedidoForm() {
     setEmailsCopiaTexto(copiasCorretas.join('; '))
     setVenda((atual) => {
       const copiasAtuais = Array.isArray(atual.emailsCopiaEnvio) ? atual.emailsCopiaEnvio : []
+      const clienteAny = clienteSelecionado as Cliente & {
+        documento?: string
+        cpfCnpj?: string
+        cnpjCpf?: string
+        logradouro?: string
+        uf?: string
+        codigoIbgeMunicipio?: string
+      }
+      const documentoAtual = somenteNumerosCredito(atual.clienteDocumento || '')
+      const documentoCadastro = somenteNumerosCredito(
+        clienteSelecionado.cnpj ||
+        clienteSelecionado.cpf ||
+        clienteAny.cpfCnpj ||
+        clienteAny.cnpjCpf ||
+        clienteAny.documento ||
+        '',
+      )
+      // A correção manual nesta tela é soberana. O valor importado/cadastrado
+      // serve apenas como alternativa quando o campo atual estiver vazio.
+      const documentoCorreto = [documentoAtual, documentoCadastro]
+        .find((documento) => documento.length === 11 || documento.length === 14) || documentoCadastro || documentoAtual
+      const primeiroTexto = (...valores: Array<string | number | undefined | null>) =>
+        valores.map((valor) => String(valor ?? '').trim()).find(Boolean) || ''
+      const dadosCadastro = {
+        clienteDocumento: documentoCorreto,
+        clienteTelefone: primeiroTexto(atual.clienteTelefone, clienteSelecionado.telefone, clienteSelecionado.celular),
+        faturamentoCep: primeiroTexto(atual.faturamentoCep, clienteSelecionado.cep),
+        faturamentoEndereco: primeiroTexto(atual.faturamentoEndereco, clienteSelecionado.endereco, clienteAny.logradouro),
+        faturamentoNumero: primeiroTexto(atual.faturamentoNumero, clienteSelecionado.numero),
+        faturamentoComplemento: primeiroTexto(atual.faturamentoComplemento, clienteSelecionado.complemento),
+        faturamentoBairro: primeiroTexto(atual.faturamentoBairro, clienteSelecionado.bairro),
+        faturamentoCidade: primeiroTexto(atual.faturamentoCidade, clienteSelecionado.cidade),
+        faturamentoCodigoIbge: primeiroTexto(atual.faturamentoCodigoIbge, clienteAny.codigoIbgeMunicipio),
+        faturamentoEstado: primeiroTexto(atual.faturamentoEstado, clienteSelecionado.estado, clienteAny.uf).toUpperCase().slice(0, 2),
+      }
       if (
         atual.clienteEmail === emailCorreto &&
         atual.clienteEmailNotaFiscal === emailCorreto &&
-        JSON.stringify(copiasAtuais) === JSON.stringify(copiasCorretas)
+        JSON.stringify(copiasAtuais) === JSON.stringify(copiasCorretas) &&
+        Object.entries(dadosCadastro).every(([campo, valor]) => String((atual as any)[campo] || '') === String(valor || ''))
       ) return atual
       return {
         ...atual,
+        ...dadosCadastro,
         clienteEmail: emailCorreto,
         clienteEmailNotaFiscal: emailCorreto,
         emailEnvio: emailCorreto,
@@ -1809,7 +1941,7 @@ function PedidoForm() {
     return String(encontrado?.[0] || '').trim().toLowerCase()
   }
 
-  function emailsCopiaNormalizados() {
+  function emailsCopiaNormalizados(): string[] {
     const principal = extrairPrimeiroEmail(
       venda.clienteEmailNotaFiscal || venda.clienteEmail || '',
     )
@@ -1818,8 +1950,8 @@ function PedidoForm() {
       new Set(
         emailsCopiaTexto
           .split(/[;,\n]+/)
-          .map(extrairPrimeiroEmail)
-          .filter((email) => email && email !== principal),
+          .map((valor: string): string => extrairPrimeiroEmail(valor))
+          .filter((email: string): email is string => Boolean(email) && email !== principal),
       ),
     )
   }
@@ -1914,28 +2046,17 @@ function PedidoForm() {
     vendaAtualizada.emailEnvio = emailPrincipal || clienteAtualizado.email || ''
 
     try {
-      await salvarClientesStorageConfirmado(clientesAtualizados)
+      clientesAtualizados = await salvarClienteStorageConfirmado(clienteAtualizado)
+      clienteAtualizado =
+        clientesAtualizados.find(mesmoCliente) || clienteAtualizado
     } catch (error) {
-      // Reaplica somente os e-mails caso outro usuário tenha alterado clientes
-      // entre a leitura e a gravação, preservando a versão mais nova do servidor.
-      try {
-        const respostaAtual = await carregarColecaoCentral<Cliente>('clientes')
-        const clientesAtuais = Array.isArray(respostaAtual.data) ? respostaAtual.data : []
-        ;({ clienteAtualizado, clientesAtualizados } = aplicarEmails(clientesAtuais))
-        vendaAtualizada.emailEnvio = emailPrincipal || clienteAtualizado.email || ''
-        await salvarClientesStorageConfirmado(clientesAtualizados)
-      } catch (erroConfirmacao) {
-        console.error('[Synergias ERP] Falha ao salvar e-mails do cliente.', {
-          primeiraTentativa: error,
-          segundaTentativa: erroConfirmacao,
-        })
-        if (exibirAviso) {
-          alert(
-            'Não foi possível confirmar os e-mails no cadastro central do cliente.',
-          )
-        }
-        return null
+      console.error('[Synergias ERP] Falha ao salvar e-mails do cliente.', error)
+      if (exibirAviso) {
+        alert(
+          'Não foi possível confirmar os e-mails no cadastro central do cliente.',
+        )
       }
+      return null
     }
 
     let vendaConfirmada = vendaAtualizada
@@ -1971,8 +2092,20 @@ function PedidoForm() {
   }
 
   function statusInterParaBoleto(status?: string): ParcelaVenda['statusBoleto'] {
-    const valor = String(status || '').toUpperCase()
-    if (valor.includes('PAG') || valor.includes('RECEB') || valor.includes('LIQUID')) return 'Pago'
+    const valor = String(status || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, '_')
+    // "A_RECEBER" significa cobrança aberta, não recebida.
+    if (valor === 'A_RECEBER' || valor === 'EM_ABERTO' || valor === 'ATIVO') return 'Gerado'
+    if (
+      valor === 'PAGO' ||
+      valor === 'RECEBIDO' ||
+      valor === 'LIQUIDADO' ||
+      valor === 'PAGAMENTO_CONFIRMADO'
+    ) return 'Pago'
     if (valor.includes('CANCEL') || valor.includes('BAIX')) return 'Cancelado'
     if (valor.includes('VENC')) return 'Vencido'
     if (valor.includes('ERRO') || valor.includes('REJEIT')) return 'Erro'
@@ -2004,15 +2137,16 @@ function PedidoForm() {
     const status = statusInterParaBoleto(cobranca.status)
     const pago = status === 'Pago'
     const valorRecebido = Number(cobranca.valorRecebido || (pago ? parcela.valor : conta.valorRecebido || 0))
+    const valorParcela = Number(parcela.valor || conta.valorOriginal || 0)
     salvarContaReceberStorage({
       ...conta,
       numeroBoleto: cobranca.nossoNumero || conta.numeroBoleto,
       bancoCobranca: 'Inter',
       tipoCobranca: 'BOLETO BANCO INTER',
-      valorRecebido: pago ? valorRecebido : conta.valorRecebido,
-      saldoAberto: pago ? 0 : conta.saldoAberto,
-      dataRecebimento: pago ? cobranca.dataPagamento || hoje() : conta.dataRecebimento,
-      status: pago ? 'Paga' : conta.status,
+      valorRecebido: pago ? valorRecebido : 0,
+      saldoAberto: pago ? 0 : valorParcela,
+      dataRecebimento: pago ? cobranca.dataPagamento || hoje() : '',
+      status: pago ? 'Paga' : 'Aberta',
       conciliado: conta.conciliado,
       atualizadoEm: new Date().toISOString(),
     })
@@ -2143,8 +2277,8 @@ function PedidoForm() {
     return valor.replace(/\D/g, '')
   }
 
-  async function buscarCnpjNovoCliente() {
-    const cnpj = limparNumeros(novoCliente.documento)
+  async function buscarCnpjNovoCliente(documentoInformado = novoCliente.documento) {
+    const cnpj = limparNumeros(documentoInformado)
 
     if (cnpj.length !== 14) {
       alert('Informe um CNPJ válido com 14 números.')
@@ -2191,6 +2325,50 @@ function PedidoForm() {
       alert('Não foi possível buscar este CNPJ. Confira o número e tente novamente.')
     } finally {
       setBuscandoCnpj(false)
+    }
+  }
+
+  async function buscarCepNovoCliente(cepInformado = novoCliente.cep) {
+    const cep = limparNumeros(cepInformado).slice(0, 8)
+    if (cep.length !== 8) return
+
+    try {
+      const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      const dados = await resposta.json()
+      if (!resposta.ok || dados?.erro) throw new Error('CEP não encontrado')
+      setNovoCliente((atual) => ({
+        ...atual,
+        cep: cep.replace(/^(\d{5})(\d{3})$/, '$1-$2'),
+        endereco: dados.logradouro || atual.endereco,
+        bairro: dados.bairro || atual.bairro,
+        cidade: dados.localidade || atual.cidade,
+        estado: dados.uf || atual.estado,
+      }))
+    } catch {
+      alert('Não foi possível localizar esse CEP.')
+    }
+  }
+
+  async function buscarCepVenda(tipo: 'faturamento' | 'entrega', cepInformado: string) {
+    const cep = limparNumeros(cepInformado).slice(0, 8)
+    if (cep.length !== 8) return
+    try {
+      const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      const dados = await resposta.json()
+      if (!resposta.ok || dados?.erro) throw new Error('CEP não encontrado')
+      setVenda((atual) => ({
+        ...atual,
+        [`${tipo}Cep`]: cep.replace(/^(\d{5})(\d{3})$/, '$1-$2'),
+        [`${tipo}Endereco`]: dados.logradouro || atual[`${tipo}Endereco`],
+        [`${tipo}Bairro`]: dados.bairro || atual[`${tipo}Bairro`],
+        [`${tipo}Cidade`]: dados.localidade || atual[`${tipo}Cidade`],
+        [`${tipo}Estado`]: dados.uf || atual[`${tipo}Estado`],
+        ...(tipo === 'faturamento'
+          ? { faturamentoCodigoIbge: dados.ibge || atual.faturamentoCodigoIbge }
+          : {}),
+      }))
+    } catch {
+      alert('Não foi possível localizar esse CEP.')
     }
   }
 
@@ -2328,7 +2506,14 @@ function PedidoForm() {
 
       clienteCodigo: cliente.codigo,
       clienteNome: nome,
-      clienteDocumento: somenteNumerosCredito(cliente.cnpj || cliente.cpf || ''),
+      clienteDocumento: somenteNumerosCredito(
+        cliente.cnpj ||
+        cliente.cpf ||
+        (cliente as Cliente & { cpfCnpj?: string; cnpjCpf?: string; documento?: string }).cpfCnpj ||
+        (cliente as Cliente & { cpfCnpj?: string; cnpjCpf?: string; documento?: string }).cnpjCpf ||
+        (cliente as Cliente & { cpfCnpj?: string; cnpjCpf?: string; documento?: string }).documento ||
+        '',
+      ),
       clienteIeRg: cliente.inscricaoEstadual || '',
       clienteIndicadorIE: cliente.indicadorIE || (somenteNumerosCredito(cliente.inscricaoEstadual || '') ? '1' : '9'),
       clienteEmail: emailSelecionado,
@@ -2779,6 +2964,47 @@ function PedidoForm() {
     })
   }
 
+  async function salvarDocumentoEmailNoCadastro() {
+    const documento = somenteNumerosCredito(venda.clienteDocumento || '')
+    const email = String(venda.clienteEmailNotaFiscal || venda.clienteEmail || '').trim()
+    if (documento && ![11, 14].includes(documento.length)) {
+      alert('Informe um CPF com 11 dígitos ou CNPJ com 14 dígitos.')
+      return
+    }
+
+    try {
+      const resposta = await carregarColecaoCentral<Cliente>('clientes')
+      const lista = Array.isArray(resposta.data) ? resposta.data : []
+      const codigo = String(venda.clienteCodigo || '').trim()
+      const nome = normalizarBuscaCredito(venda.clienteNome || '')
+      let clienteAtualizado: Cliente | null = null
+      lista.forEach((cliente) => {
+        const legado = cliente as Cliente & { id?: string; documento?: string; cpfCnpj?: string; cnpjCpf?: string }
+        const mesmoCliente =
+          (codigo && String(cliente.codigo || legado.id || '') === codigo) ||
+          (nome && normalizarBuscaCredito(montarNomeClienteBase(cliente)) === nome)
+        if (!mesmoCliente) return
+        clienteAtualizado = {
+          ...cliente,
+          tipoPessoa: documento.length === 14 ? 'Jurídica' : documento.length === 11 ? 'Física' : cliente.tipoPessoa,
+          cnpj: documento.length === 14 ? documento : '',
+          cpf: documento.length === 11 ? documento : '',
+          documento,
+          cpfCnpj: documento,
+          cnpjCpf: documento,
+          email: email || cliente.email || '',
+          emailNotaFiscal: email || (cliente as any).emailNotaFiscal || cliente.email || '',
+          atualizadoEm: new Date().toISOString(),
+        } as Cliente
+      })
+      if (!clienteAtualizado) return
+      const atualizados = await salvarClienteStorageConfirmado(clienteAtualizado)
+      setClientes(atualizados)
+    } catch {
+      alert('Não foi possível gravar o CNPJ/e-mail no cadastro do cliente.')
+    }
+  }
+
   function montarPedidoAtualizado(): Venda {
     const totalAtual = calcularTotais(venda)
     const clienteAtual = localizarClienteAtualParaDocumento(venda)
@@ -2925,10 +3151,16 @@ function PedidoForm() {
   }
 
   async function salvarPedido() {
+    if (edicaoBloqueadaPedido) {
+      alert('Este pedido está concluído e entregue e não pode mais ser alterado.')
+      return
+    }
+
     const vendaAtualizada = montarPedidoAtualizado()
     if (!validarStatusPedidoAntesDeSalvar(vendaAtualizada.statusPedido)) return
 
     try {
+      await salvarDocumentoEmailNoCadastro()
       const vendaConfirmada = await salvarVendaStorageConfirmado(vendaAtualizada)
       setVenda(vendaConfirmada)
       statusPedidoPersistidoRef.current = vendaConfirmada.statusPedido || 'Aberto'
@@ -2944,10 +3176,16 @@ function PedidoForm() {
   }
 
   async function salvarEVoltar() {
+    if (edicaoBloqueadaPedido) {
+      alert('Este pedido está concluído e entregue e não pode mais ser alterado.')
+      return
+    }
+
     const vendaAtualizada = montarPedidoAtualizado()
     if (!validarStatusPedidoAntesDeSalvar(vendaAtualizada.statusPedido)) return
 
     try {
+      await salvarDocumentoEmailNoCadastro()
       const vendaConfirmada = await salvarVendaStorageConfirmado(vendaAtualizada)
       setVenda(vendaConfirmada)
       statusPedidoPersistidoRef.current = vendaConfirmada.statusPedido || 'Aberto'
@@ -2991,6 +3229,57 @@ function PedidoForm() {
       alert('Pedido concluído e confirmado no MySQL.')
     } catch (erro) {
       alert(erro instanceof Error ? `Não foi possível concluir o pedido: ${erro.message}` : 'O MySQL não confirmou a conclusão do pedido.')
+    }
+  }
+
+  async function naoEmitirNotaFiscal() {
+    if (venda.numeroNotaFiscal || venda.chaveAcessoNotaFiscal) {
+      alert('Este pedido já possui nota fiscal vinculada e não pode ser marcado como sem emissão.')
+      return
+    }
+    if (!venda.itens?.length) {
+      alert('Inclua os itens do pedido antes de concluir e entregar.')
+      return
+    }
+
+    const confirmar = window.confirm(
+      `Confirmar que o pedido ${venda.numeroPedido || ''} não terá emissão de NF?\n\n` +
+      'O pedido será concluído e entregue. Se o estoque ainda não foi baixado, a entrega fará a baixa uma única vez.',
+    )
+    if (!confirmar) return
+
+    try {
+      const agora = new Date()
+      const base: Venda = {
+        ...montarPedidoAtualizado(),
+        tipo: 'Pedido',
+        statusPedido: venda.estoqueBaixado ? 'Entregue' : 'Concluído',
+        dispensaEmissaoNfe: true,
+        dispensaEmissaoNfeEm: agora.toISOString(),
+        dispensaEmissaoNfePor: 'Synergias',
+        atualizadoEm: agora.toISOString(),
+      }
+      const confirmado = await salvarVendaStorageConfirmado(base)
+
+      if (confirmado.estoqueBaixado || confirmado.statusPedido === 'Entregue') {
+        const entregue = await salvarVendaStorageConfirmado({
+          ...confirmado,
+          statusPedido: 'Entregue',
+          dataEntregaRealizada: confirmado.dataEntregaRealizada || hoje(),
+          atualizadoEm: new Date().toISOString(),
+        })
+        setVenda(entregue)
+        statusPedidoPersistidoRef.current = 'Entregue'
+      } else {
+        const resultado = await entregarPedidoCentral(String(confirmado.id || ''), 'Synergias')
+        setVenda(resultado.pedido)
+        statusPedidoPersistidoRef.current = resultado.pedido.statusPedido || 'Entregue'
+      }
+      alert('Pedido concluído e entregue sem emissão de NF.')
+    } catch (erro) {
+      alert(erro instanceof Error
+        ? `Não foi possível concluir o pedido sem NF: ${erro.message}`
+        : 'Não foi possível concluir o pedido sem NF.')
     }
   }
 
@@ -3223,7 +3512,7 @@ function PedidoForm() {
         descricao: String(item.descricao || produto?.descricao || ''),
         ncm: somenteDigitosFiscal(item.ncm || produto?.ncm, 8),
         cfop: cfopAutomatico || somenteDigitosFiscal(item.cfop, 4),
-        tipoFiscal: String(produto?.tipoFiscal || 'Mercadoria para Revenda'),
+        tipoFiscal: String(item.tipoFiscalVenda || 'Material de Uso e Consumo'),
         origem: obterOrigemFiscal(produto?.origem),
       }
     }).filter((item) => item.ncm.length !== 8 || item.cfop.length !== 4)
@@ -3339,7 +3628,6 @@ function PedidoForm() {
         salvarProdutoStorage({
           ...produto,
           ncm: somenteDigitosFiscal(ajuste.ncm, 8),
-          tipoFiscal: ajuste.tipoFiscal,
           origem: ajuste.origem,
         })
       }
@@ -3354,6 +3642,7 @@ function PedidoForm() {
           ...item,
           ncm: somenteDigitosFiscal(ajuste.ncm, 8),
           cfop: somenteDigitosFiscal(ajuste.cfop, 4),
+          tipoFiscalVenda: ajuste.tipoFiscal,
         }
       }),
     }))
@@ -3609,6 +3898,30 @@ function PedidoForm() {
       return atualizada
     } catch (error) {
       const mensagem = error instanceof Error ? error.message : 'Falha ao emitir cobrança no Banco Inter.'
+      const codigoExistente = mensagem.match(
+        /c[oó]digo de solicita[cç][aã]o:\s*([0-9a-f-]{36})/i,
+      )?.[1]
+      if (codigoExistente) {
+        try {
+          const cobrancaExistente = await consultarCobrancaInter(codigoExistente)
+          const recuperada = aplicarRetornoInterNaParcela(
+            {
+              ...emitindo,
+              idCobrancaBanco: codigoExistente,
+              idCobrancaApi: codigoExistente,
+            },
+            { ...cobrancaExistente, codigoSolicitacao: codigoExistente },
+          )
+          return {
+            ...recuperada,
+            erroBoleto: '',
+            motivoErroBoleto: '',
+          }
+        } catch {
+          // Se a consulta do identificador informado pelo banco falhar,
+          // preserva o erro original para diagnóstico.
+        }
+      }
       return {
         ...emitindo,
         statusBoleto: 'Erro',
@@ -3664,16 +3977,25 @@ function PedidoForm() {
 
   async function atualizarCobrancas() {
     let parcelas = [...(venda.parcelas || [])]
+    const codigoRegistradoOuRetornadoNoErro = (parcela: ParcelaVenda) =>
+      String(
+        parcela.idCobrancaApi
+        || parcela.idCobrancaBanco
+        || String(parcela.erroBoleto || parcela.motivoErroBoleto || '').match(
+          /c[oó]digo de solicita[cç][aã]o:\s*([0-9a-f-]{36})/i,
+        )?.[1]
+        || '',
+      )
     const consultaveis = parcelas.filter((parcela) =>
       identificarBancoBoletoDaParcela(parcela, venda) === 'Inter' &&
-      Boolean(parcela.idCobrancaApi || parcela.idCobrancaBanco),
+      Boolean(codigoRegistradoOuRetornadoNoErro(parcela)),
     )
 
     if (consultaveis.length === 0) return alert('Nenhuma cobrança Inter emitida para consultar neste pedido.')
 
     for (let indice = 0; indice < parcelas.length; indice += 1) {
       const parcela = parcelas[indice]
-      const codigo = String(parcela.idCobrancaApi || parcela.idCobrancaBanco || '')
+      const codigo = codigoRegistradoOuRetornadoNoErro(parcela)
       if (!codigo || identificarBancoBoletoDaParcela(parcela, venda) !== 'Inter') continue
 
       try {
@@ -3682,7 +4004,11 @@ function PedidoForm() {
         if (!pdfBase64) {
           try { pdfBase64 = await obterPdfCobrancaInter(codigo) } catch { pdfBase64 = '' }
         }
-        const atualizada = aplicarRetornoInterNaParcela(parcela, cobranca, pdfBase64)
+        const atualizada = aplicarRetornoInterNaParcela({
+          ...parcela,
+          idCobrancaBanco: codigo,
+          idCobrancaApi: codigo,
+        }, { ...cobranca, codigoSolicitacao: codigo }, pdfBase64)
         atualizarContaReceberComBoleto(atualizada, cobranca)
         parcelas = parcelas.map((item, posicao) => posicao === indice ? atualizada : item)
       } catch (error) {
@@ -4737,6 +5063,67 @@ Endereço: ${EMPRESA_ENDERECO}`
     window.open(xml, '_blank', 'noopener,noreferrer')
   }
 
+  function recuperarIdentificacaoFiscalParaCancelamento() {
+    const vendaFiscal = venda as Venda & Record<string, any>
+    const historico = Array.isArray(venda.historicoNotaFiscal)
+      ? [...venda.historicoNotaFiscal].reverse()
+      : []
+    const evento = historico.find((item: any) =>
+      String(item?.numero || '') === String(venda.numeroNotaFiscal || '')
+      && ['AUTORIZADA', 'EMITIDA'].includes(String(item?.status || '').toUpperCase())
+    ) || historico.find((item: any) => item?.chaveAcesso || item?.protocolo)
+
+    let chave = String(
+      venda.chaveAcessoNotaFiscal
+      || vendaFiscal.chaveAcesso
+      || vendaFiscal.chaveNFe
+      || vendaFiscal.chaveNfe
+      || evento?.chaveAcesso
+      || '',
+    ).replace(/\D/g, '')
+    let protocolo = String(
+      venda.protocoloNotaFiscal
+      || vendaFiscal.protocoloAutorizacao
+      || vendaFiscal.protocoloNFe
+      || vendaFiscal.protocoloNfe
+      || evento?.protocolo
+      || '',
+    ).trim()
+    let ambiente = String(
+      evento?.ambiente
+      || vendaFiscal.ambienteNFe
+      || vendaFiscal.ambienteFiscal
+      || venda.ambienteNotaFiscal
+      || '',
+    ).toUpperCase()
+
+    let xml = String(venda.xmlNotaFiscal || evento?.xml || '').trim()
+    if (xml && !xml.includes('<')) {
+      try {
+        xml = decodeURIComponent(escape(atob(xml.replace(/^data:[^,]+,/, '').replace(/\s+/g, ''))))
+      } catch {
+        xml = ''
+      }
+    }
+    if (xml.includes('<')) {
+      const chaveXml = xml.match(/<chNFe>(\d{44})<\/chNFe>/i)?.[1]
+        || xml.match(/Id=["']NFe(\d{44})["']/i)?.[1]
+      const protocoloXml = xml.match(/<nProt>([^<]+)<\/nProt>/i)?.[1]
+      const ambienteXml = xml.match(/<tpAmb>([12])<\/tpAmb>/i)?.[1]
+      if (chave.length !== 44 && chaveXml) chave = chaveXml
+      if (!protocolo && protocoloXml) protocolo = protocoloXml.trim()
+      if (ambienteXml === '1') ambiente = 'PRODUCAO'
+      if (ambienteXml === '2') ambiente = 'HOMOLOGACAO'
+    }
+
+    if (ambiente !== 'PRODUCAO' && ambiente !== 'HOMOLOGACAO') {
+      ambiente = venda.statusNotaFiscal === 'Autorizada' || venda.statusNotaFiscal === 'Emitida'
+        ? 'PRODUCAO'
+        : 'HOMOLOGACAO'
+    }
+    return { chave, protocolo, ambiente: ambiente as 'PRODUCAO' | 'HOMOLOGACAO' }
+  }
+
   async function cancelarNotaFiscal() {
     if (venda.statusNotaFiscal === 'Rejeitada' || venda.statusNotaFiscal === 'Erro na emissão') {
       if (!window.confirm('Descartar esta tentativa rejeitada e liberar o Pedido para uma nova emissão? O histórico técnico será preservado.')) return
@@ -4749,11 +5136,21 @@ Endereço: ${EMPRESA_ENDERECO}`
       return
     }
 
-    const chave = String(venda.chaveAcessoNotaFiscal || '').replace(/\D/g, '')
-    const protocolo = String(venda.protocoloNotaFiscal || '').trim()
+    const { chave, protocolo, ambiente } = recuperarIdentificacaoFiscalParaCancelamento()
     if (chave.length !== 44 || !protocolo) {
-      alert('A NF-e não possui chave de acesso ou protocolo de autorização válidos para o cancelamento.')
+      alert('Não foi possível recuperar a chave e o protocolo desta NF-e. Use “Consultar” ou importe novamente o XML autorizado antes de cancelar.')
       return
+    }
+
+    if (chave !== String(venda.chaveAcessoNotaFiscal || '').replace(/\D/g, '') || protocolo !== String(venda.protocoloNotaFiscal || '').trim()) {
+      const recuperada: Venda = {
+        ...venda,
+        chaveAcessoNotaFiscal: chave,
+        protocoloNotaFiscal: protocolo,
+        ambienteNotaFiscal: ambiente,
+      }
+      salvarVendaStorage(recuperada)
+      setVenda(recuperada)
     }
 
     const justificativa = window.prompt(
@@ -4767,7 +5164,6 @@ Endereço: ${EMPRESA_ENDERECO}`
       return
     }
 
-    const ambiente = venda.ambienteNotaFiscal === 'PRODUCAO' ? 'PRODUCAO' : 'HOMOLOGACAO'
     const confirma = window.confirm(
       `Confirma o envio do cancelamento da NF-e nº ${venda.numeroNotaFiscal || ''}, série ${venda.serieNotaFiscal || '1'}, para a SEFAZ em ${ambiente}?`,
     )
@@ -4789,27 +5185,37 @@ Endereço: ${EMPRESA_ENDERECO}`
       }
 
       const agora = data.recebidoEm || new Date().toISOString()
+      const historicoComCancelamento = [
+        ...(venda.historicoNotaFiscal || []),
+        {
+          id: `nfe-cancelamento-${Date.now()}`,
+          ambiente,
+          status: 'Cancelada',
+          numero: String(venda.numeroNotaFiscal || ''),
+          serie: String(venda.serieNotaFiscal || '1'),
+          chaveAcesso: chave,
+          protocolo: String(data.protocolo || ''),
+          cStat: String(data.cStat || ''),
+          motivo: String(data.motivo || 'Cancelamento homologado'),
+          xml: String(data.xmlEventoBase64 || ''),
+          criadoEm: agora,
+        },
+      ]
+      const notaAutorizadaAnterior = [...historicoComCancelamento].reverse().find((item: any) =>
+        String(item?.numero || '') !== String(venda.numeroNotaFiscal || '')
+        && ['AUTORIZADA', 'EMITIDA'].includes(String(item?.status || '').toUpperCase()),
+      ) as any
       const atualizada = {
         ...montarPedidoAtualizado(),
-        statusNotaFiscal: 'Cancelada',
-        cStatNotaFiscal: String(data.cStat || '135'),
+        statusNotaFiscal: notaAutorizadaAnterior ? 'Autorizada' : 'Cancelada',
+        numeroNotaFiscal: notaAutorizadaAnterior?.numero || venda.numeroNotaFiscal,
+        serieNotaFiscal: notaAutorizadaAnterior?.serie || venda.serieNotaFiscal,
+        chaveAcessoNotaFiscal: notaAutorizadaAnterior?.chaveAcesso || (notaAutorizadaAnterior ? '' : chave),
+        protocoloNotaFiscal: notaAutorizadaAnterior?.protocolo || (notaAutorizadaAnterior ? '' : venda.protocoloNotaFiscal),
+        xmlNotaFiscal: notaAutorizadaAnterior?.xml || (notaAutorizadaAnterior ? '' : venda.xmlNotaFiscal),
+        cStatNotaFiscal: notaAutorizadaAnterior?.cStat || String(data.cStat || '135'),
         motivoRejeicaoNotaFiscal: '',
-        historicoNotaFiscal: [
-          ...(venda.historicoNotaFiscal || []),
-          {
-            id: `nfe-cancelamento-${Date.now()}`,
-            ambiente,
-            status: 'Cancelada',
-            numero: String(venda.numeroNotaFiscal || ''),
-            serie: String(venda.serieNotaFiscal || '1'),
-            chaveAcesso: chave,
-            protocolo: String(data.protocolo || ''),
-            cStat: String(data.cStat || ''),
-            motivo: String(data.motivo || 'Cancelamento homologado'),
-            xml: String(data.xmlEventoBase64 || ''),
-            criadoEm: agora,
-          },
-        ],
+        historicoNotaFiscal: historicoComCancelamento,
       } as Venda
       salvarVendaStorage(atualizada)
       setVenda(atualizada)
@@ -5308,6 +5714,7 @@ Synergias Distribuidora`,
               className="pedido-acao pedido-acao-salvar"
               title="Salvar pedido"
               aria-label="Salvar pedido"
+              disabled={edicaoBloqueadaPedido}
               onClick={salvarPedido}
             >
               <Save size={25} strokeWidth={2.4} />
@@ -5315,7 +5722,10 @@ Synergias Distribuidora`,
           </div>
         </div>
 
-        <div className="orcamento-page" data-consolidado={`${SYNERGIAS_CONSOLIDADO_PEDIDO_V248}|${SYNERGIAS_PEDIDO_LAYOUT_FISCAL_V249}|${SYNERGIAS_PEDIDO_2498_DOCUMENTO_PERSISTENTE_V249D}`}>
+        <div
+          className={`orcamento-page ${edicaoBloqueadaPedido ? 'pedido-page-bloqueado' : ''}`}
+          data-consolidado={`${SYNERGIAS_CONSOLIDADO_PEDIDO_V248}|${SYNERGIAS_PEDIDO_LAYOUT_FISCAL_V249}|${SYNERGIAS_PEDIDO_2498_DOCUMENTO_PERSISTENTE_V249D}`}
+        >
           <div className="orcamento-card">
             {/* SYNERGIAS CABECALHO PEDIDO RESPONSIVO V244 INICIO */}
             <style>{`
@@ -5877,16 +6287,18 @@ Synergias Distribuidora`,
                     <div className="select-plus">
                       <input
                         value={novoCliente.documento}
-                        onChange={(e) =>
-                          atualizarNovoCliente('documento', e.target.value)
-                        }
+                        onChange={(e) => {
+                          const numeros = limparNumeros(e.target.value).slice(0, 14)
+                          atualizarNovoCliente('documento', numeros)
+                          if (numeros.length === 14) void buscarCnpjNovoCliente(numeros)
+                        }}
                         placeholder="CPF ou CNPJ"
                       />
 
                       <button
                         type="button"
                         title="Buscar CNPJ"
-                        onClick={buscarCnpjNovoCliente}
+                        onClick={() => void buscarCnpjNovoCliente()}
                         disabled={buscandoCnpj}
                       >
                         {buscandoCnpj ? '...' : <Search size={18} />}
@@ -5931,9 +6343,13 @@ Synergias Distribuidora`,
                     CEP
                     <input
                       value={novoCliente.cep}
-                      onChange={(e) =>
-                        atualizarNovoCliente('cep', e.target.value)
-                      }
+                      onChange={(e) => {
+                        const numeros = limparNumeros(e.target.value).slice(0, 8)
+                        const formatado = numeros.replace(/^(\d{5})(\d{1,3})$/, '$1-$2')
+                        atualizarNovoCliente('cep', formatado)
+                        if (numeros.length === 8) void buscarCepNovoCliente(numeros)
+                      }}
+                      maxLength={9}
                     />
                   </label>
 
@@ -6027,9 +6443,8 @@ Synergias Distribuidora`,
                 CPF ou CNPJ
                 <input
                   value={venda.clienteDocumento || ''}
-                  onChange={(e) =>
-                    atualizarVenda('clienteDocumento', e.target.value)
-                  }
+                  onChange={(e) => atualizarVenda('clienteDocumento', limparNumeros(e.target.value).slice(0, 14))}
+                  onBlur={() => { void salvarDocumentoEmailNoCadastro() }}
                 />
               </label>
 
@@ -6040,6 +6455,7 @@ Synergias Distribuidora`,
                   onChange={(e) =>
                     atualizarVenda('clienteEmail', e.target.value)
                   }
+                  onBlur={() => { void salvarDocumentoEmailNoCadastro() }}
                 />
               </label>
 
@@ -6063,9 +6479,12 @@ Synergias Distribuidora`,
                 CEP
                 <input
                   value={venda.faturamentoCep || ''}
-                  onChange={(e) =>
-                    atualizarVenda('faturamentoCep', e.target.value)
-                  }
+                  maxLength={9}
+                  onChange={(e) => {
+                    const cep = formatarCepPedido(e.target.value)
+                    atualizarVenda('faturamentoCep', cep)
+                    if (limparNumeros(cep).length === 8) void buscarCepVenda('faturamento', cep)
+                  }}
                 />
               </label>
 
@@ -6151,13 +6570,37 @@ Synergias Distribuidora`,
             </div>
 
             <div className="form-grid">
+              {locaisEntregaCliente.length > 0 && (
+                <label className="span-2">
+                  Local de entrega
+                  <select
+                    value={venda.enderecoEntregaId || locaisEntregaCliente[0]?.id || ''}
+                    onChange={(event) => selecionarLocalEntrega(event.target.value)}
+                  >
+                    {locaisEntregaCliente.map((local, indice) => (
+                      <option key={local.id} value={local.id}>
+                        {local.nomeLocal || `Local ${indice + 1}`} — {[
+                          local.logradouro,
+                          local.numero,
+                          local.bairro,
+                          local.cidade,
+                        ].filter(Boolean).join(', ')}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
               <label>
                 CEP
                 <input
                   value={venda.entregaCep || ''}
-                  onChange={(e) =>
-                    atualizarVenda('entregaCep', formatarCepPedido(e.target.value))
-                  }
+                  maxLength={9}
+                  onChange={(e) => {
+                    const cep = formatarCepPedido(e.target.value)
+                    atualizarVenda('entregaCep', cep)
+                    if (limparNumeros(cep).length === 8) void buscarCepVenda('entrega', cep)
+                  }}
                 />
               </label>
 
@@ -6934,11 +7377,20 @@ Synergias Distribuidora`,
                 <div className="pedido-documento-titulo pedido-documento-titulo-com-acoes">
                   <div><ReceiptText size={28} color="#0284c7" /><h3>NOTA FISCAL</h3></div>
                   <span className={`nf-status-badge status-${String(venda.statusNotaFiscal || 'Pendente').toLowerCase().replace(/\s+/g, '-')}`}>
-                    {venda.numeroNotaFiscal ? String(venda.statusNotaFiscal || 'Emitida').toUpperCase() : 'NÃO EMITIDA'}
+                    {venda.dispensaEmissaoNfe
+                      ? 'DISPENSADA'
+                      : venda.numeroNotaFiscal
+                        ? String(venda.statusNotaFiscal || 'Emitida').toUpperCase()
+                        : 'NÃO EMITIDA'}
                   </span>
                 </div>
 
-                {!venda.numeroNotaFiscal ? (
+                {venda.dispensaEmissaoNfe ? (
+                  <div className="nota-resumo-principal">
+                    <strong>Pedido sem emissão de nota fiscal</strong>
+                    <span>Dispensa registrada. O pedido não possui pendência de emissão de NF.</span>
+                  </div>
+                ) : !venda.numeroNotaFiscal ? (
                   <>
                     <div className="nota-resumo-principal"><strong>Nota fiscal não emitida</strong><span>A data de emissão será definida somente após a autorização oficial da SEFAZ.</span></div>
                     <div className="nota-data-entrega-inline nota-fiscal-dados-inline">
@@ -6971,6 +7423,7 @@ Synergias Distribuidora`,
                     <div className="documento-acoes-inline documento-acoes-principais">
                       <button type="button" className="documento-btn destaque" onClick={emitirNotaFiscal}><FileCheck size={18}/> Validar emissão</button>
                       <button type="button" className="documento-btn" onClick={editarDadosNotaFiscal}><FilePenLine size={18}/> Editar dados</button>
+                      <button type="button" className="documento-btn" onClick={naoEmitirNotaFiscal}><ReceiptText size={18}/> NÃO EMITIR NF</button>
                     </div>
                   </>
                 ) : (
@@ -7001,6 +7454,18 @@ Synergias Distribuidora`,
                       <div className="documento-acoes-inline documento-acoes-principais">
                         <button type="button" className="documento-btn" onClick={consultarNotaFiscal}><Search size={18}/> Consultar</button>
                         <button type="button" className="documento-btn" onClick={baixarXmlNotaFiscal}><Download size={18}/> XML</button>
+                      </div>
+                    )}
+                    {(venda.historicoNotaFiscal || []).some((item) =>
+                      String(item.numero || '') !== String(venda.numeroNotaFiscal || '')
+                      || String(item.status || '').toUpperCase() === 'CANCELADA') && (
+                      <div className="nota-validacao">
+                        <strong>Histórico de NF-e</strong>
+                        {(venda.historicoNotaFiscal || []).map((item) => (
+                          <small key={item.id}>
+                            NF-e {item.numero || '-'} — {String(item.status || 'Pendente').toUpperCase()}
+                          </small>
+                        ))}
                       </div>
                     )}
                   </>
@@ -7228,6 +7693,7 @@ Synergias Distribuidora`,
                 type="button"
                 className="save-secondary-button"
                 onClick={salvarPedido}
+                disabled={edicaoBloqueadaPedido}
               >
                 <Save size={18} />
                 Salvar
@@ -7237,6 +7703,7 @@ Synergias Distribuidora`,
                 type="button"
                 className="save-button"
                 onClick={salvarEVoltar}
+                disabled={edicaoBloqueadaPedido}
               >
                 <Save size={18} />
                 Salvar e Voltar

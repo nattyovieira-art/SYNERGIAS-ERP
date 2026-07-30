@@ -10,6 +10,11 @@ if (!in_array($collection, $collectionsPermitidas, true)) {
 }
 
 $pdo = obterPdo();
+$method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+
+// Evita repetir comandos DDL em cada leitura feita durante a abertura do ERP.
+// A verificação da estrutura continua sendo executada antes das gravações.
+if (!in_array($method, ['GET', 'HEAD'], true)) {
 $pdo->exec('CREATE TABLE IF NOT EXISTS erp_storage (
  collection VARCHAR(40) NOT NULL PRIMARY KEY,
  payload LONGTEXT NOT NULL,
@@ -38,6 +43,7 @@ foreach ([
     'ALTER TABLE erp_storage_history ADD COLUMN payload_hash CHAR(64) NOT NULL DEFAULT ""'
 ] as $sqlCompatibilidade) {
     try { $pdo->exec($sqlCompatibilidade); } catch (Throwable $ignorado) {}
+}
 }
 
 function decodificarLista(?string $payload): array {
@@ -126,6 +132,7 @@ function validarIntegridadeCompras(array $atual, array $nova): void {
     foreach ($atual as $compra) {
         if (!is_array($compra) || empty($compra['movimentouEstoque'])) continue;
         $id = trim((string)($compra['id'] ?? ''));
+        if (($id === '' || !isset($novasPorId[$id])) && !empty($compra['estoqueEstornado'])) continue;
         if ($id === '' || !isset($novasPorId[$id])) responder(409, ['ok'=>false,'error'=>'Compra com estoque movimentado não pode ser excluída.']);
         if (empty($novasPorId[$id]['movimentouEstoque'])) responder(409, ['ok'=>false,'error'=>'O vínculo de estoque de uma compra não pode ser removido.']);
     }
@@ -328,14 +335,18 @@ function validarIntegridadeVendas(array $atual, array $nova): void {
 function salvarHistorico(PDO $pdo, string $collection, array $data): void {
     if (count($data) === 0) return;
     $payload = codificarLista($data);
+    $hash = hashPayload($payload);
+    $ultimo = $pdo->prepare('SELECT payload_hash FROM erp_storage_history WHERE collection=:collection ORDER BY id DESC LIMIT 1');
+    $ultimo->execute(['collection' => $collection]);
+    if (hash_equals((string)($ultimo->fetchColumn() ?: ''), $hash)) return;
     $stmt = $pdo->prepare('INSERT INTO erp_storage_history (collection,payload,item_count,payload_hash) VALUES (:collection,:payload,:count,:hash)');
     $stmt->execute([
         'collection' => $collection,
         'payload' => $payload,
         'count' => count($data),
-        'hash' => hashPayload($payload),
+        'hash' => $hash,
     ]);
-    $pdo->prepare('DELETE FROM erp_storage_history WHERE collection=:collection AND id NOT IN (SELECT id FROM (SELECT id FROM erp_storage_history WHERE collection=:collection2 ORDER BY id DESC LIMIT 300) x)')
+    $pdo->prepare('DELETE FROM erp_storage_history WHERE collection=:collection AND id NOT IN (SELECT id FROM (SELECT id FROM erp_storage_history WHERE collection=:collection2 ORDER BY id DESC LIMIT 40) x)')
         ->execute(['collection' => $collection, 'collection2' => $collection]);
 }
 
@@ -346,7 +357,6 @@ function lerRegistro(PDO $pdo, string $collection): ?array {
     return is_array($registro) ? $registro : null;
 }
 
-$method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 $maxPayloadBytes = 32 * 1024 * 1024;
 if (!in_array($method, ['GET', 'HEAD'], true) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > $maxPayloadBytes) {
     responder(413, ['ok' => false, 'error' => 'Payload excede o limite de 32 MB.']);
@@ -392,6 +402,57 @@ if ($method === 'GET') {
 }
 
 if ($method === 'PATCH') {
+    if ($collection === 'clientes') {
+        $raw = file_get_contents('php://input') ?: '{}';
+        $body = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        $record = $body['record'] ?? null;
+        if (!is_array($record)) responder(422, ['ok' => false, 'error' => 'O campo record precisa ser um objeto de cliente.']);
+        $recordId = trim((string)($record['codigo'] ?? $record['id'] ?? ''));
+        if ($recordId === '') responder(422, ['ok' => false, 'error' => 'O cliente precisa possuir código.']);
+
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare('SELECT payload,item_count,payload_hash,updated_at FROM erp_storage WHERE collection=:collection FOR UPDATE');
+            $stmt->execute(['collection' => 'clientes']);
+            $central = $stmt->fetch();
+            if (!is_array($central)) throw new RuntimeException('Coleção clientes não encontrada.');
+            $atual = decodificarLista((string)$central['payload']);
+            $indiceAlvo = null;
+            foreach ($atual as $indice => $item) {
+                if (!is_array($item)) continue;
+                $itemId = trim((string)($item['codigo'] ?? $item['id'] ?? ''));
+                if ($itemId === $recordId) {
+                    if ($indiceAlvo !== null) responder(409, ['ok' => false, 'error' => 'Há clientes duplicados com este código no MySQL.']);
+                    $indiceAlvo = $indice;
+                }
+            }
+            if ($indiceAlvo === null) {
+                $atual[] = $record;
+                $indiceAlvo = array_key_last($atual);
+            } else {
+                $atual[$indiceAlvo] = $record;
+            }
+
+            salvarHistorico($pdo, 'clientes', decodificarLista((string)$central['payload']));
+            $payload = codificarLista($atual);
+            $hash = hashPayload($payload);
+            $up = $pdo->prepare("UPDATE erp_storage SET payload=:payload,item_count=:count,payload_hash=:hash,updated_at=CURRENT_TIMESTAMP WHERE collection='clientes'");
+            $up->execute(['payload' => $payload, 'count' => count($atual), 'hash' => $hash]);
+            $confirmacao = lerRegistro($pdo, 'clientes');
+            if (!$confirmacao || (int)$confirmacao['item_count'] !== count($atual) || !hash_equals($hash, (string)$confirmacao['payload_hash'])) {
+                throw new RuntimeException('O MySQL não confirmou a atualização unitária do cliente.');
+            }
+            $pdo->commit();
+            responder(200, [
+                'ok' => true, 'verified' => true, 'collection' => 'clientes',
+                'count' => count($atual), 'hash' => $hash,
+                'updatedAt' => $confirmacao['updated_at'] ?? null, 'record' => $record,
+            ]);
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+    }
     if ($collection !== 'vendas') responder(405, ['ok' => false, 'error' => 'Atualização unitária disponível somente para vendas.']);
     $raw = file_get_contents('php://input') ?: '{}';
     $body = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);

@@ -22,7 +22,7 @@ import {
 import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import { listarContasReceberStorage } from '../../services/financeiroStorage'
-import { excluirVendaStorageConfirmado, listarVendasStorage as listarVendasCentral, salvarVendaStorageConfirmado, salvarVendasStorage as salvarVendasCentral } from '../../services/vendasStorage'
+import { excluirVendaStorageConfirmado, listarVendasStorage as listarVendasCentral, salvarVendaStorageConfirmado } from '../../services/vendasStorage'
 import { ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
 import { determinarEstadoRealOrcamento } from '../../services/orcamentoEstado'
 import OrcamentoTextoModal from './OrcamentoTextoModal'
@@ -66,6 +66,8 @@ type VendaLista = {
   faturadoEm?: string
   dataFaturamento?: string
   dataEmissaoNotaFiscal?: string
+  dataEnvioNotaBoleto?: string
+  emailEnviadoEm?: string
   numeroNfe?: string
   numeroNotaFiscal?: string
   numeroNFe?: string
@@ -282,21 +284,7 @@ function localizarPedidoVinculado(
   orcamento: VendaLista,
   vendasAtuais: VendaLista[],
 ) {
-  return vendasAtuais.find(
-    (registro) =>
-      ehPedido(registro) &&
-      (
-        String(registro.orcamentoOrigemId || '') === String(orcamento.id || '') ||
-        (
-          Boolean(orcamento.pedidoGeradoId) &&
-          String(registro.id || '') === String(orcamento.pedidoGeradoId || '')
-        ) ||
-        (
-          Boolean(orcamento.numeroPedido) &&
-          String(registro.numeroPedido || '') === String(orcamento.numeroPedido || '')
-        )
-      ),
-  )
+  return determinarEstadoRealOrcamento(orcamento, vendasAtuais).pedidoReal as VendaLista | undefined
 }
 
 function pedidoVinculadoFoiGerado(
@@ -559,10 +547,6 @@ function carregarVendasStorage(): VendaLista[] {
   return listarVendasCentral() as unknown as VendaLista[]
 }
 
-function salvarVendasStorage(vendas: VendaLista[]) {
-  salvarVendasCentral(vendas as any)
-}
-
 function Vendas() {
   const navigate = useNavigate()
 
@@ -814,7 +798,7 @@ function Vendas() {
     navigate(`/vendas/orcamentos/editar/${venda.id}`)
   }
 
-  function conciliarPedido(event: MouseEvent<HTMLButtonElement>, venda: VendaLista) {
+  async function conciliarPedido(event: MouseEvent<HTMLButtonElement>, venda: VendaLista) {
     event.preventDefault()
     event.stopPropagation()
 
@@ -850,18 +834,18 @@ function Vendas() {
     }
 
     const agora = new Date()
-    const atualizadas = vendas.map((item) =>
-      String(item.id) === String(venda.id)
-        ? {
-            ...item,
-            conciliado: true,
-            dataConciliacao: agora.toISOString().slice(0, 10),
-            horarioConciliacao: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          }
-        : item,
-    )
-    salvarVendasStorage(atualizadas)
-    setVendas(atualizadas)
+    const atualizada = {
+      ...venda,
+      conciliado: true,
+      dataConciliacao: agora.toISOString().slice(0, 10),
+      horarioConciliacao: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    }
+    try {
+      await salvarVendaStorageConfirmado(atualizada as any)
+      setVendas(carregarVendasStorage())
+    } catch (erro) {
+      alert(erro instanceof Error ? erro.message : 'O servidor não confirmou a conciliação.')
+    }
   }
 
   function abrirImpressaoVenda(event: MouseEvent<HTMLButtonElement>, venda: VendaLista) {
@@ -980,7 +964,7 @@ function Vendas() {
     }
   }
 
-  function gerarPedido(
+  async function gerarPedido(
     event: MouseEvent<HTMLButtonElement>,
     vendaAlvo: VendaLista,
   ) {
@@ -1048,16 +1032,17 @@ function Vendas() {
       criadoEm: agora,
     }
 
-    const vendasAtualizadas = [
-      ...vendas.map((registro) =>
-        registro.id === vendaAlvo.id ? orcamentoAtualizado : registro,
-      ),
-      pedidoNovo,
-    ]
-
-    salvarVendasStorage(vendasAtualizadas)
-    setVendas(vendasAtualizadas)
-    navigate(`/vendas/pedidos/editar/${pedidoId}`)
+    try {
+      // O pedido é persistido primeiro. Se a atualização do orçamento falhar,
+      // o vínculo gravado no próprio pedido continua impedindo duplicidade.
+      await salvarVendaStorageConfirmado(pedidoNovo as any)
+      await salvarVendaStorageConfirmado(orcamentoAtualizado as any)
+      setVendas(carregarVendasStorage())
+      navigate(`/vendas/pedidos/editar/${pedidoId}`)
+    } catch (erro) {
+      setVendas(carregarVendasStorage())
+      alert(erro instanceof Error ? erro.message : 'O servidor não confirmou a geração do pedido.')
+    }
   }
 
   async function excluirVenda(
@@ -1336,6 +1321,9 @@ function Vendas() {
                               ) : (
                                 <>NF-e: <strong>NÃO EMITIDA</strong></>
                               )}
+                            </span>
+                            <span>
+                              E-MAIL ENVIADO: <strong>{formatarData(venda.dataEnvioNotaBoleto || venda.emailEnviadoEm)}</strong>
                             </span>
                           </>
                         )}

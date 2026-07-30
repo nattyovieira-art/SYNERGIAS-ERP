@@ -2596,3 +2596,12 @@ textarea.pagamento-observacoes-textarea:focus,
 }
 
 /* SYNERGIAS STATUS PEDIDOS V191A - FIM */
+.orcamento-page.orcamento-page-bloqueado .orcamento-card,
+.orcamento-page.orcamento-page-bloqueado .orcamento-section {
+  pointer-events: none;
+}
+
+.orcamento-page.orcamento-page-bloqueado .orcamento-status-pedido-link,
+.orcamento-page.orcamento-page-bloqueado .btn-gerar-pedido {
+  pointer-events: auto;
+}

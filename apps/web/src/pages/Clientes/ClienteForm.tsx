@@ -24,6 +24,20 @@ type ClienteFormProps = {
   modo: 'novo' | 'editar'
 }
 
+function formatarCepCampo(valor: unknown) {
+  const digitos = String(valor || '').replace(/\D/g, '').slice(0, 8)
+  return digitos.length > 5 ? `${digitos.slice(0, 5)}-${digitos.slice(5)}` : digitos
+}
+
+function formatarCnpjCampo(valor: unknown) {
+  const digitos = String(valor || '').replace(/\D/g, '').slice(0, 14)
+  return digitos
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2')
+}
+
 function ClienteForm({ modo }: ClienteFormProps) {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -35,6 +49,7 @@ function ClienteForm({ modo }: ClienteFormProps) {
   const [buscandoCnpj, setBuscandoCnpj] = useState(false)
   const [buscandoCepFiscal, setBuscandoCepFiscal] = useState(false)
   const [buscandoCepEntrega, setBuscandoCepEntrega] = useState(false)
+  const [buscandoCepLocal, setBuscandoCepLocal] = useState(false)
   const [enderecoEntregaSelecionado, setEnderecoEntregaSelecionado] = useState(0)
   const [locaisEntregaAbertos, setLocaisEntregaAbertos] = useState(false)
 
@@ -288,8 +303,8 @@ function ClienteForm({ modo }: ClienteFormProps) {
     }) as Cliente)
   }
 
-  async function buscarCnpj() {
-    const cnpjLimpo = String(c.cnpj || '').replace(/\D/g, '')
+  async function buscarCnpj(cnpjInformado?: string) {
+    const cnpjLimpo = String(cnpjInformado ?? c.cnpj ?? '').replace(/\D/g, '')
 
     if (cnpjLimpo.length !== 14) {
       alert(`O CNPJ está incompleto: foram informados ${cnpjLimpo.length} de 14 números.`)
@@ -342,8 +357,8 @@ function ClienteForm({ modo }: ClienteFormProps) {
     )
   }
 
-  async function buscarCepFiscal() {
-    const cepLimpo = String(c.cep || '').replace(/\D/g, '')
+  async function buscarCepFiscal(cepInformado?: string) {
+    const cepLimpo = String(cepInformado ?? c.cep ?? '').replace(/\D/g, '')
 
     if (cepLimpo.length !== 8) {
       alert('Digite um CEP válido com 8 números.')
@@ -375,8 +390,8 @@ function ClienteForm({ modo }: ClienteFormProps) {
     }
   }
 
-  async function buscarCepEntrega() {
-    const cepLimpo = String(c.cepEntrega || '').replace(/\D/g, '')
+  async function buscarCepEntrega(cepInformado?: string) {
+    const cepLimpo = String(cepInformado ?? c.cepEntrega ?? '').replace(/\D/g, '')
 
     if (cepLimpo.length !== 8) {
       alert('Digite um CEP válido com 8 números.')
@@ -406,6 +421,36 @@ function ClienteForm({ modo }: ClienteFormProps) {
       alert('Não foi possível buscar o CEP.')
     } finally {
       setBuscandoCepEntrega(false)
+    }
+  }
+
+  async function buscarCepLocal(indice: number, cepInformado?: string) {
+    const local = enderecosEntrega[indice]
+    const cepLimpo = String(cepInformado ?? local?.cep ?? '').replace(/\D/g, '')
+    if (!local || cepLimpo.length !== 8) {
+      alert('Digite um CEP válido com 8 números.')
+      return
+    }
+    try {
+      setBuscandoCepLocal(true)
+      const resposta = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const data = await resposta.json()
+      if (!resposta.ok || data.erro) throw new Error('CEP não encontrado')
+      const lista = [...enderecosEntrega]
+      lista[indice] = {
+        ...local,
+        cep: formatarCepCampo(cepLimpo),
+        logradouro: data.logradouro || local.logradouro,
+        bairro: data.bairro || local.bairro,
+        cidade: data.localidade || local.cidade,
+        uf: String(data.uf || local.uf || '').toUpperCase().slice(0, 2),
+        codigoIbgeMunicipio: String(data.ibge || local.codigoIbgeMunicipio || '').replace(/\D/g, '').slice(0, 7),
+      }
+      setCliente((atual) => ({ ...atual, enderecosEntrega: lista }))
+    } catch {
+      alert('Não foi possível buscar o CEP.')
+    } finally {
+      setBuscandoCepLocal(false)
     }
   }
 
@@ -763,12 +808,16 @@ function ClienteForm({ modo }: ClienteFormProps) {
                 <span>CNPJ</span>
                 <div className="select-plus">
                   <input
-                    value={c.cnpj || ''}
-                    onChange={(e) => atualizarCliente('cnpj', e.target.value)}
+                    value={formatarCnpjCampo(c.cnpj)}
+                    onChange={(e) => {
+                      const digitos = e.target.value.replace(/\D/g, '').slice(0, 14)
+                      atualizarCliente('cnpj', digitos)
+                      if (digitos.length === 14) void buscarCnpj(digitos)
+                    }}
                     inputMode="numeric"
-                    maxLength={14}
+                    maxLength={18}
                   />
-                  <button type="button" onClick={buscarCnpj}>
+                  <button type="button" onClick={() => void buscarCnpj()}>
                     {buscandoCnpj ? '...' : <Search size={18} />}
                   </button>
                 </div>
@@ -857,10 +906,14 @@ function ClienteForm({ modo }: ClienteFormProps) {
                 <span>CEP</span>
                 <div className="select-plus">
                   <input
-                    value={c.cep || ''}
-                    onChange={(e) => atualizarCliente('cep', e.target.value)}
+                    value={formatarCepCampo(c.cep)}
+                    onChange={(e) => {
+                      const cep = e.target.value.replace(/\D/g, '').slice(0, 8)
+                      atualizarCliente('cep', formatarCepCampo(cep))
+                      if (cep.length === 8) void buscarCepFiscal(cep)
+                    }}
                   />
-                  <button type="button" onClick={buscarCepFiscal}>
+                  <button type="button" onClick={() => void buscarCepFiscal()}>
                     {buscandoCepFiscal ? '...' : <Search size={18} />}
                   </button>
                 </div>
@@ -953,13 +1006,17 @@ function ClienteForm({ modo }: ClienteFormProps) {
                 <span>CEP Entrega</span>
                 <div className="select-plus">
                   <input
-                    value={c.cepEntrega || ''}
-                    onChange={(e) => atualizarCliente('cepEntrega', e.target.value)}
+                    value={formatarCepCampo(c.cepEntrega)}
+                    onChange={(e) => {
+                      const cep = e.target.value.replace(/\D/g, '').slice(0, 8)
+                      atualizarCliente('cepEntrega', formatarCepCampo(cep))
+                      if (cep.length === 8) void buscarCepEntrega(cep)
+                    }}
                     disabled={!!c.mesmoEnderecoFiscal}
                   />
                   <button
                     type="button"
-                    onClick={buscarCepEntrega}
+                    onClick={() => void buscarCepEntrega()}
                     disabled={!!c.mesmoEnderecoFiscal}
                   >
                     {buscandoCepEntrega ? '...' : <Search size={18} />}
@@ -1071,7 +1128,7 @@ function ClienteForm({ modo }: ClienteFormProps) {
                   {enderecoAtual && <div className="form-grid local-entrega-editor">
                   <label>Nome do local<input value={enderecoAtual.nomeLocal} onChange={(e) => atualizarEnderecoEntrega('nomeLocal', e.target.value)} placeholder="Matriz, Filial, Bloco A..." /></label>
                   <label>Tipo<select value={enderecoAtual.tipoLocal} onChange={(e) => atualizarEnderecoEntrega('tipoLocal', e.target.value)}><option>Residencial</option><option>Comercial</option><option>Outro</option></select></label>
-                  <label>CEP<input value={enderecoAtual.cep} onChange={(e) => atualizarEnderecoEntrega('cep', e.target.value)} /></label><label>Logradouro<input value={enderecoAtual.logradouro} onChange={(e) => atualizarEnderecoEntrega('logradouro', e.target.value)} /></label>
+                  <div className="form-field"><span>CEP</span><div className="select-plus"><input value={formatarCepCampo(enderecoAtual.cep)} onChange={(e) => { const cep = e.target.value.replace(/\D/g, '').slice(0, 8); atualizarEnderecoEntrega('cep', formatarCepCampo(cep)); if (cep.length === 8) void buscarCepLocal(enderecoEntregaSelecionado, cep) }} /><button type="button" onClick={() => void buscarCepLocal(enderecoEntregaSelecionado)} disabled={buscandoCepLocal}>{buscandoCepLocal ? '...' : <Search size={18} />}</button></div></div><label>Logradouro<input value={enderecoAtual.logradouro} onChange={(e) => atualizarEnderecoEntrega('logradouro', e.target.value)} /></label>
                   <label>Número<input value={enderecoAtual.numero} onChange={(e) => atualizarEnderecoEntrega('numero', e.target.value)} /></label><label>Complemento<input value={enderecoAtual.complemento} onChange={(e) => atualizarEnderecoEntrega('complemento', e.target.value)} /></label>
                   <label>Bairro<input value={enderecoAtual.bairro} onChange={(e) => atualizarEnderecoEntrega('bairro', e.target.value)} /></label><label>Cidade<input value={enderecoAtual.cidade} onChange={(e) => atualizarEnderecoEntrega('cidade', e.target.value)} /></label>
                   <label>UF<input value={enderecoAtual.uf} maxLength={2} onChange={(e) => atualizarEnderecoEntrega('uf', e.target.value.toUpperCase())} /></label><label>Responsável<input value={enderecoAtual.responsavel} onChange={(e) => atualizarEnderecoEntrega('responsavel', e.target.value)} /></label>

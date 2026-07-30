@@ -64,11 +64,13 @@ export async function consultarCnpj(cnpjInformado: string): Promise<DadosCnpjCon
   if (cnpj.length !== 14) throw new Error('Digite um CNPJ válido com 14 números.')
   if (!cnpjTemDigitosValidos(cnpj)) throw new Error('Os dígitos verificadores deste CNPJ não conferem.')
 
-  const resposta = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, {
+  const resposta = await fetch(`/api/cnpj-consulta.php?cnpj=${encodeURIComponent(cnpj)}`, {
     method: 'GET',
     headers: { Accept: 'application/json' },
+    credentials: 'same-origin',
   })
-  const dados = (await resposta.json()) as BrasilApiCnpjResponse
+  const payload = (await resposta.json()) as { data?: BrasilApiCnpjResponse }
+  const dados = payload.data || {}
   if (!resposta.ok) {
     if (resposta.status === 404) {
       throw new Error('A consulta automática não retornou os dados deste CNPJ. Se ele foi confirmado na Receita Federal, preencha os dados manualmente e salve normalmente.')

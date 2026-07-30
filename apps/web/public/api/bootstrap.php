@@ -1,5 +1,8 @@
 <?php
 declare(strict_types=1);
+if (extension_loaded('zlib') && !ini_get('zlib.output_compression')) {
+    ob_start('ob_gzhandler');
+}
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
@@ -67,7 +70,16 @@ function reenviarOtpSessao(string $chave,string $finalidade,array $cfg): void { 
 function validarOtpSessao(string $chave,string $codigo): bool { iniciarSessaoSegura(); $d=$_SESSION[$chave]??null; if(!is_array($d)||time()>(int)($d['expires']??0)||($d['attempts']??0)>=6)return false; $_SESSION[$chave]['attempts']=(int)($d['attempts']??0)+1; if(!hash_equals((string)$d['hash'],hash('sha256',$codigo)))return false; $_SESSION[$chave]['verified']=true; return true; }
 function usuarioAutenticado(): ?array { iniciarSessaoSegura(); $u=$_SESSION['auth_user']??null; return is_array($u)?$u:null; }
 function exigirMesmaOrigem(): void { $metodo=strtoupper((string)($_SERVER['REQUEST_METHOD']??'GET')); if(in_array($metodo,['GET','HEAD','OPTIONS'],true))return; $site=strtolower(trim((string)($_SERVER['HTTP_SEC_FETCH_SITE']??''))); if($site!==''&&!in_array($site,['same-origin','same-site','none'],true))responder(403,['ok'=>false,'error'=>'Origem da requisição não autorizada.']); $origin=trim((string)($_SERVER['HTTP_ORIGIN']??'')); if($origin==='')return; $host=strtolower(preg_replace('/:\d+$/','',(string)($_SERVER['HTTP_HOST']??''))??''); $originHost=strtolower((string)(parse_url($origin,PHP_URL_HOST)??'')); if($host===''||$originHost===''||!hash_equals($host,$originHost))responder(403,['ok'=>false,'error'=>'Origem da requisição não autorizada.']); }
-function exigirAutenticacao(): array { iniciarSessaoSegura(); $u=usuarioAutenticado(); if($u===null)responder(401,['ok'=>false,'error'=>'Sessão não autenticada.']); exigirMesmaOrigem(); return $u; }
+function exigirAutenticacao(): array {
+    iniciarSessaoSegura();
+    $u=usuarioAutenticado();
+    if($u===null)responder(401,['ok'=>false,'error'=>'Sessão não autenticada.']);
+    exigirMesmaOrigem();
+    // A API não altera mais a sessão depois desta validação. Liberar o lock
+    // permite que as coleções do ERP sejam carregadas realmente em paralelo.
+    if(session_status()===PHP_SESSION_ACTIVE) session_write_close();
+    return $u;
+}
 function base64UrlEncode(string $valor): string {return rtrim(strtr(base64_encode($valor),'+/','-_'),'=');}
 function base64UrlDecode(string $valor) {$resto=strlen($valor)%4;if($resto!==0)$valor.=str_repeat('=',4-$resto);return base64_decode(strtr($valor,'-_','+/'),true);}
 function cookieSeguro(): bool {return (!empty($_SERVER['HTTPS'])&&strtolower((string)$_SERVER['HTTPS'])!=='off')||((string)($_SERVER['HTTP_X_FORWARDED_PROTO']??'')==='https');}

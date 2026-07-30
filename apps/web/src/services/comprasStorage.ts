@@ -137,7 +137,7 @@ export async function salvarCompraStorageConfirmado(compra: Compra): Promise<voi
 
 export function excluirCompraStorage(id: string): void {
   const existente = buscarCompraStorage(id)
-  if (existente?.movimentouEstoque) {
+  if (existente?.movimentouEstoque && !existente?.estoqueEstornado) {
     throw new Error('Compra com estoque movimentado não pode ser excluída. Registre uma devolução ou estorno auditado.')
   }
   const compras = listarComprasStorage().filter((compra) => compra.id !== id)
@@ -148,6 +148,27 @@ export function excluirCompraStorage(id: string): void {
 export async function excluirCompraStorageConfirmado(id: string): Promise<void> {
   excluirCompraStorage(id)
   await sincronizarColecaoCentralAgora('compras', listarComprasStorage(), true)
+}
+
+export async function excluirCompraEspecificaStorageConfirmado(compraAlvo: Compra): Promise<void> {
+  if (compraAlvo.movimentouEstoque && !compraAlvo.estoqueEstornado) {
+    throw new Error('Compra com estoque movimentado não pode ser excluída. Registre uma devolução ou estorno auditado.')
+  }
+
+  const chaveAlvo = String(compraAlvo.chaveAcessoNFe || '').replace(/\D/g, '')
+  const compras = listarComprasStorage().filter((compra) => {
+    if (chaveAlvo.length === 44) {
+      return String(compra.chaveAcessoNFe || '').replace(/\D/g, '') !== chaveAlvo
+    }
+    return compra !== compraAlvo && !(
+      compra.id === compraAlvo.id &&
+      String(compra.numeroNFe || '') === String(compraAlvo.numeroNFe || '') &&
+      String(compra.fornecedorDocumento || '') === String(compraAlvo.fornecedorDocumento || '')
+    )
+  })
+
+  persistirCompras(compras)
+  await sincronizarColecaoCentralAgora('compras', compras, true)
 }
 
 export function gerarNumeroCompraStorage(): string {

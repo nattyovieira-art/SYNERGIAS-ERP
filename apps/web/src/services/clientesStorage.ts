@@ -46,21 +46,20 @@ export async function salvarClienteStorageConfirmado(cliente: Cliente) {
       : [...clientes, clientePersistente]
   }
 
-  let atualizados = mesclar(listarClientesStorage())
+  const atualizados = mesclar(listarClientesStorage())
   definirColecaoMemoria('clientes', atualizados)
 
-  try {
-    await sincronizarColecaoCentralAgora('clientes', atualizados)
-  } catch (erro) {
+  const resposta = await fetch('/api/storage.php?collection=clientes', {
+    method: 'PATCH',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ record: clientePersistente }),
+  })
+  const confirmacao = await resposta.json().catch(() => null) as { ok?: boolean; error?: string } | null
+  if (!resposta.ok || !confirmacao?.ok) {
     const central = await carregarColecaoCentral<Cliente>('clientes')
-    atualizados = mesclar(central.data)
-    definirColecaoMemoria('clientes', atualizados)
-    try {
-      await sincronizarColecaoCentralAgora('clientes', atualizados)
-    } catch {
-      definirColecaoMemoria('clientes', central.data)
-      throw erro
-    }
+    definirColecaoMemoria('clientes', central.data)
+    throw new Error(confirmacao?.error || 'Não foi possível cadastrar o cliente no MySQL.')
   }
 
   return atualizados

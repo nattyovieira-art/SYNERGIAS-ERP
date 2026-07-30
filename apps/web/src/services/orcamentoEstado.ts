@@ -35,9 +35,16 @@ export function localizarPedidosReaisDoOrcamento(orcamento: RegistroVendaEstado,
     const origemNumero = numeroLogico(registro.orcamentoOrigemNumero)
     // Campos copiados no Orçamento por importações antigas não provam conversão.
     // Com ID interno disponível, somente o vínculo ID -> ID é inequívoco.
-    return idOrcamento
-      ? origemId === idOrcamento
-      : Boolean(numeroOrcamento && origemNumero === numeroOrcamento)
+    const pedidoGeradoId = String(orcamento.pedidoGeradoId || orcamento.pedidoId || '').trim()
+    const numeroPedidoGerado = numeroLogico(orcamento.numeroPedido)
+    const numeroOrcamentoLegado = numeroLogico(registro.numeroOrcamento)
+    return Boolean(
+      (idOrcamento && origemId === idOrcamento) ||
+      (pedidoGeradoId && String(registro.id || '').trim() === pedidoGeradoId) ||
+      (numeroPedidoGerado && numeroLogico(registro.numeroPedido) === numeroPedidoGerado) ||
+      (numeroOrcamento && origemNumero === numeroOrcamento) ||
+      (numeroOrcamento && numeroOrcamentoLegado === numeroOrcamento)
+    )
   })
 }
 

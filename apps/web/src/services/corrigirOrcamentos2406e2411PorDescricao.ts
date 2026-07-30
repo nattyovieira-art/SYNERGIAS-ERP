@@ -1,4 +1,5 @@
 const MARCADOR = 'SYNERGIAS_ORCAMENTOS_2406_2411_DESCRICAO_V312'
+const MARCADOR_KARPATHOS_2397 = 'SYNERGIAS_ORCAMENTO_2397_DESCRICAO_PDF_V313'
 
 type ItemCarga = readonly [string, number, number, number?]
 type Carga = {
@@ -337,6 +338,9 @@ export async function corrigirOrcamentos2406e2411PorDescricao(
   const produtos = Array.isArray(produtosEntrada) ? produtosEntrada : []
   const clientes = Array.isArray(clientesEntrada) ? clientesEntrada : []
   for (const carga of CARGAS) {
+    const marcadorCarga = carga.numero === '2397'
+      ? MARCADOR_KARPATHOS_2397
+      : `${MARCADOR}_${carga.numero}`
     const candidatos = vendas.filter((venda) =>
       normalizar(venda?.tipo).includes('ORCAMENTO') &&
       String(venda?.numeroOrcamento || venda?.numero || '').replace(/\D/g, '') === carga.numero)
@@ -351,7 +355,7 @@ export async function corrigirOrcamentos2406e2411PorDescricao(
     if (!candidatos.length && !clienteCadastro) {
       throw new Error(`Orçamento ${carga.numero} bloqueado: cliente não localizado de forma única.`)
     }
-    if (atual?.marcadorCorrecao === `${MARCADOR}_${carga.numero}`) continue
+    if (atual?.marcadorCorrecao === marcadorCarga) continue
     const itens = montarItens(carga, produtos)
     const total = Number(itens.reduce((soma, item) => soma + item.valorTotal, 0).toFixed(2))
     if (total !== carga.total) throw new Error(`Orçamento ${carga.numero}: total ${total} diverge de ${carga.total}.`)
@@ -405,7 +409,7 @@ export async function corrigirOrcamentos2406e2411PorDescricao(
         ...pagamento,
         observacoes: pagamento.observacoes || '',
       })),
-      marcadorCorrecao: `${MARCADOR}_${carga.numero}`,
+      marcadorCorrecao: marcadorCarga,
       atualizadoEm: agora,
     }
     await atualizar('vendas', registro)

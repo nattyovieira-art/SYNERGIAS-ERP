@@ -53,6 +53,7 @@ const memoria: Record<ColecaoCentral, unknown[]> = {
   movimentacoesEstoque: [],
 }
 const filas = new Map<ColecaoCentral, Promise<void>>()
+const leiturasEmAndamento = new Map<ColecaoCentral, Promise<RespostaColecao<unknown>>>()
 const versoesCentrais = new Map<ColecaoCentral, { hash: string; updatedAt: string }>()
 export const ERP_STORAGE_UPDATED_EVENT = 'synergias:storage-updated'
 
@@ -114,15 +115,26 @@ async function lerResposta<T>(response: Response): Promise<T> {
 }
 
 export async function carregarColecaoCentral<T>(collection: ColecaoCentral): Promise<RespostaColecao<T>> {
-  const response = await fetch(`${API_STORAGE_URL}?collection=${encodeURIComponent(collection)}&_=${Date.now()}`, {
-    method: 'GET', headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin',
-  })
-  const resposta = await lerResposta<RespostaColecao<T>>(response)
-  versoesCentrais.set(collection, {
-    hash: String(resposta.hash || ''),
-    updatedAt: String(resposta.updatedAt || ''),
-  })
-  return resposta
+  const existente = leiturasEmAndamento.get(collection)
+  if (existente) return existente as Promise<RespostaColecao<T>>
+
+  const leitura = (async () => {
+    const response = await fetch(`${API_STORAGE_URL}?collection=${encodeURIComponent(collection)}&_=${Date.now()}`, {
+      method: 'GET', headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin',
+    })
+    const resposta = await lerResposta<RespostaColecao<unknown>>(response)
+    versoesCentrais.set(collection, {
+      hash: String(resposta.hash || ''),
+      updatedAt: String(resposta.updatedAt || ''),
+    })
+    return resposta
+  })()
+  leiturasEmAndamento.set(collection, leitura)
+  try {
+    return await leitura as RespostaColecao<T>
+  } finally {
+    if (leiturasEmAndamento.get(collection) === leitura) leiturasEmAndamento.delete(collection)
+  }
 }
 
 export async function substituirColecaoCentral<T>(collection: ColecaoCentral, data: T[], allowEmpty = false): Promise<void> {
@@ -1022,6 +1034,155 @@ async function restaurarVinculoDoPedido2505UmaVez(vendas: any[]): Promise<any[]>
   return atuais
 }
 
+export async function restaurarHistoricoFiscalVisivel(vendas: any[]): Promise<any[]> {
+  const somenteNumero = (valor: unknown) => String(valor || '').replace(/\D/g, '').replace(/^0+/, '')
+  const notasCanceladasConfirmadas = new Set(['2497'])
+  const ajustesConfirmados: Record<string, { ativa: string; canceladas?: string[] }> = {
+    '2502': { ativa: '2419' },
+    '2503': { ativa: '2421', canceladas: ['2497'] },
+  }
+  let alterou = false
+  const agora = new Date().toISOString()
+  const corrigidas = (Array.isArray(vendas) ? vendas : []).map((registro: any) => {
+    if (!String(registro?.tipo || '').toUpperCase().includes('PED')) return registro
+    const pedido = somenteNumero(registro?.numeroPedido)
+    const historicoOriginal = Array.isArray(registro?.historicoNotaFiscal) ? registro.historicoNotaFiscal : []
+    const historico = [...historicoOriginal]
+    const confirmado = ajustesConfirmados[pedido]
+    const numeroAtual = somenteNumero(registro?.numeroNotaFiscal)
+    if (notasCanceladasConfirmadas.has(numeroAtual) && !historico.some((item: any) =>
+      somenteNumero(item?.numero) === numeroAtual
+      && String(item?.status || '').toUpperCase() === 'CANCELADA')) {
+      historico.push({
+        id: `nfe-${numeroAtual}-cancelada-confirmada`,
+        ambiente: 'PRODUCAO',
+        status: 'Cancelada',
+        numero: numeroAtual,
+        serie: String(registro?.serieNotaFiscal || '1'),
+        chaveAcesso: registro?.chaveAcessoNotaFiscal || '',
+        protocolo: registro?.protocoloCancelamentoNotaFiscal || '',
+        motivo: 'Cancelamento confirmado pelo usuário.',
+        criadoEm: registro?.dataCancelamentoNotaFiscal || agora,
+      })
+    }
+
+    if (confirmado) {
+      if (!historico.some((item: any) => somenteNumero(item?.numero) === confirmado.ativa)) {
+        historico.push({
+          id: `nfe-${confirmado.ativa}-restaurada-pedido-${pedido}`,
+          ambiente: 'PRODUCAO',
+          status: 'Autorizada',
+          numero: confirmado.ativa,
+          serie: '1',
+          motivo: 'Vínculo fiscal confirmado pelo usuário e restaurado no histórico.',
+          criadoEm: agora,
+        })
+      }
+      for (const numeroCancelado of confirmado.canceladas || []) {
+        if (!historico.some((item: any) =>
+          somenteNumero(item?.numero) === numeroCancelado
+          && String(item?.status || '').toUpperCase() === 'CANCELADA')) {
+          historico.push({
+            id: `nfe-${numeroCancelado}-cancelada-pedido-${pedido}`,
+            ambiente: 'PRODUCAO',
+            status: 'Cancelada',
+            numero: numeroCancelado,
+            serie: '1',
+            motivo: 'Cancelamento confirmado pelo usuário e preservado no histórico.',
+            criadoEm: agora,
+          })
+        }
+      }
+    }
+
+    const autorizadas = historico.filter((item: any) =>
+      ['AUTORIZADA', 'EMITIDA'].includes(String(item?.status || '').toUpperCase()))
+    const canceladas = new Set(historico
+      .filter((item: any) => String(item?.status || '').toUpperCase() === 'CANCELADA')
+      .map((item: any) => somenteNumero(item?.numero)))
+    const ativa = confirmado
+      ? [...autorizadas].reverse().find((item: any) => somenteNumero(item?.numero) === confirmado.ativa)
+      : [...autorizadas].reverse().find((item: any) => !canceladas.has(somenteNumero(item?.numero)))
+    const atualConfirmadaCancelada = notasCanceladasConfirmadas.has(numeroAtual)
+    const atualOcultaNotaValida = ativa && (
+      !somenteNumero(registro?.numeroNotaFiscal)
+      || String(registro?.statusNotaFiscal || '').toUpperCase() === 'CANCELADA'
+    )
+    const precisaAjuste = Boolean(
+      confirmado
+      || atualConfirmadaCancelada
+      || atualOcultaNotaValida
+      || historico.length !== historicoOriginal.length
+    )
+    if (!precisaAjuste) return registro
+    const numeroAtivo = String(ativa?.numero || confirmado?.ativa || registro?.numeroNotaFiscal || '')
+    const jaCorreto = somenteNumero(registro?.numeroNotaFiscal) === somenteNumero(numeroAtivo)
+      && ['AUTORIZADA', 'EMITIDA'].includes(String(registro?.statusNotaFiscal || '').toUpperCase())
+      && registro?.ocultoListagem !== true
+      && historico.length === historicoOriginal.length
+    if (jaCorreto) return registro
+    alterou = true
+    return {
+      ...registro,
+      ocultoListagem: false,
+      statusNotaFiscal: numeroAtivo && !notasCanceladasConfirmadas.has(somenteNumero(numeroAtivo))
+        ? 'Autorizada'
+        : 'Cancelada',
+      numeroNotaFiscal: numeroAtivo || registro?.numeroNotaFiscal,
+      serieNotaFiscal: ativa?.serie || registro?.serieNotaFiscal || '1',
+      chaveAcessoNotaFiscal: ativa?.chaveAcesso || registro?.chaveAcessoNotaFiscal || '',
+      protocoloNotaFiscal: ativa?.protocolo || registro?.protocoloNotaFiscal || '',
+      xmlNotaFiscal: ativa?.xml || registro?.xmlNotaFiscal || '',
+      ambienteNotaFiscal: ativa?.ambiente || registro?.ambienteNotaFiscal || 'PRODUCAO',
+      historicoNotaFiscal: historico,
+      correcaoHistoricoFiscal: 'SYNERGIAS_HISTORICO_FISCAL_VISIVEL_V340',
+      atualizadoEm: agora,
+    }
+  })
+  if (!alterou) return vendas
+  for (const corrigida of corrigidas) {
+    const original = vendas.find((item: any) => String(item?.id || '') === String(corrigida?.id || ''))
+    if (original !== corrigida) await atualizarRegistroColecaoCentral('vendas', corrigida)
+  }
+  const confirmacao = await carregarColecaoCentral<any>('vendas')
+  return Array.isArray(confirmacao.data) ? confirmacao.data : corrigidas
+}
+
+export async function restaurarVinculoOrcamento2413Pedido2502(vendas: any[]): Promise<any[]> {
+  const numero = (valor: unknown) => String(valor || '').replace(/\D/g, '').replace(/^0+/, '')
+  const orcamento = vendas.find((registro: any) =>
+    !String(registro?.tipo || '').toUpperCase().includes('PED')
+    && numero(registro?.numeroOrcamento) === '2413')
+  const pedido = vendas.find((registro: any) =>
+    String(registro?.tipo || '').toUpperCase().includes('PED')
+    && numero(registro?.numeroPedido) === '2502')
+  if (!orcamento?.id || !pedido?.id) return vendas
+  const vinculoCorreto = String(pedido.orcamentoOrigemId || '') === String(orcamento.id)
+    && numero(pedido.orcamentoOrigemNumero) === '2413'
+    && String(orcamento.pedidoGeradoId || '') === String(pedido.id)
+  if (vinculoCorreto) return vendas
+
+  const agora = new Date().toISOString()
+  await atualizarRegistroColecaoCentral('vendas', {
+    ...pedido,
+    orcamentoOrigemId: orcamento.id,
+    orcamentoOrigemNumero: '2413',
+    atualizadoEm: agora,
+  })
+  await atualizarRegistroColecaoCentral('vendas', {
+    ...orcamento,
+    numeroPedido: '2502',
+    pedidoGerado: true,
+    convertido: true,
+    pedidoGeradoId: pedido.id,
+    pedidoId: pedido.id,
+    pedidoGeradoEm: orcamento.pedidoGeradoEm || pedido.criadoEm || agora,
+    atualizadoEm: agora,
+  })
+  const confirmacao = await carregarColecaoCentral<any>('vendas')
+  return Array.isArray(confirmacao.data) ? confirmacao.data : vendas
+}
+
 export async function inicializarArmazenamentoCentral(): Promise<void> {
   const timeout = new Promise<never>((_, rejeitar) => setTimeout(() => rejeitar(new Error('Tempo limite ao carregar dados do servidor.')), 30000))
   const carregar = Promise.all([
@@ -1079,6 +1240,25 @@ export async function inicializarArmazenamentoCentral(): Promise<void> {
   // Nenhuma importação, reconstrução, mesclagem com cache local ou correção pontual
   // pode regravar a coleção completa durante a abertura do ERP.
   let vendasEstaveis = vendasServidor as any[]
+
+  // A abertura apenas carrega os dados atuais. Migrações históricas já aplicadas
+  // não devem bloquear todos os novos acessos ao ERP.
+  definirColecaoMemoria('clientes', Array.isArray(clientes.data) ? clientes.data : [])
+  definirColecaoMemoria('vendas', vendasEstaveis)
+  // A reconstrução financeira é pesada e não deve bloquear a abertura do ERP.
+  const sincronizarFinanceiro = () => sincronizarFinanceiroComOperacoes(vendasEstaveis, comprasIniciais as any[])
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(sincronizarFinanceiro, { timeout: 5000 })
+  } else {
+    setTimeout(sincronizarFinanceiro, 1000)
+  }
+  // Correções históricas ficam disponíveis para manutenção dirigida, mas não
+  // podem consultar e regravar vendas em toda abertura do ERP.
+  try { localStorage.removeItem('synergias_vendas') } catch {}
+  try { localStorage.removeItem('synergias_clientes') } catch {}
+  limparCachePesadoDoNavegador()
+  return
+
   try {
     const comOrcamento2429 = garantirOrcamento2429(
       vendasEstaveis,

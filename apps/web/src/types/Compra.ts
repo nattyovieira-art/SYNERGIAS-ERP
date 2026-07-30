@@ -102,6 +102,10 @@ export type Compra = {
   movimentouEstoque?: boolean
   estoqueMovimentadoEm?: string
   idMovimentacaoEstoque?: string
+  estoqueEstornado?: boolean
+  estoqueEstornadoEm?: string
+  idsMovimentacoesEstorno?: string[]
+  motivoCancelamento?: string
 
   numeroNFe?: string
   serieNFe?: string

@@ -1,6 +1,6 @@
 // SYNERGIAS_SALVAR_VENDAS_MYSQL_CONFIRMADO_V284
 import type { ParcelaVenda, Venda } from '../types/Venda'
-import { atualizarRegistroColecaoCentral, carregarColecaoCentral, definirColecaoMemoria, excluirRegistroColecaoCentral, obterColecaoMemoria, sincronizarColecaoCentral, sincronizarColecaoCentralAgora } from './erpApi'
+import { atualizarRegistroColecaoCentral, carregarColecaoCentral, definirColecaoMemoria, excluirRegistroColecaoCentral, obterColecaoMemoria, sincronizarColecaoCentralAgora } from './erpApi'
 import { determinarEstadoRealOrcamento, normalizarNovoOrcamentoImportado } from './orcamentoEstado'
 
 
@@ -26,6 +26,22 @@ function gerarDataAtual() {
 }
 
 function normalizarParcela(parcela: ParcelaVenda): ParcelaVenda {
+  const retornoBanco = parcela.bancoRetornoOriginal as any
+  const statusRetornoBanco = String(
+    retornoBanco?.status ||
+    retornoBanco?.situacao ||
+    retornoBanco?.cobranca?.status ||
+    retornoBanco?.cobranca?.situacao ||
+    '',
+  )
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, '_')
+  const pagamentoMarcadoErrado =
+    String(parcela.statusBoleto || '').toUpperCase() === 'PAGO' &&
+    ['A_RECEBER', 'EM_ABERTO', 'ATIVO'].includes(statusRetornoBanco)
   const possuiBoletoGerado = Boolean(
     parcela.idCobrancaBanco ||
     parcela.idCobrancaApi ||
@@ -41,7 +57,9 @@ function normalizarParcela(parcela: ParcelaVenda): ParcelaVenda {
   )
   return {
     ...parcela,
-    statusBoleto: parcela.statusBoleto || (possuiBoletoGerado ? 'Gerado' : 'Pendente'),
+    statusBoleto: pagamentoMarcadoErrado
+      ? 'Gerado'
+      : parcela.statusBoleto || (possuiBoletoGerado ? 'Gerado' : 'Pendente'),
     numeroBoleto: parcela.numeroBoleto || '',
     nossoNumero: parcela.nossoNumero || '',
     seuNumero: parcela.seuNumero || '',
@@ -61,8 +79,9 @@ function normalizarParcela(parcela: ParcelaVenda): ParcelaVenda {
     horarioGeracaoBoleto: parcela.horarioGeracaoBoleto || '',
     dataEnvioBoleto: parcela.dataEnvioBoleto || '',
     horarioEnvioBoleto: parcela.horarioEnvioBoleto || '',
-    dataPagamentoBoleto: parcela.dataPagamentoBoleto || '',
-    horarioPagamentoBoleto: parcela.horarioPagamentoBoleto || '',
+    dataPagamentoBoleto: pagamentoMarcadoErrado ? '' : parcela.dataPagamentoBoleto || '',
+    horarioPagamentoBoleto: pagamentoMarcadoErrado ? '' : parcela.horarioPagamentoBoleto || '',
+    valorRecebido: pagamentoMarcadoErrado ? 0 : Number(parcela.valorRecebido || 0),
     dataCancelamentoBoleto: parcela.dataCancelamentoBoleto || '',
     horarioCancelamentoBoleto: parcela.horarioCancelamentoBoleto || '',
     erroBoleto: parcela.erroBoleto || '',
@@ -135,8 +154,44 @@ export function salvarVendasStorage(vendas: Venda[]) {
     normalizarVenda(venda as VendaComMetadados),
   ) as unknown as Venda[]
 
+  const anteriores = obterColecaoMemoria<Venda>('vendas')
   salvarBackupLocal(vendasNormalizadas)
-  sincronizarColecaoCentral('vendas', vendasNormalizadas)
+  definirColecaoMemoria('vendas', vendasNormalizadas)
+
+  const anterioresPorId = new Map(
+    anteriores.map((venda) => [String((venda as any)?.id || ''), venda]),
+  )
+  const atuaisPorId = new Set(
+    vendasNormalizadas.map((venda) => String((venda as any)?.id || '')),
+  )
+  const alteradas = vendasNormalizadas.filter((venda) => {
+    const id = String((venda as any)?.id || '')
+    if (!id) return false
+    const anterior = anterioresPorId.get(id)
+    return !anterior || JSON.stringify(anterior) !== JSON.stringify(venda)
+  })
+  const removidas = anteriores.filter((venda) => {
+    const id = String((venda as any)?.id || '')
+    return Boolean(id && !atuaisPorId.has(id))
+  })
+
+  // Grava somente os registros alterados. Isso impede que um snapshot antigo
+  // do navegador substitua toda a coleção oficial do MySQL.
+  void (async () => {
+    try {
+      for (const venda of alteradas) {
+        await atualizarRegistroColecaoCentral('vendas', venda as any)
+      }
+      for (const venda of removidas) {
+        await excluirRegistroColecaoCentral('vendas', String((venda as any).id))
+      }
+    } catch (erro) {
+      console.error('[Synergias ERP] O servidor não confirmou a gravação de vendas.', erro)
+      window.dispatchEvent(new CustomEvent('synergias:storage-error', {
+        detail: { collection: 'vendas', message: String((erro as any)?.message || erro) },
+      }))
+    }
+  })()
 }
 
 export function buscarVendaStorage(id: string) {
@@ -407,9 +462,21 @@ export async function corrigirOrcamentosImportadosSemPedidoReal(): Promise<strin
     const registro = venda as any
     const tipo = String(registro.tipo || '').toLocaleLowerCase('pt-BR')
     const status = String(registro.statusOrcamento || registro.status || '').toLocaleLowerCase('pt-BR')
+    const numeroOrcamento = String(registro.numeroOrcamento || '').replace(/\D/g, '')
+    if (
+      !tipo.includes('pedido') &&
+      numeroOrcamento === '2535' &&
+      !registro.correcaoDuplicacaoAbertaEm
+    ) {
+      corrigidos.push('2535')
+      return {
+        ...normalizarNovoOrcamentoImportado(registro),
+        correcaoDuplicacaoAbertaEm: gerarDataAtual(),
+      } as Venda
+    }
     const temLegadoBloqueador = Boolean(registro.numeroPedido || registro.pedidoId || registro.pedidoGeradoId || registro.pedidoGeradoEm || registro.convertido || registro.pedidoGerado)
     const estado = determinarEstadoRealOrcamento(registro, vendas)
-    if (!tipo.includes('orçamento') || !status.includes('abert') || !temLegadoBloqueador || estado.convertido) return venda
+    if (tipo.includes('pedido') || !status.includes('abert') || !temLegadoBloqueador || estado.convertido) return venda
 
     const copia = { ...registro, tipo: 'Orçamento', status: 'ABERTO', statusOrcamento: 'Aberto', aprovado: false, reprovado: false, convertido: false, pedidoGerado: false }
     for (const campo of ['numeroPedido', 'pedidoId', 'pedidoGeradoId', 'pedidoGeradoEm', 'dataConversao']) delete copia[campo]

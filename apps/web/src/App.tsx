@@ -1,67 +1,61 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { HashRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import Login from './pages/Login/Login'
 import { authApi, type AuthUser } from './services/authApi'
 import { inicializarArmazenamentoCentral } from './services/erpApi'
 import { corrigirOrcamentosImportadosSemPedidoReal } from './services/vendasStorage'
-import { carregarCacheMovimentacoesCentral } from './services/pedidoEntregaApi'
 
-import Dashboard from './pages/Dashboard/Dashboard'
-import Clientes from './pages/Clientes/Clientes'
-import ClienteForm from './pages/Clientes/ClienteForm'
-import Produtos from './pages/Produtos/Produtos'
-import ProdutoForm from './pages/Produtos/ProdutoForm'
-import Vendas from './pages/Vendas/Vendas'
-import OrcamentoForm from './pages/Vendas/OrcamentoForm'
-import PedidoForm from './pages/Vendas/PedidoForm'
-import Logistica from './pages/Logistica/Logistica'
-
-import Estoque from './pages/Estoque/Estoque'
-
-import Financeiro from './pages/Financeiro/Financeiro'
-import ContasReceber from './pages/Financeiro/ContasReceber'
-import NovaContaReceber from './pages/Financeiro/NovaContaReceber'
-import NovaContaPagar from './pages/Financeiro/NovaContaPagar'
-import PagarConta from './pages/Financeiro/PagarConta'
-import ConciliacaoBancaria from './pages/Financeiro/ConciliacaoBancaria'
-import ReceberConta from './pages/Financeiro/ReceberConta'
-
-import Compras from './pages/Compras/Compras'
-import CompraForm from './pages/Compras/CompraForm'
-
-import Fiscal from './pages/Fiscal/Fiscal'
-import ConfiguracaoFiscal from './pages/Fiscal/ConfiguracaoFiscal'
-import CertificadoDigital from './pages/Fiscal/CertificadoDigital'
-import AnaliseFiscalEntradas from './pages/Fiscal/AnaliseFiscalEntradas'
-import RegrasNcmCest from './pages/Fiscal/RegrasNcmCest'
-import NFeRecebidas from './pages/Fiscal/NFeRecebidas'
-
-import Relatorios from './pages/Relatorios/Relatorios'
-import RelatorioDetalhe from './pages/Relatorios/RelatorioDetalhe'
-import Configuracoes from './pages/Configuracoes/Configuracoes'
-import ParametrosVendas from './pages/Configuracoes/ParametrosVendas'
-import Vendedores from './pages/Configuracoes/Vendedores'
-import Funcionarios from './pages/Configuracoes/Funcionarios'
-import FormasPagamento from './pages/Configuracoes/FormasPagamento'
-import ContasBancarias from './pages/Configuracoes/ContasBancarias'
-import CategoriasFinanceiras from './pages/Configuracoes/CategoriasFinanceiras'
-import ParametrosMovimentacao from './pages/Configuracoes/ParametrosMovimentacao'
-import NumeracaoFiscal from './pages/Configuracoes/NumeracaoFiscal'
-import NaturezasOperacao from './pages/Configuracoes/NaturezasOperacao'
-import UsuariosPermissoes from './pages/Configuracoes/UsuariosPermissoes'
-import IntegracoesBancarias from './pages/Configuracoes/IntegracoesBancarias'
-import IntegracaoSefazNFe from './pages/Configuracoes/IntegracaoSefazNFe'
-import Sistema from './pages/Configuracoes/Sistema'
-import Marcas from './pages/Produtos/Marcas'
-import UnidadesMedida from './pages/Produtos/UnidadesMedida'
-import Devolucoes from './pages/Vendas/Devolucoes'
-import HistoricoComercial from './pages/Clientes/HistoricoComercial'
-import ContasPagar from './pages/Financeiro/ContasPagar'
-import FluxoCaixa from './pages/Financeiro/FluxoCaixa'
-import LocaisEstoque from './pages/Estoque/LocaisEstoque'
-import MovimentarEstoque from './pages/Estoque/MovimentarEstoque'
-import HistoricoEstoque from './pages/Estoque/HistoricoEstoque'
-import RelatorioBrindes from './pages/Relatorios/RelatorioBrindes'
+const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'))
+const Clientes = lazy(() => import('./pages/Clientes/Clientes'))
+const ClienteForm = lazy(() => import('./pages/Clientes/ClienteForm'))
+const Produtos = lazy(() => import('./pages/Produtos/Produtos'))
+const ProdutoForm = lazy(() => import('./pages/Produtos/ProdutoForm'))
+const Vendas = lazy(() => import('./pages/Vendas/Vendas'))
+const OrcamentoForm = lazy(() => import('./pages/Vendas/OrcamentoForm'))
+const PedidoForm = lazy(() => import('./pages/Vendas/PedidoForm'))
+const Logistica = lazy(() => import('./pages/Logistica/Logistica'))
+const Estoque = lazy(() => import('./pages/Estoque/Estoque'))
+const Financeiro = lazy(() => import('./pages/Financeiro/Financeiro'))
+const ContasReceber = lazy(() => import('./pages/Financeiro/ContasReceber'))
+const NovaContaReceber = lazy(() => import('./pages/Financeiro/NovaContaReceber'))
+const NovaContaPagar = lazy(() => import('./pages/Financeiro/NovaContaPagar'))
+const PagarConta = lazy(() => import('./pages/Financeiro/PagarConta'))
+const ConciliacaoBancaria = lazy(() => import('./pages/Financeiro/ConciliacaoBancaria'))
+const ReceberConta = lazy(() => import('./pages/Financeiro/ReceberConta'))
+const Compras = lazy(() => import('./pages/Compras/Compras'))
+const CompraForm = lazy(() => import('./pages/Compras/CompraForm'))
+const Fiscal = lazy(() => import('./pages/Fiscal/Fiscal'))
+const ConfiguracaoFiscal = lazy(() => import('./pages/Fiscal/ConfiguracaoFiscal'))
+const CertificadoDigital = lazy(() => import('./pages/Fiscal/CertificadoDigital'))
+const AnaliseFiscalEntradas = lazy(() => import('./pages/Fiscal/AnaliseFiscalEntradas'))
+const RegrasNcmCest = lazy(() => import('./pages/Fiscal/RegrasNcmCest'))
+const NFeRecebidas = lazy(() => import('./pages/Fiscal/NFeRecebidas'))
+const Relatorios = lazy(() => import('./pages/Relatorios/Relatorios'))
+const RelatorioDetalhe = lazy(() => import('./pages/Relatorios/RelatorioDetalhe'))
+const Configuracoes = lazy(() => import('./pages/Configuracoes/Configuracoes'))
+const ParametrosVendas = lazy(() => import('./pages/Configuracoes/ParametrosVendas'))
+const Vendedores = lazy(() => import('./pages/Configuracoes/Vendedores'))
+const Funcionarios = lazy(() => import('./pages/Configuracoes/Funcionarios'))
+const FormasPagamento = lazy(() => import('./pages/Configuracoes/FormasPagamento'))
+const ContasBancarias = lazy(() => import('./pages/Configuracoes/ContasBancarias'))
+const CategoriasFinanceiras = lazy(() => import('./pages/Configuracoes/CategoriasFinanceiras'))
+const ParametrosMovimentacao = lazy(() => import('./pages/Configuracoes/ParametrosMovimentacao'))
+const NumeracaoFiscal = lazy(() => import('./pages/Configuracoes/NumeracaoFiscal'))
+const NaturezasOperacao = lazy(() => import('./pages/Configuracoes/NaturezasOperacao'))
+const UsuariosPermissoes = lazy(() => import('./pages/Configuracoes/UsuariosPermissoes'))
+const IntegracoesBancarias = lazy(() => import('./pages/Configuracoes/IntegracoesBancarias'))
+const IntegracaoSefazNFe = lazy(() => import('./pages/Configuracoes/IntegracaoSefazNFe'))
+const Sistema = lazy(() => import('./pages/Configuracoes/Sistema'))
+const Marcas = lazy(() => import('./pages/Produtos/Marcas'))
+const UnidadesMedida = lazy(() => import('./pages/Produtos/UnidadesMedida'))
+const Devolucoes = lazy(() => import('./pages/Vendas/Devolucoes'))
+const HistoricoComercial = lazy(() => import('./pages/Clientes/HistoricoComercial'))
+const ContasPagar = lazy(() => import('./pages/Financeiro/ContasPagar'))
+const FluxoCaixa = lazy(() => import('./pages/Financeiro/FluxoCaixa'))
+const LocaisEstoque = lazy(() => import('./pages/Estoque/LocaisEstoque'))
+const MovimentarEstoque = lazy(() => import('./pages/Estoque/MovimentarEstoque'))
+const HistoricoEstoque = lazy(() => import('./pages/Estoque/HistoricoEstoque'))
+const RelatorioBrindes = lazy(() => import('./pages/Relatorios/RelatorioBrindes'))
 
 import './App.css'
 
@@ -75,6 +69,18 @@ function App() {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [storageLoading, setStorageLoading] = useState(false)
 
+  function executarRotinasSecundarias() {
+    void Promise.allSettled([
+      corrigirOrcamentosImportadosSemPedidoReal(),
+    ]).then((resultados) => {
+      resultados.forEach((resultado) => {
+        if (resultado.status === 'rejected') {
+          console.warn('[Synergias ERP] Rotina secundária não concluída.', resultado.reason)
+        }
+      })
+    })
+  }
+
   useEffect(() => {
     let ativo = true
     authApi.status()
@@ -84,8 +90,6 @@ function App() {
           setStorageLoading(true)
           try {
             await inicializarArmazenamentoCentral()
-            await carregarCacheMovimentacoesCentral()
-            await corrigirOrcamentosImportadosSemPedidoReal()
             if (!ativo) return
             setAuthUser(status.user)
           } catch (erro) {
@@ -105,9 +109,8 @@ function App() {
     setStorageLoading(true)
     try {
       await inicializarArmazenamentoCentral()
-      await carregarCacheMovimentacoesCentral()
-      await corrigirOrcamentosImportadosSemPedidoReal()
       setAuthUser(user)
+      executarRotinasSecundarias()
     } catch (erro) {
       alert(`Não foi possível carregar os dados do servidor: ${erro instanceof Error ? erro.message : String(erro)}`)
       throw erro
@@ -145,7 +148,8 @@ function App() {
 
   return (
     <HashRouter>
-      <Routes>
+      <Suspense fallback={<div className="erp-auth-loading">Carregando página…</div>}>
+        <Routes>
         <Route path="/" element={<Navigate to="/painel" replace />} />
 
         <Route path="/painel" element={<Dashboard />} />
@@ -294,7 +298,8 @@ function App() {
         />
 
         <Route path="*" element={<Navigate to="/painel" replace />} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </HashRouter>
   )
 }

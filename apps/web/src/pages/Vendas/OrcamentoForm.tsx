@@ -27,11 +27,11 @@ import Sidebar from '../../components/Sidebar/Sidebar'
 import logoSynergiasUrl from '../../assets/logo-synergias.png'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import { carregarColecaoCentral, ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
-import { salvarClientesStorageConfirmado } from '../../services/clientesStorage'
+import { salvarClienteStorageConfirmado, salvarClientesStorageConfirmado } from '../../services/clientesStorage'
 import type { Cliente, EnderecoEntregaCliente } from '../../types/Cliente'
 import { enderecoEntregaVazio, formatarEnderecoEntrega, normalizarEnderecosEntrega } from '../../services/enderecosEntrega'
 import { listarVendasStorage as listarVendasCentral, salvarVendaStorageConfirmado as salvarVendaCentralConfirmado } from '../../services/vendasStorage'
-import { determinarEstadoRealOrcamento } from '../../services/orcamentoEstado'
+import { determinarEstadoRealOrcamento, normalizarNovoOrcamentoImportado } from '../../services/orcamentoEstado'
 
 import '../../styles/clientes.css'
 import '../../styles/orcamento-form.css'
@@ -965,6 +965,7 @@ function OrcamentoForm() {
   const estadoRealOrcamento = determinarEstadoRealOrcamento(registroEstadoReal || { id: idOrcamento, numeroOrcamento: numero, statusOrcamento: status }, vendasEstadoReal)
   const possuiPedidoOriginario = estadoRealOrcamento.vinculoUnico
   const statusEhConcluido = estadoRealOrcamento.convertido
+  const edicaoBloqueadaPorPedido = estadoRealOrcamento.convertido
   const classeStatusExibicao = statusEhConcluido
     ? 'concluido'
     : String(status || 'Aberto').toLowerCase()
@@ -1385,10 +1386,11 @@ function OrcamentoForm() {
     try {
       const resposta = await carregarColecaoCentral<Cliente>('clientes')
       const lista = Array.isArray(resposta.data) ? resposta.data : []
-      const atualizados = lista.map((cliente) => {
+      let clienteAtualizado: Cliente | null = null
+      lista.forEach((cliente) => {
         const legado = cliente as Cliente & { id?: string; documento?: string; cpfCnpj?: string; cnpjCpf?: string }
-        if (String(cliente.codigo || legado.id || '') !== String(clienteId)) return cliente
-        return {
+        if (String(cliente.codigo || legado.id || '') !== String(clienteId)) return
+        clienteAtualizado = {
           ...cliente,
           tipoPessoa: documento.length === 14 ? 'Jurídica' : documento.length === 11 ? 'Física' : cliente.tipoPessoa,
           cnpj: documento.length === 14 ? documento : '',
@@ -1401,7 +1403,8 @@ function OrcamentoForm() {
           atualizadoEm: new Date().toISOString(),
         } as Cliente
       })
-      await salvarClientesStorageConfirmado(atualizados)
+      if (!clienteAtualizado) return
+      const atualizados = await salvarClienteStorageConfirmado(clienteAtualizado)
       setClientes(mapearClientesOrcamento(atualizados))
     } catch {
       alert('Não foi possível gravar o CNPJ/e-mail no cadastro do cliente.')
@@ -1505,21 +1508,23 @@ function OrcamentoForm() {
     try {
       const resposta = await carregarColecaoCentral<any>('clientes')
       const atuais = Array.isArray(resposta.data) ? resposta.data : []
-      const atualizados = atuais.map((cliente: any) => {
+      let clienteAtualizado: Cliente | null = null
+      atuais.forEach((cliente: any) => {
         const codigo = String(cliente.codigo || cliente.id || '')
-        if (codigo !== String(clienteId)) return cliente
+        if (codigo !== String(clienteId)) return
         const existentes = normalizarEnderecosEntrega(cliente as Cliente)
         const porId = new Map(existentes.map((endereco) => [endereco.id, endereco]))
         dadosPreenchidos.forEach((endereco) => porId.set(endereco.id, endereco))
         const enderecosSeguros = substituirLista ? dadosPreenchidos : Array.from(porId.values())
-        return {
+        clienteAtualizado = {
           ...cliente,
           enderecosEntrega: enderecosSeguros.length ? enderecosSeguros : enderecos.map((logradouro, indice) => ({ ...enderecoEntregaVazio(), id: `ent-${Date.now()}-${indice}`, nomeLocal: `Local ${indice + 1}`, logradouro })),
           enderecoEntrega: enderecos[0] || cliente.enderecoEntrega || '',
           atualizadoEm: new Date().toISOString(),
-        }
+        } as Cliente
       })
-      await salvarClientesStorageConfirmado(atualizados)
+      if (!clienteAtualizado) throw new Error('Cliente não encontrado')
+      const atualizados = await salvarClienteStorageConfirmado(clienteAtualizado)
       setClientes(mapearClientesOrcamento(atualizados))
     } catch {
       alert('Não foi possível salvar os endereços de entrega no cadastro do cliente.')
@@ -2155,9 +2160,17 @@ function OrcamentoForm() {
   }
 
   async function salvar(statusAtual: StatusOrcamento = status, voltar = false, silencioso = false) {
+    if (edicaoBloqueadaPorPedido) {
+      if (!silencioso) {
+        alert('Este orçamento já possui pedido gerado e não pode mais ser alterado.')
+      }
+      return false
+    }
+
     const orcamento = montarOrcamento(statusAtual)
 
     try {
+      await salvarDocumentoEmailNoCadastro()
       await salvarOrcamentoStorage(orcamento)
       await persistirEnderecosEntregaCliente(enderecosEntregaLista)
       setStatus(statusAtual)
@@ -2382,7 +2395,7 @@ function OrcamentoForm() {
       id: gerarId(),
     }))
 
-    const duplicado: VendaStorage = {
+    const duplicado = normalizarNovoOrcamentoImportado({
       ...montarOrcamento('Aberto'),
       id: novoId,
       numeroOrcamento: novoNumero,
@@ -2394,7 +2407,7 @@ function OrcamentoForm() {
       statusOrcamento: 'Aberto',
       criadoEm: new Date().toISOString(),
       itensEditadosManual: true,
-    }
+    }) as VendaStorage
 
     salvarOrcamentoStorage(duplicado)
 
@@ -2629,7 +2642,7 @@ function OrcamentoForm() {
 
   .address-text {
     margin-left: 9px;
-    white-space: pre-line;
+    white-space: nowrap;
     line-height: 1.4;
     font-size: 12px;
     font-weight: 700;
@@ -2834,12 +2847,18 @@ function OrcamentoForm() {
   @media print {
     html,
     body {
-      width: 190mm;
-      min-height: 277mm;
-      margin: 0 auto;
+      width: auto;
+      min-height: 0;
+      height: auto;
+      margin: 0;
       padding: 0;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+    }
+
+    .document-content {
+      min-height: 0;
+      padding-bottom: 0;
     }
   }
 
@@ -2967,7 +2986,13 @@ function OrcamentoForm() {
           </div>
 
           <div class="section-title">Endereço de entrega</div>
-          <div class="address-text">${escaparHtml(String(enderecoEntregaFinal || '').toLocaleUpperCase('pt-BR'))}</div>
+          <div class="address-text">${escaparHtml(
+            String(enderecoEntregaFinal || '')
+              .replace(/\s*\r?\n+\s*/g, ' ')
+              .replace(/\s{2,}/g, ' ')
+              .trim()
+              .toLocaleUpperCase('pt-BR'),
+          )}</div>
 
           <div class="section-title">Itens do orçamento</div>
 
@@ -3066,7 +3091,9 @@ function OrcamentoForm() {
   }
 
 function abrirImpressaoOrcamento() {
-  salvar(status, false, true)
+  if (!edicaoBloqueadaPorPedido) {
+    void salvar(status, false, true)
+  }
 
   const nomeArquivo = gerarNomeArquivoPdf(
     numero,
@@ -3163,7 +3190,10 @@ function abrirImpressaoOrcamento() {
           />
         </div>
 
-        <div className="orcamento-page" data-conversao-unica={`${SYNERGIAS_CONVERSAO_UNICA_V248}|${SYNERGIAS_ENDERECOS_ENTREGA_CLIENTE_V249}`}>
+        <div
+          className={`orcamento-page ${edicaoBloqueadaPorPedido ? 'orcamento-page-bloqueado' : ''}`}
+          data-conversao-unica={`${SYNERGIAS_CONVERSAO_UNICA_V248}|${SYNERGIAS_ENDERECOS_ENTREGA_CLIENTE_V249}`}
+        >
           <div className="orcamento-top-actions">
             <button
               type="button"
@@ -3215,6 +3245,7 @@ function abrirImpressaoOrcamento() {
               type="button"
               className="orcamento-acao orcamento-acao-salvar"
               title="Salvar orçamento"
+              disabled={edicaoBloqueadaPorPedido}
               onMouseDown={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
@@ -3287,9 +3318,25 @@ function abrirImpressaoOrcamento() {
               <div>
                 <span className="orcamento-label">Status</span>
                 <div className={`orcamento-status ${classeStatusExibicao}`}>
-                  <span className="orcamento-status-indicador">
-                    {statusEhConcluido ? 'CONCLUÍDO' : String(status || 'Aberto').toUpperCase()}
-                  </span>
+                  {statusEhConcluido && possuiPedidoOriginario ? (
+                    <div className="orcamento-status-concluido">
+                      <span className="orcamento-status-concluido-titulo">CONCLUÍDO</span>
+                      <button
+                        type="button"
+                        className="orcamento-status-pedido-link"
+                        onClick={() => {
+                          const pedidoId = estadoRealOrcamento.pedidoReal?.id
+                          if (pedidoId) navigate(`/vendas/pedidos/editar/${pedidoId}`)
+                        }}
+                      >
+                        Pedido {pedidoOriginarioNumero}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="orcamento-status-indicador">
+                      {statusEhConcluido ? 'CONCLUÍDO' : String(status || 'Aberto').toUpperCase()}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -4485,6 +4532,7 @@ function abrirImpressaoOrcamento() {
               <button
                 type="button"
                 className="btn-secundario"
+                disabled={edicaoBloqueadaPorPedido}
                 onMouseDown={(event) => {
                   event.preventDefault()
                   event.stopPropagation()
@@ -4502,6 +4550,7 @@ function abrirImpressaoOrcamento() {
               <button
                 type="button"
                 className="btn-primario"
+                disabled={edicaoBloqueadaPorPedido}
                 onMouseDown={(event) => {
                   event.preventDefault()
                   event.stopPropagation()

@@ -123,7 +123,9 @@ try {
         throw "Bundle local não encontrado: $bundleLocal"
     }
 
-    if (-not (Select-String -LiteralPath $bundleLocal -SimpleMatch $cabecalhoMarker -Quiet)) {
+    $bundleComCabecalho = Get-ChildItem -LiteralPath (Join-Path $dist 'assets') -Filter '*.js' -File |
+        Select-String -SimpleMatch $cabecalhoMarker -Quiet
+    if (-not $bundleComCabecalho) {
         throw 'PUBLICAÇÃO BLOQUEADA: o build não contém o cabeçalho estrutural atual do Pedido.'
     }
 
@@ -173,6 +175,8 @@ try {
     $apiMovimentosStage = Join-Path $stage 'api\estoque-movimentacoes.php'
     $apiStorageLocal = Join-Path $dist 'api\storage.php'
     $apiStorageStage = Join-Path $stage 'api\storage.php'
+    $apiCnpjLocal = Join-Path $dist 'api\cnpj-consulta.php'
+    $apiCnpjStage = Join-Path $stage 'api\cnpj-consulta.php'
     $apiBootstrapLocal = Join-Path $dist 'api\bootstrap.php'
     $apiBootstrapStage = Join-Path $stage 'api\bootstrap.php'
     $apiEmailLocal = Join-Path $dist 'api\enviar-nota-boleto-cliente.php'
@@ -200,6 +204,10 @@ try {
         throw 'A API api\storage.php não foi encontrada no dist.'
     }
     Copy-Item -LiteralPath $apiStorageLocal -Destination $apiStorageStage -Force
+    if (-not (Test-Path -LiteralPath $apiCnpjLocal -PathType Leaf)) {
+        throw 'A API api\cnpj-consulta.php não foi encontrada no dist.'
+    }
+    Copy-Item -LiteralPath $apiCnpjLocal -Destination $apiCnpjStage -Force
     foreach ($apiObrigatoria in @($apiBootstrapLocal, $apiEmailLocal, $apiDanfeLocal, $apiDanfeHtmlLocal, $apiXmlPreviewLocal)) {
         if (-not (Test-Path -LiteralPath $apiObrigatoria -PathType Leaf)) {
             throw "API de segurança não encontrada no build: $apiObrigatoria"
@@ -224,6 +232,7 @@ try {
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/pedido-entrega.php"' -f $apiEntregaStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/estoque-movimentacoes.php"' -f $apiMovimentosStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/storage.php"' -f $apiStorageStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/cnpj-consulta.php"' -f $apiCnpjStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/bootstrap.php"' -f $apiBootstrapStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/enviar-nota-boleto-cliente.php"' -f $apiEmailStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/fiscal/nfe-danfe-pdf.php"' -f $apiDanfeStage, $remoteBase),
@@ -260,7 +269,17 @@ try {
     if ($shaLocal -ne $shaOnline) { throw "Bundle diferente após publicação. SHA local=$shaLocal; SHA online=$shaOnline." }
 
     if (-not (Select-String -LiteralPath $onlineTemp -SimpleMatch $cabecalhoMarker -Quiet)) {
-        throw 'Publicação concluída, mas o bundle online não contém o cabeçalho estrutural atual.'
+        $bundleMarcador = Get-ChildItem -LiteralPath (Join-Path $stage 'assets') -Filter '*.js' -File |
+            Where-Object { Select-String -LiteralPath $_.FullName -SimpleMatch $cabecalhoMarker -Quiet } |
+            Select-Object -First 1
+        if (-not $bundleMarcador) {
+            throw 'O build local não contém o cabeçalho estrutural atual.'
+        }
+        $onlineMarcador = Join-Path $runtime $bundleMarcador.Name
+        Invoke-WebRequest -Uri "${publicUrl}/assets/$($bundleMarcador.Name)?release=$releaseId" -OutFile $onlineMarcador -UseBasicParsing -TimeoutSec 120 -Headers $headers
+        if (-not (Select-String -LiteralPath $onlineMarcador -SimpleMatch $cabecalhoMarker -Quiet)) {
+            throw 'Publicação concluída, mas o módulo online de Pedidos não contém o cabeçalho estrutural atual.'
+        }
     }
 
     Write-Host '[7/7] Validando API fiscal e preservação do .htaccess.erro500...' -ForegroundColor Yellow

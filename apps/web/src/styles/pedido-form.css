@@ -2408,6 +2408,26 @@
 
 /* SYNERGIAS CONSOLIDADO V248 */
 .form-footer .pedido-footer-imprimir { margin-right: auto; }
+
+/* O formulário de pedido reutiliza a estrutura visual de cliente, mas mantém
+   as cores comerciais originais dos seus botões de rodapé. */
+.cliente-form-page[data-synergias-pedido-total] .form-footer .save-button {
+  border: 1px solid #16a34a;
+  background: #22c55e;
+  color: #052e16;
+}
+.cliente-form-page[data-synergias-pedido-total] .form-footer .save-button:hover {
+  background: #16a34a;
+  color: #ffffff;
+}
+.cliente-form-page[data-synergias-pedido-total] .form-footer .save-secondary-button {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+.cliente-form-page[data-synergias-pedido-total] .form-footer .save-secondary-button:hover {
+  background: #f8fafc;
+}
 .nota-fiscal-dados-inline { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: end; }
 .nota-fiscal-observacoes { margin-top: 14px; }
 @media (max-width: 900px) {
@@ -2519,4 +2539,9 @@
   padding:10px;
   color:#64748b;
   font-weight:500;
+}
+.orcamento-page.pedido-page-bloqueado input,
+.orcamento-page.pedido-page-bloqueado select,
+.orcamento-page.pedido-page-bloqueado textarea {
+  pointer-events: none;
 }

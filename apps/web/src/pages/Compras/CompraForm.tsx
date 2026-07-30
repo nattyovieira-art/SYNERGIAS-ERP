@@ -150,6 +150,54 @@ function normalizarItem(item: ItemCompra): ItemCompra {
   }
 }
 
+function aplicarTotaisDoXml(compra: Compra): Compra {
+  if (!compra.xmlNFe) return compra
+  try {
+    const documento = new DOMParser().parseFromString(compra.xmlNFe, 'application/xml')
+    const total = documento.querySelector('ICMSTot')
+    if (!total) return compra
+    const valor = (campo: string) => numero(total.querySelector(campo)?.textContent)
+    const desconto = valor('vDesc')
+    if (desconto <= 0) return compra
+
+    const baseProdutos = compra.itens.reduce(
+      (soma, item) => soma + numero(item.totalFiscal ?? item.total),
+      0,
+    )
+    let descontoAcumulado = 0
+    const itens = compra.itens.map((item, indice) => {
+      const descontoItem = indice === compra.itens.length - 1
+        ? desconto - descontoAcumulado
+        : Number((desconto * numero(item.totalFiscal ?? item.total) / baseProdutos).toFixed(2))
+      descontoAcumulado += descontoItem
+      const descontoAnterior = numero(item.descontoRateado)
+      const custoBase = numero(item.custoFinalItem) + descontoAnterior
+      const custoFinalItem = Math.max(0, custoBase - descontoItem)
+      const quantidade = numero(item.quantidadeConvertida || item.quantidade)
+      return {
+        ...item,
+        descontoRateado: descontoItem,
+        custoFinalItem,
+        custoUnitarioConvertido: quantidade > 0 ? custoFinalItem / quantidade : 0,
+      }
+    })
+
+    return {
+      ...compra,
+      itens,
+      desconto,
+      frete: valor('vFrete'),
+      outrosCustos: valor('vOutro'),
+      totalFinal: valor('vNF'),
+      descontoFinanceiroNFe: desconto,
+      valorLiquidoCobrancaNFe: valor('vNF'),
+      decisaoDescontoFinanceiro: 'LIQUIDO_COM_DESCONTO',
+    }
+  } catch {
+    return compra
+  }
+}
+
 function CompraForm({ modo }: CompraFormProps) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -170,11 +218,12 @@ function CompraForm({ modo }: CompraFormProps) {
 
   const [compra, setCompra] = useState<Compra>(() => {
     if (compraEncontrada) {
+      const compraCorrigida = aplicarTotaisDoXml(compraEncontrada)
       return {
-        ...compraEncontrada,
-        movimentarEstoque: compraEncontrada.movimentarEstoque ?? false,
-        movimentouEstoque: compraEncontrada.movimentouEstoque ?? false,
-        itens: compraEncontrada.itens.map(normalizarItem),
+        ...compraCorrigida,
+        movimentarEstoque: compraCorrigida.movimentarEstoque ?? false,
+        movimentouEstoque: compraCorrigida.movimentouEstoque ?? false,
+        itens: compraCorrigida.itens.map(normalizarItem),
       }
     }
 
@@ -456,6 +505,37 @@ function CompraForm({ modo }: CompraFormProps) {
     }))
   }
 
+  function atualizarQuantidadeConvertida(itemId: string, valor: number) {
+    setCompra((atual) => ({
+      ...atual,
+      itens: atual.itens.map((itemOriginal) => {
+        if (itemOriginal.id !== itemId) return itemOriginal
+
+        const item = normalizarItem(itemOriginal)
+        const quantidadeFiscal = numero(item.quantidadeFiscal)
+        const quantidadeConvertida = Math.max(0, numero(valor))
+        const fatorConversao =
+          quantidadeFiscal > 0 && quantidadeConvertida > 0
+            ? quantidadeConvertida / quantidadeFiscal
+            : 1
+        const custoFinalItem =
+          numero(item.custoFinalItem) > 0
+            ? numero(item.custoFinalItem)
+            : numero(item.totalFiscal ?? item.total)
+
+        return {
+          ...item,
+          fatorConversao,
+          quantidadeConvertida,
+          custoUnitarioConvertido:
+            quantidadeConvertida > 0
+              ? custoFinalItem / quantidadeConvertida
+              : 0,
+        }
+      }),
+    }))
+  }
+
   function removerItem(itemId: string) {
     setCompra((atual) => ({
       ...atual,
@@ -536,7 +616,10 @@ function CompraForm({ modo }: CompraFormProps) {
     const nome = window.prompt('Qual será o nome deste novo produto no sistema?')?.trim() || ''
     if (!nome) return
     const item = compra.itens.find((atual) => atual.id === itemId)
-    const codigo = item?.eanTributavel || item?.eanComercial || `NOVO-${Date.now()}`
+    const ean = String(item?.eanTributavel || item?.eanComercial || '').trim()
+    const codigo = ean && !/^SEM\s*GTIN$/i.test(ean)
+      ? ean
+      : `NOVO-${Date.now()}-${itemId.replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`
     setCompra((atual) => ({
       ...atual,
       itens: atual.itens.map((atualItem) => atualItem.id === itemId
@@ -674,9 +757,16 @@ function CompraForm({ modo }: CompraFormProps) {
   function cadastrarProdutosPendentes(compraBase: Compra) {
     compraBase.itens.forEach((item) => {
       if (item.incluidoNoSistema === false || !item.novoProdutoPendente) return
+      const codigoInformado = String(item.produtoCodigo || '').trim()
+      const semGtin = !codigoInformado || /^SEM\s*GTIN$/i.test(codigoInformado)
+      const codigoProduto = semGtin
+        ? `NOVO-${Date.now()}-${item.id.replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`
+        : codigoInformado
+      item.produtoCodigo = codigoProduto
+      const eanInformado = String(item.eanTributavel || item.eanComercial || '').trim()
       salvarProdutoStorage({
-        codigo: item.produtoCodigo,
-        codigoBarras: item.eanTributavel || item.eanComercial,
+        codigo: codigoProduto,
+        codigoBarras: /^SEM\s*GTIN$/i.test(eanInformado) ? '' : eanInformado,
         descricao: item.novoProdutoNome || item.descricao,
         nome: item.novoProdutoNome || item.descricao,
         unidade: item.unidadeControle || 'UN',
@@ -685,6 +775,9 @@ function CompraForm({ modo }: CompraFormProps) {
         tipoFiscal: 'Mercadoria para Revenda',
         movimentarEstoque: true,
       })
+      item.novoProdutoPendente = false
+      item.novoProdutoNome = ''
+      item.correspondencia = 'DESCRICAO'
     })
   }
 
@@ -1647,8 +1740,17 @@ function CompraForm({ modo }: CompraFormProps) {
                           <label>
                             Quant. convertida
                             <input
+                              type="number"
+                              min="0.0001"
+                              step="0.0001"
                               value={numero(item.quantidadeConvertida)}
-                              disabled
+                              onChange={(event) =>
+                                atualizarQuantidadeConvertida(
+                                  item.id,
+                                  Number(event.target.value),
+                                )
+                              }
+                              disabled={compra.movimentouEstoque}
                             />
                           </label>
 

@@ -3,7 +3,7 @@ import type { ParcelaVenda, Venda } from '../types/Venda'
 export type BancoContadorBoleto = 'Inter'
 
 const STATUS_UTILIZADOS = new Set([
-  'ATIVO', 'EM ABERTO', 'EMABERTO', 'ENVIADO', 'GERADO', 'PAGO', 'REGISTRADO', 'VENCIDO',
+  'ATIVO', 'A RECEBER', 'EM ABERTO', 'EMABERTO', 'ENVIADO', 'GERADO', 'PAGO', 'REGISTRADO', 'VENCIDO',
 ])
 const STATUS_NAO_UTILIZADOS = [
   'BAIX', 'CANCEL', 'EXCLUI', 'FALHA', 'PENDENTE', 'RASCUNHO', 'REJEIT', 'ERRO', 'GERANDO',
@@ -24,12 +24,36 @@ export function identificarBancoDaParcela(parcela: ParcelaVenda, venda?: Venda):
 export function boletoEstaUtilizado(parcela: ParcelaVenda) {
   const status = normalizar(parcela.statusBoleto)
   if (STATUS_NAO_UTILIZADOS.some((trecho) => status.includes(trecho))) return false
-  if (!STATUS_UTILIZADOS.has(status)) return false
-  return Boolean(parcela.idCobrancaApi || parcela.idCobrancaBanco || parcela.nossoNumero || parcela.numeroBoleto)
+  const possuiIdentificador = Boolean(
+    parcela.idCobrancaApi ||
+    parcela.idCobrancaBanco ||
+    parcela.nossoNumero ||
+    parcela.numeroBoleto ||
+    parcela.seuNumero ||
+    parcela.linhaDigitavel ||
+    parcela.codigoBarras ||
+    parcela.linkBoleto ||
+    parcela.boletoPdfUrl ||
+    parcela.boletoPdfBase64 ||
+    parcela.dataGeracaoBoleto
+  )
+  return possuiIdentificador && (STATUS_UTILIZADOS.has(status) || !status)
 }
 
 export function identificadorBancarioBoleto(parcela: ParcelaVenda) {
-  return normalizar(parcela.idCobrancaApi || parcela.idCobrancaBanco || parcela.nossoNumero || parcela.numeroBoleto)
+  return normalizar(
+    parcela.idCobrancaApi ||
+    parcela.idCobrancaBanco ||
+    parcela.nossoNumero ||
+    parcela.numeroBoleto ||
+    parcela.seuNumero ||
+    parcela.linhaDigitavel ||
+    parcela.codigoBarras ||
+    parcela.linkBoleto ||
+    parcela.boletoPdfUrl ||
+    parcela.boletoPdfBase64 ||
+    parcela.dataGeracaoBoleto
+  )
 }
 
 export function mesReferenciaBoleto(parcela: ParcelaVenda, venda?: Venda) {

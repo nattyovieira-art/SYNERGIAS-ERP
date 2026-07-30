@@ -775,6 +775,19 @@
   padding-inline: 10px;
 }
 
+.contas-receber-tabela th {
+  font-size: 11px;
+}
+
+.contas-receber-tabela td,
+.contas-receber-tabela td strong {
+  font-size: 12px;
+}
+
+.contas-receber-tabela td small {
+  font-size: 11px;
+}
+
 .contas-receber-tabela td strong,
 .contas-receber-tabela td small {
   max-width: 100%;
