@@ -85,6 +85,7 @@ function Compras() {
   const [estoque, setEstoque] = useState<'Todos' | 'Movimentado' | 'Aguardando' | 'Sem estoque'>('Todos')
   const [mostrarFiltros, setMostrarFiltros] = useState(false)
   const [sincronizandoSefaz, setSincronizandoSefaz] = useState(false)
+  const [chaveBuscaNFe, setChaveBuscaNFe] = useState('')
 
   const quantidadeFiltrosAtivos = useMemo(
     () =>
@@ -248,6 +249,31 @@ function Compras() {
 
   function atualizarLista() {
     window.location.reload()
+  }
+
+  function buscarNFePorChave() {
+    const chave = chaveBuscaNFe.replace(/\D/g, '')
+
+    if (chave.length !== 44) {
+      alert('Digite os 44 números da chave de acesso da NF-e.')
+      return
+    }
+
+    const compraExistente = listarComprasStorage().find(
+      (item) =>
+        String(item.chaveAcessoNFe || '').replace(/\D/g, '') === chave,
+    )
+
+    if (compraExistente) {
+      abrirCompra(compraExistente.id)
+      return
+    }
+
+    navigate('/compras/novo', {
+      state: {
+        chaveAcessoNFe: chave,
+      },
+    })
   }
 
   async function sincronizarSefaz() {
@@ -431,6 +457,32 @@ function Compras() {
                 className="compras-new-cart-ready"
                 aria-hidden="true"
               />
+            </button>
+          </div>
+        </section>
+
+        <section className="compras-chave-busca">
+          <label htmlFor="compras-chave-nfe">Chave de acesso da NF-e</label>
+          <div>
+            <input
+              id="compras-chave-nfe"
+              type="text"
+              inputMode="numeric"
+              maxLength={44}
+              value={chaveBuscaNFe}
+              onChange={(event) =>
+                setChaveBuscaNFe(
+                  event.target.value.replace(/\D/g, '').slice(0, 44),
+                )
+              }
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') buscarNFePorChave()
+              }}
+              placeholder="Digite os 44 números da chave"
+            />
+            <button type="button" onClick={buscarNFePorChave}>
+              <Search size={20} />
+              Buscar pela chave
             </button>
           </div>
         </section>

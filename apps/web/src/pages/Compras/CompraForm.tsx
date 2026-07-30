@@ -235,6 +235,7 @@ function CompraForm({ modo }: CompraFormProps) {
       xmlCompra?: string
       documentoCompraTexto?: string
       documentoCompraNome?: string
+      chaveAcessoNFe?: string
     } | null
     const xmlRecebido = estadoImportacao?.xmlCompra
     if (modo === 'novo' && xmlRecebido) {
@@ -275,6 +276,7 @@ function CompraForm({ modo }: CompraFormProps) {
       criadoEm: new Date().toISOString(),
       atualizadoEm: new Date().toISOString(),
       origem: 'MANUAL',
+      chaveAcessoNFe: estadoImportacao?.chaveAcessoNFe || undefined,
       importacaoHistorica: false,
       movimentarEstoque: false,
       movimentouEstoque: false,
