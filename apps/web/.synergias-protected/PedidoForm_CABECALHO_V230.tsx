@@ -49,7 +49,7 @@ import {
   salvarClientesStorageConfirmado,
 } from '../../services/clientesStorage'
 import {
-  listarProdutosStorage,
+  listarProdutosAtivosStorage,
   salvarProdutoStorage,
 } from '../../services/produtosStorage'
 
@@ -1294,7 +1294,7 @@ function PedidoForm() {
       : undefined)
 
   const [clientes, setClientes] = useState<Cliente[]>(clientesIniciais)
-  const produtos = listarProdutosStorage()
+  const produtos = listarProdutosAtivosStorage()
 
   const formaPagamentoInicial = normalizarFormaPagamento(
     vendaInicial?.formaPagamento,
@@ -3448,10 +3448,14 @@ function PedidoForm() {
           String(classificacao).toUpperCase().includes('SUBSTITUI'),
         )
 
+        const codigoBarrasFiscal = String(item.codigoBarras || produto?.codigoBarras || '').trim()
+
         return {
           ...item,
-          codigoProduto: String(item.codigoProduto || produto?.codigo || produto?.codigoInterno || ''),
-          codigoBarras: String(item.codigoBarras || produto?.codigoBarras || produto?.codigo || ''),
+          // Na NF-e, o código principal é sempre o código de barras.
+          // O código interno permanece restrito ao cadastro do ERP.
+          codigoProduto: codigoBarrasFiscal,
+          codigoBarras: codigoBarrasFiscal,
           ncm: ncmItem.length === 8 ? ncmItem : ncmProduto,
           ncmDescricao: item.ncmDescricao || produto?.ncmDescricao || '',
           cfop: cfopAutomatico || cfopItem,
