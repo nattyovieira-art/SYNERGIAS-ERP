@@ -610,6 +610,23 @@
   color: var(--compras-gold-dark);
 }
 
+.compras-chave-acesso {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compras-chave-acesso input {
+  width: min(360px, 70vw);
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid var(--compras-gold-border);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--compras-text);
+  font: inherit;
+}
+
 .compras-estoque-controle > p {
   margin: 0 0 12px;
   color: var(--compras-text);

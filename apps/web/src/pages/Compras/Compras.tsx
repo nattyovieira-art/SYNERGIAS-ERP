@@ -410,12 +410,12 @@ function Compras() {
             <button
               type="button"
               className="compras-action-btn compras-action-import erp-action-descriptive erp-action-import-xml"
-              title="Importar XML, PDF ou imagem"
-              aria-label="Importar XML, PDF ou imagem"
+              title="Buscar XML, PDF ou imagem e preparar a compra"
+              aria-label="Buscar XML, PDF ou imagem e preparar a compra"
               onClick={importarXmlVisual}
             >
               <FileUp size={22} strokeWidth={2.4} />
-              <span>Importar NF-e</span>
+              <span>Buscar NF-e por XML</span>
             </button>
 
             <button

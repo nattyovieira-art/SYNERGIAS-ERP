@@ -1388,7 +1388,22 @@ function CompraForm({ modo }: CompraFormProps) {
               <strong>NF-e importada</strong>
               <span>Número: {compra.numeroNFe || '-'}</span>
               <span>Série: {compra.serieNFe || '-'}</span>
-              <span>Chave: {compra.chaveAcessoNFe || '-'}</span>
+              <label className="compras-chave-acesso">
+                Chave:
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={44}
+                  placeholder="Digite os 44 números se não for localizada"
+                  value={compra.chaveAcessoNFe || ''}
+                  onChange={(event) =>
+                    atualizarCompra(
+                      'chaveAcessoNFe',
+                      event.target.value.replace(/\D/g, '').slice(0, 44),
+                    )
+                  }
+                />
+              </label>
               <span>Protocolo: {compra.protocoloNFe || '-'}</span>
             </div>
           )}
