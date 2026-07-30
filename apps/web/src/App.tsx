@@ -92,6 +92,7 @@ function App() {
             await inicializarArmazenamentoCentral()
             if (!ativo) return
             setAuthUser(status.user)
+            executarRotinasSecundarias()
           } catch (erro) {
             console.error('[Synergias ERP] Falha ao carregar dados centrais.', erro)
             alert(`Não foi possível carregar os dados do servidor: ${erro instanceof Error ? erro.message : String(erro)}`)

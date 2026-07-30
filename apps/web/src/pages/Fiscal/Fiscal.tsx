@@ -18,7 +18,7 @@ import {
 
 import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
-import { listarProdutosStorage } from '../../services/produtosStorage'
+import { listarProdutosAtivosStorage } from '../../services/produtosStorage'
 import {
   contarVinculosProdutosHistoricos,
   importarPedidosHistoricosNFeStorage,
@@ -234,7 +234,7 @@ function Fiscal() {
 
   const produtos = useMemo(
     () =>
-      listarProdutosStorage()
+      listarProdutosAtivosStorage()
         .slice()
         .sort((a, b) =>
           String(a.descricao || '').localeCompare(

@@ -26,6 +26,7 @@ import {
   repararProdutoCanetaAzul67Storage,
   listarProdutosStorage,
   salvarProdutosStorage,
+  salvarProdutosStorageConfirmado,
 } from '../../services/produtosStorage'
 
 import { ERP_STORAGE_UPDATED_EVENT, hidratarColecaoCentral, sincronizarColecaoCentralAgora } from '../../services/erpApi'
@@ -82,6 +83,7 @@ function Produtos() {
   const [mostrarBusca, setMostrarBusca] = useState(true)
   const [mostrarFiltros, setMostrarFiltros] = useState(false)
   const [atualizandoProdutos, setAtualizandoProdutos] = useState(false)
+  const [alterandoSituacaoId, setAlterandoSituacaoId] = useState('')
   const [filtros, setFiltros] = useState<FiltrosProdutos>(filtrosIniciais)
 
   const [produtos, setProdutos] = useState<Produto[]>(() =>
@@ -230,6 +232,35 @@ function Produtos() {
       )
     })
   }, [produtos, pesquisa, filtros])
+
+  async function alternarSituacaoProduto(produto: Produto) {
+    const identificador = String(produto.id || produto.codigo || produto.codigoBarras || '')
+    if (!identificador || alterandoSituacaoId) return
+
+    const novaSituacao = produto.situacao === 'Inativo' ? 'Ativo' : 'Inativo'
+    const atualizados = produtos.map((item) =>
+      String(item.id || item.codigo || item.codigoBarras || '') === identificador
+        ? { ...item, situacao: novaSituacao }
+        : item,
+    )
+
+    setAlterandoSituacaoId(identificador)
+    setProdutos(atualizados)
+
+    try {
+      const salvos = await salvarProdutosStorageConfirmado(atualizados)
+      setProdutos(salvos)
+    } catch (erro) {
+      setProdutos(produtos)
+      alert(
+        `Não foi possível alterar a situação do produto: ${
+          erro instanceof Error ? erro.message : String(erro)
+        }`,
+      )
+    } finally {
+      setAlterandoSituacaoId('')
+    }
+  }
 
   const produtosOrdenados = useMemo(() => {
     return [...produtosFiltrados].sort((a: Produto, b: Produto) => {
@@ -1951,13 +1982,25 @@ function Produtos() {
                       </td>
 
                       <td className="produtos-col-status">
-                        <span
+                        <button
+                          type="button"
                           className={`produto-status-pill ${
                             produto.situacao === 'Inativo' ? 'inativo' : 'ativo'
                           }`}
+                          disabled={
+                            alterandoSituacaoId ===
+                            String(produto.id || produto.codigo || produto.codigoBarras || '')
+                          }
+                          title={`Clique para marcar como ${
+                            produto.situacao === 'Inativo' ? 'ativo' : 'inativo'
+                          }`}
+                          onClick={() => void alternarSituacaoProduto(produto)}
                         >
-                          {produto.situacao || 'Ativo'}
-                        </span>
+                          {alterandoSituacaoId ===
+                          String(produto.id || produto.codigo || produto.codigoBarras || '')
+                            ? 'SALVANDO...'
+                            : produto.situacao || 'Ativo'}
+                        </button>
                       </td>
 
                       <td className="produtos-col-acoes">

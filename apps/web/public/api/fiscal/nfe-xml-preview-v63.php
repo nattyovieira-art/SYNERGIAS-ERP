@@ -24,13 +24,19 @@ function sxV62CodigoBarrasItem(array $item): string {
         $item['codigo_barra'] ?? '',
         $item['ean'] ?? '',
         $item['gtin'] ?? '',
-        $item['codigo'] ?? '',
     ];
     foreach ($candidatos as $candidato) {
         $digitos = sxV62Digitos($candidato);
         if (in_array(strlen($digitos), [8, 12, 13, 14], true)) {
             return $digitos;
         }
+    }
+    return '';
+}
+function sxV62CodigoPrincipalItem(array $item): string {
+    foreach (['codigoBarras', 'codigo_barra', 'ean', 'gtin'] as $campo) {
+        $codigo = sxV62Digitos($item[$campo] ?? '');
+        if ($codigo !== '') return $codigo;
     }
     return '';
 }
@@ -152,6 +158,7 @@ try {
         $vProd = round($q * $vUn, 2);
         $totalProdutos += $vProd;
         $n = $i+1;
+        if (sxV62CodigoPrincipalItem($item) === '') $erros[] = "Item {$n}: codigo de barras ausente. Corrija o cadastro do produto antes de emitir.";
         if ($q <= 0) $erros[] = "Item {$n}: quantidade inválida.";
         if (strlen(sxV62Digitos($item['ncm'] ?? '')) !== 8) $erros[] = "Item {$n}: NCM inválido.";
         if (sxV62Digitos($item['cfop'] ?? '') !== ($ufDest === 'RS' ? '5102' : '6102')) $erros[] = "Item {$n}: CFOP incompatível com a UF do destinatário.";
@@ -191,6 +198,9 @@ try {
     $basesRateio = array_map(static function($item): float { return is_array($item) ? round(sxV62Numero($item['quantidade'] ?? 0) * sxV62Numero($item['valorUnitario'] ?? 0), 2) : 0.0; }, $itens);
     $fretesItens = sxV62RatearValor($frete, $basesRateio); $descontosItens = sxV62RatearValor($desc, $basesRateio); $outrosItens = sxV62RatearValor($outros, $basesRateio);
     foreach($itens as $i=>$item){
+        // Nunca usar o código interno do ERP como cProd. A NF-e usa somente o código de barras.
+        $item['codigoProduto'] = sxV62CodigoPrincipalItem($item);
+        $item['codigo'] = $item['codigoProduto'];
         $q=sxV62Numero($item['quantidade'] ?? $item['qtd'] ?? $item['quantity'] ?? $item['quantidadeProduto'] ?? 0);
         $vUn=sxV62Numero($item['valorUnitario'] ?? $item['precoUnitario'] ?? $item['unitPrice'] ?? $item['preco'] ?? 0);
         $vTotalInformado=sxV62Numero($item['valorTotal'] ?? $item['total'] ?? $item['subtotal'] ?? 0);

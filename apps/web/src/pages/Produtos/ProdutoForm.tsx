@@ -8,6 +8,8 @@ import type { Produto, ProdutoComposicao } from '../../types/Produto'
 
 import {
   buscarProdutoStorage,
+  gerarProximoCodigoBarrasProdutoStorage,
+  gerarProximoCodigoInternoProdutoStorage,
   listarProdutosStorage,
   salvarProdutoStorage,
 } from '../../services/produtosStorage'
@@ -50,23 +52,12 @@ function criarOpcoesDoCadastro(
   return criarListaOpcoesProduto(valoresImportados, [valorAtual])
 }
 
-const CODIGO_BARRAS_BASE_SYNERGIAS = 7901211464
-
 function gerarProximoCodigoBarrasProduto() {
-  const produtos = listarProdutosStorage()
-  const codigosValidos = produtos
-    .map((produto) => String(produto.codigoBarras || '').replace(/\D/g, ''))
-    .filter((codigo) => /^790121\d{4}$/.test(codigo))
-    .map((codigo) => Number(codigo))
-    .filter((codigo) => Number.isFinite(codigo))
-
-  const maiorCodigo = Math.max(CODIGO_BARRAS_BASE_SYNERGIAS, ...codigosValidos)
-
-  return String(maiorCodigo + 1)
+  return gerarProximoCodigoBarrasProdutoStorage()
 }
 
 function gerarProximoCodigoProduto() {
-  return gerarProximoCodigoBarrasProduto()
+  return gerarProximoCodigoInternoProdutoStorage()
 }
 
 function ProdutoForm({ modo }: ProdutoFormProps) {
@@ -119,19 +110,22 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
 
   const [produto, setProduto] = useState<ProdutoCadastro>(() => {
     const proximoCodigoBarras = gerarProximoCodigoBarrasProduto()
+    const proximoCodigoInterno = gerarProximoCodigoProduto()
 
     return {
     id: duplicando
       ? proximoCodigoBarras
       : produtoEncontrado?.id || proximoCodigoBarras,
     codigo: duplicando
-      ? proximoCodigoBarras
-      : produtoEncontrado?.codigo || proximoCodigoBarras || gerarProximoCodigoProduto(),
+      ? proximoCodigoInterno
+      : produtoEncontrado?.codigo || proximoCodigoInterno,
 
     codigoBarras: duplicando
       ? proximoCodigoBarras
       : produtoEncontrado?.codigoBarras || proximoCodigoBarras,
-    codigoInterno: duplicando ? '' : produtoEncontrado?.codigoInterno || '',
+    codigoInterno: duplicando
+      ? proximoCodigoInterno
+      : produtoEncontrado?.codigoInterno || produtoEncontrado?.codigo || proximoCodigoInterno,
     descricao: produtoEncontrado?.descricao || '',
     tipoItem: produtoEncontrado?.tipoItem || 'Produto',
     unidade: produtoEncontrado?.unidade || 'Unidade',

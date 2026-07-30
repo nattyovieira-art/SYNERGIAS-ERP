@@ -65,12 +65,76 @@ function somenteNumeros(valor: unknown) {
 
 function gerarCodigoProdutoAutomatico(produtosExistentes: Produto[]) {
   const numeros = produtosExistentes
-    .map((produto) => Number(somenteNumeros((produto as any).codigo)))
-    .filter((numero) => !Number.isNaN(numero) && numero > 0)
+    .flatMap((produto) => {
+      const codigoInterno = somenteNumeros((produto as any).codigoInterno)
+      const codigo = somenteNumeros((produto as any).codigo)
+      const candidato = codigoInterno || (/^\d{1,4}$/.test(codigo) ? codigo : '')
+      return candidato ? [Number(candidato)] : []
+    })
+    .filter((numero) => Number.isFinite(numero) && numero > 0 && numero <= 9999)
 
-  const maiorNumero = numeros.length > 0 ? Math.max(...numeros) : 1782785200000
+  const maiorNumero = numeros.length > 0 ? Math.max(...numeros) : 0
 
-  return String(maiorNumero + 1)
+  return String(maiorNumero + 1).padStart(4, '0')
+}
+
+const CODIGO_BARRAS_BASE_SYNERGIAS = 7901211464
+
+export function gerarProximoCodigoBarrasProdutoStorage() {
+  const codigosValidos = listarProdutosStorage()
+    .map((produto) => somenteNumeros(produto.codigoBarras))
+    .filter((codigo) => /^790121\d{4}$/.test(codigo))
+    .map(Number)
+    .filter(Number.isFinite)
+
+  return String(Math.max(CODIGO_BARRAS_BASE_SYNERGIAS, ...codigosValidos) + 1)
+}
+
+export function gerarProximoCodigoInternoProdutoStorage() {
+  return gerarCodigoProdutoAutomatico(listarProdutosStorage())
+}
+
+function corrigirCodigosSequenciaisProdutos(produtos: Produto[]) {
+  let alterou = false
+  let proximoTemporario = 1483
+
+  const atualizados = produtos.map((produto) => {
+    const atual: any = produto
+    let codigoBarras = somenteNumeros(atual.codigoBarras)
+    const codigoAtual = somenteNumeros(atual.codigo)
+    const descricao = obterDescricaoProdutoBase(atual).toUpperCase()
+
+    if (!codigoBarras && descricao.includes('EMBALADOR DE GUARDA CHUVA')) {
+      codigoBarras = '7901211474'
+    }
+
+    if (/^17898703420(?:337|351)$/.test(codigoBarras || codigoAtual)) {
+      codigoBarras = `790121${String(proximoTemporario).padStart(4, '0')}`
+      proximoTemporario += 1
+    }
+
+    if (!/^790121\d{4}$/.test(codigoBarras)) return produto
+
+    const codigoInterno = codigoBarras.slice(-4)
+    if (
+      textoSeguro(atual.codigo) === codigoInterno &&
+      textoSeguro(atual.codigoInterno) === codigoInterno &&
+      textoSeguro(atual.codigoBarras) === codigoBarras
+    ) {
+      return produto
+    }
+
+    alterou = true
+    return {
+      ...produto,
+      codigo: codigoInterno,
+      codigoInterno,
+      codigoBarras,
+      atualizadoEm: new Date().toISOString(),
+    } as Produto
+  })
+
+  return { atualizados, alterou }
 }
 
 function obterCodigoProduto(produto: any, produtosExistentes: Produto[] = []) {
@@ -244,6 +308,13 @@ function salvarComSeguranca(produtos: Produto[]) {
 export function listarProdutosStorage(): Produto[] {
   let produtos = obterColecaoMemoria<Produto>('produtos')
 
+  const correcaoCodigos = corrigirCodigosSequenciaisProdutos(produtos)
+  if (correcaoCodigos.alterou) {
+    produtos = correcaoCodigos.atualizados
+    definirColecaoMemoria('produtos', produtos)
+    sincronizarColecaoCentral('produtos', produtos)
+  }
+
   /*
    * Conversão única da bobina comprada em caixa com 8 unidades.
    * Impede que custo/preço da caixa seja usado como valor de uma unidade.
@@ -308,6 +379,26 @@ export function listarProdutosStorage(): Produto[] {
   }
 
   return produtos
+}
+
+export function produtoEstaAtivo(produto: Partial<Produto> | any): boolean {
+  const situacao = textoSeguro(
+    produto?.situacao ?? produto?.status ?? produto?.ativo,
+  ).toLowerCase()
+
+  if (!situacao) return true
+
+  return !['inativo', 'inativa', 'false', '0', 'cancelado', 'cancelada'].includes(
+    situacao,
+  )
+}
+
+/**
+ * Fonte obrigatória para buscas e seleções operacionais.
+ * Produtos inativos permanecem somente no cadastro/lista de produtos.
+ */
+export function listarProdutosAtivosStorage(): Produto[] {
+  return listarProdutosStorage().filter(produtoEstaAtivo)
 }
 
 export function salvarProdutosStorage(produtos: Produto[]) {

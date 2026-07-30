@@ -498,6 +498,17 @@
 .produtos-col-estoque{width:9%!important}
 .produtos-col-valor{width:11%!important}
 .produtos-col-status{width:8%!important}
+
+.produtos-listagem-table button.produto-status-pill {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.produtos-listagem-table button.produto-status-pill:disabled {
+  cursor: wait;
+  opacity: .7;
+}
 .produtos-col-acoes{width:104px!important}
 .produto-descricao-linha{display:block!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:18px!important;font-weight:700!important;color:#20314c!important}
 .produto-texto-truncado{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:15px}

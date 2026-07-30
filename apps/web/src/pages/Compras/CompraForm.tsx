@@ -29,6 +29,9 @@ import {
 import { aguardarSincronizacaoCentral } from '../../services/erpApi'
 import {
   listarProdutosStorage,
+  listarProdutosAtivosStorage,
+  gerarProximoCodigoBarrasProdutoStorage,
+  gerarProximoCodigoInternoProdutoStorage,
   salvarProdutoStorage,
 } from '../../services/produtosStorage'
 import { inferirFatorEmbalagemNFe, parseNFeCompraXml } from '../../services/nfeCompraXml'
@@ -207,7 +210,7 @@ function CompraForm({ modo }: CompraFormProps) {
     modo === 'editar' && id ? buscarCompraStorage(id) : undefined
 
   const [buscaFormulario, setBuscaFormulario] = useState('')
-  const produtosDisponiveis = useMemo(() => listarProdutosStorage(), [])
+  const produtosDisponiveis = useMemo(() => listarProdutosAtivosStorage(), [])
   const [buscasProduto, setBuscasProduto] = useState<Record<string, string>>({})
   const [produtoBuscaAberta, setProdutoBuscaAberta] = useState<string | null>(null)
   const [processandoRecebimento, setProcessandoRecebimento] = useState(false)
@@ -237,13 +240,13 @@ function CompraForm({ modo }: CompraFormProps) {
     if (modo === 'novo' && xmlRecebido) {
       return parseNFeCompraXml(
         xmlRecebido,
-        listarProdutosStorage(),
+        listarProdutosAtivosStorage(),
         gerarNumeroCompraStorage(),
       )
     }
 
     const itensDocumento = modo === 'novo' && estadoImportacao?.documentoCompraTexto
-      ? criarItensCompraDocumento(estadoImportacao.documentoCompraTexto, listarProdutosStorage())
+      ? criarItensCompraDocumento(estadoImportacao.documentoCompraTexto, listarProdutosAtivosStorage())
       : []
     const subtotalDocumento = itensDocumento.reduce((soma, item) => soma + numero(item.total), 0)
 
@@ -357,7 +360,7 @@ function CompraForm({ modo }: CompraFormProps) {
         const ehXml = arquivo.type.includes('xml') || arquivo.name.toLowerCase().endsWith('.xml')
         if (!ehXml) {
           const textoDocumento = await extrairTextoDocumentoCompra(arquivo)
-          const itens = criarItensCompraDocumento(textoDocumento, listarProdutosStorage())
+          const itens = criarItensCompraDocumento(textoDocumento, listarProdutosAtivosStorage())
           const subtotalDocumento = itens.reduce((soma, item) => soma + numero(item.total), 0)
           setCompra((atual) => ({
             ...atual,
@@ -374,7 +377,7 @@ function CompraForm({ modo }: CompraFormProps) {
           return
         }
         const xml = await arquivo.text()
-        const importada = parseNFeCompraXml(xml, listarProdutosStorage(), compra.numeroCompra)
+        const importada = parseNFeCompraXml(xml, listarProdutosAtivosStorage(), compra.numeroCompra)
         const duplicada = listarComprasStorage().find(
           (item) => item.chaveAcessoNFe === importada.chaveAcessoNFe && item.id !== compra.id,
         )
@@ -616,10 +619,23 @@ function CompraForm({ modo }: CompraFormProps) {
     const nome = window.prompt('Qual será o nome deste novo produto no sistema?')?.trim() || ''
     if (!nome) return
     const item = compra.itens.find((atual) => atual.id === itemId)
+    const nomeNormalizado = normalizarBuscaProduto(nome)
+    const produtoExistente = produtosDisponiveis.find((produto) =>
+      normalizarBuscaProduto(produto.descricao || produto.nome || '') === nomeNormalizado,
+    )
+    const produtoPreparado = compra.itens.find((atual) =>
+      atual.id !== itemId
+      && atual.novoProdutoPendente
+      && normalizarBuscaProduto(atual.novoProdutoNome || atual.descricao) === nomeNormalizado,
+    )
+    if (produtoExistente) {
+      vincularProduto(itemId, produtoExistente.codigo)
+      return
+    }
     const ean = String(item?.eanTributavel || item?.eanComercial || '').trim()
-    const codigo = ean && !/^SEM\s*GTIN$/i.test(ean)
+    const codigo = produtoPreparado?.produtoCodigo || (ean && !/^SEM\s*GTIN$/i.test(ean)
       ? ean
-      : `NOVO-${Date.now()}-${itemId.replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`
+      : `NOVO-${Date.now()}-${itemId.replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`)
     setCompra((atual) => ({
       ...atual,
       itens: atual.itens.map((atualItem) => atualItem.id === itemId
@@ -632,6 +648,12 @@ function CompraForm({ modo }: CompraFormProps) {
           }
         : atualItem),
     }))
+    if (produtoPreparado) {
+      setBuscasProduto((atual) => ({
+        ...atual,
+        [itemId]: `${produtoPreparado.produtoCodigo} - ${nome}`,
+      }))
+    }
   }
 
   function definirDecisaoDesconto(
@@ -755,26 +777,50 @@ function CompraForm({ modo }: CompraFormProps) {
   }
 
   function cadastrarProdutosPendentes(compraBase: Compra) {
+    const codigosPorDescricao = new Map(
+      listarProdutosAtivosStorage().map((produto) => [
+        normalizarBuscaProduto(produto.descricao || produto.nome || ''),
+        produto.codigo,
+      ]),
+    )
     compraBase.itens.forEach((item) => {
       if (item.incluidoNoSistema === false || !item.novoProdutoPendente) return
+      const descricaoProduto = item.novoProdutoNome || item.descricao
+      const descricaoNormalizada = normalizarBuscaProduto(descricaoProduto)
+      const codigoJaCriado = codigosPorDescricao.get(descricaoNormalizada)
+      if (codigoJaCriado) {
+        item.produtoCodigo = codigoJaCriado
+        item.novoProdutoPendente = false
+        item.novoProdutoNome = ''
+        item.correspondencia = 'DESCRICAO'
+        return
+      }
       const codigoInformado = String(item.produtoCodigo || '').trim()
-      const semGtin = !codigoInformado || /^SEM\s*GTIN$/i.test(codigoInformado)
-      const codigoProduto = semGtin
-        ? `NOVO-${Date.now()}-${item.id.replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`
-        : codigoInformado
+      const semGtin =
+        !codigoInformado
+        || /^SEM\s*GTIN$/i.test(codigoInformado)
+        || /^NOVO-/i.test(codigoInformado)
+      const codigoInterno = gerarProximoCodigoInternoProdutoStorage()
+      const codigoBarrasGerado = gerarProximoCodigoBarrasProdutoStorage()
+      const codigoProduto = semGtin ? codigoInterno : codigoInformado
       item.produtoCodigo = codigoProduto
       const eanInformado = String(item.eanTributavel || item.eanComercial || '').trim()
       salvarProdutoStorage({
         codigo: codigoProduto,
-        codigoBarras: /^SEM\s*GTIN$/i.test(eanInformado) ? '' : eanInformado,
-        descricao: item.novoProdutoNome || item.descricao,
-        nome: item.novoProdutoNome || item.descricao,
+        codigoInterno,
+        codigoBarras:
+          !eanInformado || /^SEM\s*GTIN$/i.test(eanInformado)
+            ? codigoBarrasGerado
+            : eanInformado,
+        descricao: descricaoProduto,
+        nome: descricaoProduto,
         unidade: item.unidadeControle || 'UN',
         ncm: item.ncm,
         tipoItem: 'Produto',
         tipoFiscal: 'Mercadoria para Revenda',
         movimentarEstoque: true,
       })
+      codigosPorDescricao.set(descricaoNormalizada, codigoProduto)
       item.novoProdutoPendente = false
       item.novoProdutoNome = ''
       item.correspondencia = 'DESCRICAO'
@@ -1916,7 +1962,7 @@ function CompraForm({ modo }: CompraFormProps) {
           </button>
         </div>
 
-        {!compra.movimentouEstoque && compra.status !== 'Recebido' && (
+        {!compra.movimentouEstoque && (
           <section className="compras-confirmar-recebimento-card">
             <div>
               <PackageCheck size={26} />
@@ -1940,7 +1986,9 @@ function CompraForm({ modo }: CompraFormProps) {
               {processandoRecebimento
                 ? 'Processando com segurança...'
                 : compra.movimentarEstoque
-                ? 'Confirmar Recebimento e Dar Entrada no Estoque'
+                ? compra.status === 'Recebido'
+                  ? 'Dar Entrada no Estoque'
+                  : 'Confirmar Recebimento e Dar Entrada no Estoque'
                 : 'Confirmar Recebimento sem Movimentar Estoque'}
             </button>
           </section>

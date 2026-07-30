@@ -620,7 +620,14 @@ function carregarProdutos(): ProdutoBusca[] {
   try {
     const produtos = JSON.parse(produtosSalvos)
 
-    return produtos.map((produto: any) => {
+    return produtos
+      .filter((produto: any) => {
+        const situacao = String(
+          produto?.situacao ?? produto?.status ?? produto?.ativo ?? 'Ativo',
+        ).trim().toLowerCase()
+        return !['inativo', 'inativa', 'false', '0', 'cancelado', 'cancelada'].includes(situacao)
+      })
+      .map((produto: any) => {
       const estoque = Number(
         produto.estoqueDisponivel ??
           produto.estoqueAtual ??
@@ -986,7 +993,14 @@ function OrcamentoForm() {
 
         if (Array.isArray(produtosServidor.data)) {
           setProdutos(
-            produtosServidor.data.map((produto: any) => {
+            produtosServidor.data
+              .filter((produto: any) => {
+                const situacao = String(
+                  produto?.situacao ?? produto?.status ?? produto?.ativo ?? 'Ativo',
+                ).trim().toLowerCase()
+                return !['inativo', 'inativa', 'false', '0', 'cancelado', 'cancelada'].includes(situacao)
+              })
+              .map((produto: any) => {
               const estoque = Number(
                 produto.estoqueDisponivel ??
                   produto.estoqueAtual ??

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { FileText, ImagePlus, X } from 'lucide-react'
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 import { listarClientesStorage } from '../../services/clientesStorage'
-import { listarProdutosStorage } from '../../services/produtosStorage'
+import { listarProdutosAtivosStorage } from '../../services/produtosStorage'
 
 type Props = {
   aberto: boolean
@@ -292,7 +292,7 @@ function extrairSomenteItensDoPdf(texto: string) {
 
 export default function OrcamentoTextoModal({ aberto, onClose, onPreparar }: Props) {
   const clientes = listarClientesStorage()
-  const produtos = listarProdutosStorage()
+  const produtos = listarProdutosAtivosStorage()
   const [clienteCodigo, setClienteCodigo] = useState('')
   const [clienteBusca, setClienteBusca] = useState('')
   const [texto, setTexto] = useState('')

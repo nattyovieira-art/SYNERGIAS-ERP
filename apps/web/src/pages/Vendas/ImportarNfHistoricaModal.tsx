@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Upload, X } from 'lucide-react'
 import { listarClientesStorage } from '../../services/clientesStorage'
-import { listarProdutosStorage } from '../../services/produtosStorage'
+import { listarProdutosAtivosStorage } from '../../services/produtosStorage'
 import { listarVendasStorage, salvarVendaStorageConfirmado } from '../../services/vendasStorage'
 import { listarComprasStorage } from '../../services/comprasStorage'
 import { sincronizarFinanceiroComOperacoes } from '../../services/sincronizarFinanceiro'
@@ -21,7 +21,7 @@ function candidatos(descricao: string, produtos: any[]) {
 }
 
 export default function ImportarNfHistoricaModal({ aberto, onClose, onConcluido }: Props) {
-  const produtos = listarProdutosStorage()
+  const produtos = listarProdutosAtivosStorage()
   const clientes = listarClientesStorage()
   const [orcamento, setOrcamento] = useState('')
   const [pedido, setPedido] = useState('')

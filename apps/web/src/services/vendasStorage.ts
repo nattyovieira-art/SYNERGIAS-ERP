@@ -465,14 +465,26 @@ export async function corrigirOrcamentosImportadosSemPedidoReal(): Promise<strin
     const numeroOrcamento = String(registro.numeroOrcamento || '').replace(/\D/g, '')
     if (
       !tipo.includes('pedido') &&
-      numeroOrcamento === '2535' &&
-      !registro.correcaoDuplicacaoAbertaEm
+      numeroOrcamento === '2535'
     ) {
-      corrigidos.push('2535')
-      return {
-        ...normalizarNovoOrcamentoImportado(registro),
-        correcaoDuplicacaoAbertaEm: gerarDataAtual(),
-      } as Venda
+      const normalizado = normalizarNovoOrcamentoImportado(registro)
+      const jaEstaAberto =
+        status.includes('abert') &&
+        registro.aprovado !== true &&
+        !registro.aprovadoEm &&
+        registro.reprovado !== true &&
+        !registro.reprovadoEm
+
+      if (!jaEstaAberto) {
+        corrigidos.push('2535')
+        return {
+          ...normalizado,
+          correcaoDuplicacaoAbertaEm:
+            registro.correcaoDuplicacaoAbertaEm || gerarDataAtual(),
+        } as Venda
+      }
+
+      return venda
     }
     const temLegadoBloqueador = Boolean(registro.numeroPedido || registro.pedidoId || registro.pedidoGeradoId || registro.pedidoGeradoEm || registro.convertido || registro.pedidoGerado)
     const estado = determinarEstadoRealOrcamento(registro, vendas)
