@@ -1,4 +1,4 @@
-// SYNERGIAS_PEDIDO_SALVAR_CONFIRMADO_V284
+﻿// SYNERGIAS_PEDIDO_SALVAR_CONFIRMADO_V284
 // SYNERGIAS_PIX_TRANSFERENCIA_60_DIAS_V263C
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -74,10 +74,18 @@ import {
   obterPdfCobrancaInter,
   type CobrancaInterApi,
 } from '../../services/interCobrancaApi'
+import {
+  alterarBoletoC6,
+  cancelarBoletoC6,
+  consultarBoletoC6,
+  emitirBoletoC6,
+  obterPdfBoletoC6,
+  type CobrancaC6Api,
+} from '../../services/c6BoletoApi'
 import { carregarConfiguracaoFiscalServidor, obterConfiguracaoFiscalStorage } from '../../services/configuracaoFiscalStorage'
 import { carregarColecaoCentral, ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
 import { boletoEstaUtilizado, contarBoletosUtilizadosPorBanco } from '../../services/boletosCounter'
-import { assinarETransmitirNFeHomologacao, gerarRascunhoXmlNFe, manterNumeracaoNFeRejeitada, registrarNumeracaoNFeAutorizada, validarPreEmissaoNFe } from '../../services/nfePreflightService'
+import { assinarETransmitirNFeHomologacao, consultarNFeNaSefaz, gerarRascunhoXmlNFe, manterNumeracaoNFeRejeitada, registrarNumeracaoNFeAutorizada, validarPreEmissaoNFe } from '../../services/nfePreflightService'
 
 import '../../styles/cliente-form.css'
 import '../../styles/clientes.css'
@@ -125,7 +133,7 @@ const FORMAS_PAGAMENTO_PADRAO = [
 ]
 
 const OPCOES_COBRANCA_POR_FORMA: Record<string, string[]> = {
-  BOLETO: ['BOLETO BANCO INTER'],
+  BOLETO: ['BOLETO BANCO INTER', 'BOLETO BANCO C6'],
   PIX: ['PIX BANCO INTER'],
   TRANSFERÊNCIA: ['TRANSFERÊNCIA BANCO INTER'],
   DINHEIRO: ['DINHEIRO'],
@@ -156,6 +164,11 @@ const DADOS_PAGAMENTO: Record<string, Record<string, string>> = {
     tipo: 'Boleto',
     banco: 'Inter',
     observacao: 'Boleto será gerado dentro do sistema futuramente.',
+  },
+  'BOLETO BANCO C6': {
+    tipo: 'Boleto',
+    banco: 'C6',
+    observacao: 'Boleto emitido pela integração C6 Bank.',
   },
   'PIX BANCO INTER': {
     tipo: 'PIX',
@@ -202,9 +215,12 @@ const EMPRESA_SITE = 'www.synergias.com.br'
 const API_ENVIO_NOTA_BOLETO = '/api/enviar-nota-boleto-cliente.php'
 
 const STORAGE_VENDAS_CREDITO = 'synergias_vendas'
-const LIMITE_BOLETOS_GRATUITOS_POR_BANCO = 100
+const LIMITES_BOLETOS_POR_BANCO: Record<BancoBoletoGratuito, number> = {
+  Inter: 100,
+  C6: 200,
+}
 
-type BancoBoletoGratuito = 'Inter'
+type BancoBoletoGratuito = 'Inter' | 'C6'
 
 function parametroUrlAtual(nome: string): string {
   if (typeof window === 'undefined') return ''
@@ -345,6 +361,7 @@ function identificarBancoBoleto(valor?: string): BancoBoletoGratuito | null {
   const texto = String(valor || '').toUpperCase()
 
   if (texto.includes('INTER')) return 'Inter'
+  if (texto.includes('C6')) return 'C6'
   return null
 }
 
@@ -379,12 +396,13 @@ function montarResumoBoletosGratuitos(
   mesReferencia = gerarMesAtualBoleto(),
 ): ResumoBoletosGratuitos {
   const usados = contarBoletosGeradosNoMesPorBanco(banco, mesReferencia)
+  const limite = LIMITES_BOLETOS_POR_BANCO[banco]
 
   return {
     banco,
     usados,
-    limite: LIMITE_BOLETOS_GRATUITOS_POR_BANCO,
-    disponiveis: Math.max(LIMITE_BOLETOS_GRATUITOS_POR_BANCO - usados, 0),
+    limite,
+    disponiveis: Math.max(limite - usados, 0),
   }
 }
 
@@ -982,10 +1000,17 @@ function buscarOrcamentoOrigemUrl() {
     parametrosHash.get('orcamentoId') ||
     parametrosPagina.get('orcamentoId') ||
     ''
+  const orcamentoNumero =
+    parametrosHash.get('orcamentoNumero') ||
+    parametrosPagina.get('orcamentoNumero') ||
+    ''
 
   if (!orcamentoId) return undefined
 
-  return buscarVendaStorage(orcamentoId) as unknown as Record<string, any> | undefined
+  return (listarVendasCentral() as unknown as Array<Record<string, any>>).find((registro) =>
+    String(registro?.id || '') === orcamentoId &&
+    (!orcamentoNumero || String(registro?.numeroOrcamento || '') === orcamentoNumero),
+  )
 }
 
 function criarPedidoAPartirDoOrcamento(
@@ -1269,6 +1294,13 @@ function PedidoForm() {
     ? (listarVendasCentral() as unknown as Array<Record<string, any>>).find((registro) => {
         const tipo = String(registro?.tipo || '').toLowerCase()
         if (!tipo.includes('pedido') && !registro?.numeroPedido) return false
+        const origemId = String(registro?.orcamentoOrigemId || '').trim()
+        const origemNumero = String(registro?.orcamentoOrigemNumero || registro?.numeroOrcamento || '').trim()
+        const idEsperado = String(orcamentoOrigemEncontrado.id || '').trim()
+        const numeroEsperado = String(orcamentoOrigemEncontrado.numeroOrcamento || '').trim()
+        if (origemId && origemNumero) {
+          return origemId === idEsperado && origemNumero === numeroEsperado
+        }
         return (
           (
             Boolean(orcamentoOrigemEncontrado.pedidoGeradoId) &&
@@ -1313,6 +1345,12 @@ function PedidoForm() {
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
       if (!tipo.includes('orcamento')) return false
+      const origemId = String(vendaInicial?.orcamentoOrigemId || '').trim()
+      const origemNumero = String(vendaInicial?.orcamentoOrigemNumero || '').trim()
+      if (origemId && origemNumero) {
+        return String(registro?.id || '') === origemId &&
+          String(registro?.numeroOrcamento || '') === origemNumero
+      }
       return (
         (
           Boolean(vendaInicial?.orcamentoOrigemId) &&
@@ -1568,6 +1606,10 @@ function PedidoForm() {
 
   const resumoBoletosInter = useMemo(
     () => montarResumoBoletosGratuitos('Inter', mesAtualBoletos),
+    [mesAtualBoletos, venda.parcelas, venda.statusBoleto],
+  )
+  const resumoBoletosC6 = useMemo(
+    () => montarResumoBoletosGratuitos('C6', mesAtualBoletos),
     [mesAtualBoletos, venda.parcelas, venda.statusBoleto],
   )
 
@@ -3152,7 +3194,23 @@ function PedidoForm() {
 
   async function salvarPedido() {
     if (edicaoBloqueadaPedido) {
-      alert('Este pedido está concluído e entregue e não pode mais ser alterado.')
+      if (!vendaEncontrada) return
+      try {
+        const vendaConfirmada = await salvarVendaStorageConfirmado({
+          ...vendaEncontrada,
+          formaPagamento: venda.formaPagamento,
+          tipoCobranca: venda.tipoCobranca,
+          bancoCobranca: venda.bancoCobranca,
+          parcelamento: venda.parcelamento,
+          parcelas: venda.parcelas,
+          valorPagamento: venda.valorPagamento,
+          statusBoleto: venda.statusBoleto,
+        } as Venda)
+        setVenda(vendaConfirmada)
+        alert(`Pagamento do pedido ${vendaConfirmada.numeroPedido} salvo com sucesso.`)
+      } catch (erro) {
+        alert(erro instanceof Error ? `Não foi possível salvar o pagamento: ${erro.message}` : 'O MySQL não confirmou o pagamento.')
+      }
       return
     }
 
@@ -3177,7 +3235,22 @@ function PedidoForm() {
 
   async function salvarEVoltar() {
     if (edicaoBloqueadaPedido) {
-      alert('Este pedido está concluído e entregue e não pode mais ser alterado.')
+      if (!vendaEncontrada) return
+      try {
+        await salvarVendaStorageConfirmado({
+          ...vendaEncontrada,
+          formaPagamento: venda.formaPagamento,
+          tipoCobranca: venda.tipoCobranca,
+          bancoCobranca: venda.bancoCobranca,
+          parcelamento: venda.parcelamento,
+          parcelas: venda.parcelas,
+          valorPagamento: venda.valorPagamento,
+          statusBoleto: venda.statusBoleto,
+        } as Venda)
+        navigate('/vendas')
+      } catch (erro) {
+        alert(erro instanceof Error ? `Não foi possível salvar o pagamento: ${erro.message}` : 'O MySQL não confirmou o pagamento.')
+      }
       return
     }
 
@@ -3883,6 +3956,85 @@ function PedidoForm() {
     }
   }
 
+  function aplicarRetornoC6NaParcela(
+    parcela: ParcelaVenda,
+    cobranca: CobrancaC6Api,
+  ): ParcelaVenda {
+    const statusBoleto = statusInterParaBoleto(cobranca.status)
+    const pagamento = Array.isArray(cobranca.pagamentos) && cobranca.pagamentos.length
+      ? cobranca.pagamentos[0] as Record<string, unknown>
+      : {}
+    return {
+      ...parcela,
+      bancoCobranca: 'C6',
+      tipoCobranca: 'BOLETO BANCO C6',
+      statusBoleto,
+      numeroBoleto: cobranca.nossoNumero || parcela.numeroBoleto,
+      nossoNumero: cobranca.nossoNumero || parcela.nossoNumero,
+      seuNumero: cobranca.externalReferenceId || parcela.seuNumero,
+      linhaDigitavel: cobranca.linhaDigitavel || parcela.linhaDigitavel,
+      codigoBarras: cobranca.codigoBarras || parcela.codigoBarras,
+      idCobrancaBanco: cobranca.c6Id || parcela.idCobrancaBanco,
+      idCobrancaApi: cobranca.c6Id || parcela.idCobrancaApi,
+      ambienteBoleto: 'homologacao',
+      bancoRetornoOriginal: cobranca.raw || cobranca,
+      dataGeracaoBoleto: parcela.dataGeracaoBoleto || hoje(),
+      dataPagamentoBoleto: statusBoleto === 'Pago'
+        ? String(pagamento.payment_date || parcela.dataPagamentoBoleto || hoje())
+        : parcela.dataPagamentoBoleto,
+      valorRecebido: statusBoleto === 'Pago'
+        ? Number(pagamento.payment_amount || cobranca.valor || parcela.valor || 0)
+        : parcela.valorRecebido,
+      erroBoleto: '',
+      motivoErroBoleto: '',
+    }
+  }
+
+  async function emitirParcelaC6(parcela: ParcelaVenda): Promise<ParcelaVenda> {
+    const pedidoBase = montarPedidoAtualizado()
+    const emitindo: ParcelaVenda = { ...parcela, statusBoleto: 'Gerando', erroBoleto: '', motivoErroBoleto: '' }
+    try {
+      return aplicarRetornoC6NaParcela(emitindo, await emitirBoletoC6(pedidoBase, emitindo))
+    } catch (error) {
+      const mensagem = error instanceof Error ? error.message : 'Falha ao emitir boleto no C6.'
+      const referenciaExistente = mensagem.match(
+        /seu\s+n\S*mero\s+([A-Z0-9_-]{1,30})\s+cadastrado/i,
+      )?.[1]
+      if (referenciaExistente) {
+        const tituloExistente = mensagem.match(/t\S*tulo\s+([A-Z0-9_-]+)/i)?.[1]
+        const candidatosConsulta = [tituloExistente, referenciaExistente].filter(
+          (valor, indice, lista): valor is string => Boolean(valor) && lista.indexOf(valor) === indice,
+        )
+        for (const candidato of candidatosConsulta) {
+          try {
+            const recuperada = await consultarBoletoC6(candidato)
+            if (recuperada.c6Id) {
+              return aplicarRetornoC6NaParcela(emitindo, recuperada)
+            }
+          } catch {
+            // O C6 pode exigir exclusivamente o ID principal; tenta o próximo identificador real.
+          }
+        }
+        return {
+          ...emitindo,
+          bancoCobranca: 'C6',
+          tipoCobranca: 'BOLETO BANCO C6',
+          statusBoleto: 'Gerado',
+          seuNumero: referenciaExistente,
+          dataGeracaoBoleto: parcela.dataGeracaoBoleto || hoje(),
+          ambienteBoleto: 'homologacao',
+          erroBoleto: '',
+          motivoErroBoleto: '',
+          observacao: [
+            String(parcela.observacao || '').trim(),
+            `Cobrança já registrada no C6 com seu número ${referenciaExistente}.`,
+          ].filter(Boolean).join('\n'),
+        }
+      }
+      return { ...emitindo, statusBoleto: 'Erro', erroBoleto: mensagem, motivoErroBoleto: mensagem }
+    }
+  }
+
   async function emitirParcelaInter(parcela: ParcelaVenda): Promise<ParcelaVenda> {
     const pedidoBase = montarPedidoAtualizado()
     salvarVendaStorage(pedidoBase)
@@ -3941,10 +4093,10 @@ function PedidoForm() {
 
     if (totalAtual <= 0) return alert('Inclua itens no pedido antes de emitir boleto.')
     if (vendaBase.formaPagamento !== 'BOLETO') return alert('Selecione a forma de pagamento BOLETO.')
-    if (!vendaBase.tipoCobranca) return alert('Selecione BOLETO BANCO INTER.')
+    if (!vendaBase.tipoCobranca) return alert('Selecione o banco para emissão do boleto.')
 
     const bancoSelecionado = identificarBancoBoleto(String(vendaBase.tipoCobranca || ''))
-    if (bancoSelecionado !== 'Inter') return alert('Selecione um banco válido para emitir boleto.')
+    if (!bancoSelecionado) return alert('Selecione um banco válido para emitir boleto.')
 
     const parcelasBase = vendaBase.parcelas.length > 0 ? vendaBase.parcelas : []
     if (parcelasBase.length === 0) return alert('Defina as parcelas do pagamento antes de emitir os boletos.')
@@ -3952,9 +4104,10 @@ function PedidoForm() {
     const pendentes = parcelasBase.filter((parcela) => !boletoFoiGerado(parcela))
     if (pendentes.length === 0) return alert('Os boletos deste pedido já foram emitidos. Use Atualizar cobranças para consultar o banco.')
 
-    const usadosOutros = contarBoletosGeradosNoMesPorBanco('Inter', mesAtualBoletos, venda.id)
-    if (usadosOutros + pendentes.length > LIMITE_BOLETOS_GRATUITOS_POR_BANCO) {
-      alert(`Limite mensal configurado para o Banco Inter excedido. Usados: ${usadosOutros}/${LIMITE_BOLETOS_GRATUITOS_POR_BANCO}.`)
+    const usadosOutros = contarBoletosGeradosNoMesPorBanco(bancoSelecionado, mesAtualBoletos, venda.id)
+    const limiteBancoSelecionado = LIMITES_BOLETOS_POR_BANCO[bancoSelecionado]
+    if (usadosOutros + pendentes.length > limiteBancoSelecionado) {
+      alert(`Limite mensal configurado para o Banco ${bancoSelecionado} excedido. Usados: ${usadosOutros}/${limiteBancoSelecionado}.`)
       return
     }
 
@@ -3965,7 +4118,9 @@ function PedidoForm() {
 
     for (let indice = 0; indice < parcelas.length; indice += 1) {
       if (boletoFoiGerado(parcelas[indice])) continue
-      const atualizada = await emitirParcelaInter(parcelas[indice])
+      const atualizada = bancoSelecionado === 'C6'
+        ? await emitirParcelaC6(parcelas[indice])
+        : await emitirParcelaInter(parcelas[indice])
       parcelas = parcelas.map((parcela, posicao) => posicao === indice ? atualizada : parcela)
       salvarParcelasBoleto(parcelas)
     }
@@ -3991,18 +4146,24 @@ function PedidoForm() {
         || '',
       )
     const consultaveis = parcelas.filter((parcela) =>
-      identificarBancoBoletoDaParcela(parcela, venda) === 'Inter' &&
       Boolean(codigoRegistradoOuRetornadoNoErro(parcela)),
     )
 
-    if (consultaveis.length === 0) return alert('Nenhuma cobrança Inter emitida para consultar neste pedido.')
+    if (consultaveis.length === 0) return alert('Nenhuma cobrança bancária emitida para consultar neste pedido.')
 
     for (let indice = 0; indice < parcelas.length; indice += 1) {
       const parcela = parcelas[indice]
       const codigo = codigoRegistradoOuRetornadoNoErro(parcela)
-      if (!codigo || identificarBancoBoletoDaParcela(parcela, venda) !== 'Inter') continue
+      const banco = identificarBancoBoletoDaParcela(parcela, venda)
+      if (!codigo || (banco !== 'Inter' && banco !== 'C6')) continue
 
       try {
+        if (banco === 'C6') {
+          const cobranca = await consultarBoletoC6(codigo)
+          const atualizada = aplicarRetornoC6NaParcela(parcela, cobranca)
+          parcelas = parcelas.map((item, posicao) => posicao === indice ? atualizada : item)
+          continue
+        }
         const cobranca = await consultarCobrancaInter(codigo)
         let pdfBase64 = parcela.boletoPdfBase64 || ''
         if (!pdfBase64) {
@@ -4033,8 +4194,9 @@ function PedidoForm() {
   async function visualizarBoleto(parcela: ParcelaVenda) {
     let pdfBase64 = parcela.boletoPdfBase64 || ''
     const codigo = String(parcela.idCobrancaApi || parcela.idCobrancaBanco || '')
+    const banco = identificarBancoBoletoDaParcela(parcela, venda)
 
-    if (!pdfBase64 && codigo && identificarBancoBoletoDaParcela(parcela, venda) === 'Inter') {
+    if (!pdfBase64 && codigo && banco === 'Inter') {
       try {
         pdfBase64 = await obterPdfCobrancaInter(codigo)
         const parcelas = venda.parcelas.map((item) =>
@@ -4043,6 +4205,29 @@ function PedidoForm() {
         salvarParcelasBoleto(parcelas)
       } catch (error) {
         alert(error instanceof Error ? error.message : 'Não foi possível obter o PDF do boleto.')
+        return
+      }
+    }
+
+    if (!pdfBase64 && banco === 'C6') {
+      try {
+        let parcelaAtualizada = parcela
+        let c6Id = codigo
+        if (!c6Id) {
+          const cobranca = await emitirBoletoC6(montarPedidoAtualizado(), parcela, { recuperarPdf: true })
+          parcelaAtualizada = aplicarRetornoC6NaParcela(parcela, cobranca)
+          c6Id = cobranca.c6Id
+        }
+        pdfBase64 = await obterPdfBoletoC6(c6Id)
+        if (!pdfBase64) throw new Error('O C6 não devolveu o conteúdo do PDF.')
+        const parcelas = venda.parcelas.map((item) =>
+          Number(item.numero) === Number(parcela.numero)
+            ? { ...parcelaAtualizada, boletoPdfBase64: pdfBase64 }
+            : item,
+        )
+        salvarParcelasBoleto(parcelas)
+      } catch (error) {
+        alert(error instanceof Error ? error.message : 'Não foi possível obter o PDF oficial no C6.')
         return
       }
     }
@@ -4056,21 +4241,49 @@ function PedidoForm() {
     await visualizarBoleto(parcela)
   }
 
+  async function alterarBoleto(parcela: ParcelaVenda) {
+    const banco = identificarBancoBoletoDaParcela(parcela, venda)
+    if (banco !== 'C6') return alert('A alteração por esta ação está disponível para boletos C6.')
+    const codigo = String(parcela.idCobrancaApi || parcela.idCobrancaBanco || '').trim()
+    if (!codigo) return alert('O boleto C6 não possui o identificador principal necessário para alteração.')
+    const novoVencimento = window.prompt('Nova data de vencimento (AAAA-MM-DD):', parcela.vencimento)
+    if (!novoVencimento) return
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(novoVencimento)) return alert('Informe a data no formato AAAA-MM-DD.')
+    try {
+      const cobranca = await alterarBoletoC6(codigo, { due_date: novoVencimento })
+      const parcelas = venda.parcelas.map((item) =>
+        Number(item.numero) === Number(parcela.numero)
+          ? { ...aplicarRetornoC6NaParcela(item, cobranca), vencimento: novoVencimento }
+          : item,
+      )
+      const vendaAtualizada = salvarParcelasBoleto(parcelas)
+      await salvarVendaStorageConfirmado(vendaAtualizada)
+      alert('Boleto C6 alterado e consultado com sucesso.')
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Não foi possível alterar o boleto C6.')
+    }
+  }
+
   async function cancelarBoleto(parcela: ParcelaVenda) {
     const codigo = String(parcela.idCobrancaApi || parcela.idCobrancaBanco || '')
     if (parcela.statusBoleto === 'Cancelado') return alert('Esta cobrança já está cancelada.')
     if (cancelamentosBoletoEmAndamento.current.has(codigo)) return
     if (!codigo) return alert('Esta parcela não possui uma cobrança bancária real para cancelar.')
-    if (identificarBancoBoletoDaParcela(parcela, venda) !== 'Inter') return alert('Esta cobrança não pertence ao Banco Inter.')
+    const banco = identificarBancoBoletoDaParcela(parcela, venda)
+    if (banco !== 'Inter' && banco !== 'C6') return alert('O banco desta cobrança não foi identificado.')
     if (!window.confirm(`Cancelar a cobrança da parcela ${parcela.numero}?`)) return
 
     cancelamentosBoletoEmAndamento.current.add(codigo)
     try {
-      const cobranca = await cancelarCobrancaInter(codigo)
+      const cobranca = banco === 'C6'
+        ? await cancelarBoletoC6(codigo)
+        : await cancelarCobrancaInter(codigo)
       const parcelas = venda.parcelas.map((item) =>
         Number(item.numero) === Number(parcela.numero)
           ? {
-              ...aplicarRetornoInterNaParcela(item, cobranca),
+              ...(banco === 'C6'
+                ? aplicarRetornoC6NaParcela(item, cobranca as CobrancaC6Api)
+                : aplicarRetornoInterNaParcela(item, cobranca as CobrancaInterApi)),
               statusBoleto: 'Cancelado' as const,
               dataCancelamentoBoleto: hoje(),
               horarioCancelamentoBoleto: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
@@ -4550,21 +4763,34 @@ Endereço: ${EMPRESA_ENDERECO}`
       if (!parcelasGeradas.some((item) => Number(item.numero) === Number(parcela.numero))) continue
       if (parcela.boletoPdfBase64 || parcela.boletoPdfUrl || parcela.linkBoleto) continue
 
-      const codigo = String(parcela.idCobrancaBanco || parcela.idCobrancaApi || '').trim()
-      if (!codigo || identificarBancoBoletoDaParcela(parcela, vendaBase) !== 'Inter') {
+      let codigo = String(parcela.idCobrancaBanco || parcela.idCobrancaApi || '').trim()
+      const banco = identificarBancoBoletoDaParcela(parcela, vendaBase)
+      if (banco !== 'Inter' && banco !== 'C6') {
         throw new Error(`O boleto da parcela ${parcela.numero} está gerado, mas o PDF não está disponível e a cobrança bancária não pôde ser localizada.`)
       }
 
       let pdfBase64 = ''
       try {
-        pdfBase64 = await obterPdfCobrancaInter(codigo)
+        if (banco === 'C6') {
+          let parcelaC6 = parcela
+          if (!codigo) {
+            const cobranca = await emitirBoletoC6(vendaBase, parcela, { recuperarPdf: true })
+            parcelaC6 = aplicarRetornoC6NaParcela(parcela, cobranca)
+            codigo = cobranca.c6Id
+          }
+          pdfBase64 = await obterPdfBoletoC6(codigo)
+          parcelasAtualizadas[indice] = { ...parcelaC6, boletoPdfBase64: pdfBase64 }
+        } else {
+          if (!codigo) throw new Error('A cobrança do Banco Inter não possui identificador.')
+          pdfBase64 = await obterPdfCobrancaInter(codigo)
+          parcelasAtualizadas[indice] = { ...parcela, boletoPdfBase64: pdfBase64 }
+        }
       } catch (error) {
         throw new Error(error instanceof Error ? `Não foi possível buscar o PDF do boleto da parcela ${parcela.numero}: ${error.message}` : `Não foi possível buscar o PDF do boleto da parcela ${parcela.numero}.`)
       }
       if (!pdfBase64) {
-        throw new Error(`O Banco Inter não devolveu o PDF do boleto da parcela ${parcela.numero}. O e-mail não foi enviado.`)
+        throw new Error(`O banco não devolveu o PDF do boleto da parcela ${parcela.numero}. O e-mail não foi enviado.`)
       }
-      parcelasAtualizadas[indice] = { ...parcela, boletoPdfBase64: pdfBase64 }
     }
 
     const atualizada: Venda = { ...vendaBase, parcelas: parcelasAtualizadas }
@@ -4907,20 +5133,68 @@ Endereço: ${EMPRESA_ENDERECO}`
     window.open(documento, '_blank', 'noopener,noreferrer')
   }
 
-  function consultarNotaFiscal() {
+  async function consultarNotaFiscal() {
     if (!venda.numeroNotaFiscal) {
       alert('Nota fiscal não emitida. A consulta fiscal será habilitada quando houver uma NF vinculada ao pedido.')
       return
     }
-    alert(
-      `NF-e nº ${venda.numeroNotaFiscal}\n` +
-        `Série: ${venda.serieNotaFiscal || '1'}\n` +
-        `Status: ${venda.statusNotaFiscal || 'Pendente'}\n` +
-        `Ambiente: ${venda.ambienteNotaFiscal || 'HOMOLOGACAO'}\n` +
-        `Chave: ${venda.chaveAcessoNotaFiscal || 'não informada'}\n` +
-        `Protocolo: ${venda.protocoloNotaFiscal || 'não informado'}\n` +
-        (venda.cStatNotaFiscal ? `cStat: ${venda.cStatNotaFiscal}` : ''),
-    )
+    const chaves = [
+      String(venda.motivoRejeicaoNotaFiscal || '').match(/\d{44}/)?.[0],
+      venda.chaveAcessoNotaFiscal,
+    ].map((valor) => String(valor || '').replace(/\D/g, ''))
+      .filter((valor, index, lista) => valor.length === 44 && lista.indexOf(valor) === index)
+    if (!chaves.length) {
+      alert('A NF-e não possui uma chave de acesso válida para consulta.')
+      return
+    }
+    try {
+      let consulta = await consultarNFeNaSefaz(chaves[0])
+      if (!consulta.autorizada && !consulta.cancelada && chaves[1]) consulta = await consultarNFeNaSefaz(chaves[1])
+      const statusNotaFiscal: Venda['statusNotaFiscal'] = consulta.cancelada
+        ? 'Cancelada'
+        : consulta.autorizada ? 'Autorizada' : 'Rejeitada'
+      const vendaAtualizada: Venda = {
+        ...venda,
+        statusNotaFiscal,
+        ambienteNotaFiscal: 'PRODUCAO',
+        chaveAcessoNotaFiscal: consulta.chaveAcesso,
+        protocoloNotaFiscal: consulta.protocolo || venda.protocoloNotaFiscal,
+        cStatNotaFiscal: consulta.cStat,
+        motivoRejeicaoNotaFiscal: consulta.autorizada ? '' : consulta.motivo,
+        dataEmissaoNotaFiscal: consulta.dataRecebimento || venda.dataEmissaoNotaFiscal,
+        historicoNotaFiscal: [
+          ...(venda.historicoNotaFiscal || []),
+          {
+            id: `nfe-consulta-${Date.now()}`,
+            ambiente: 'PRODUCAO',
+            status: statusNotaFiscal,
+            numero: venda.numeroNotaFiscal,
+            serie: venda.serieNotaFiscal || '1',
+            chaveAcesso: consulta.chaveAcesso,
+            protocolo: consulta.protocolo || venda.protocoloNotaFiscal,
+            cStat: consulta.cStat,
+            motivo: consulta.motivo || 'Situação consultada diretamente na SEFAZ.',
+            xml: venda.xmlNotaFiscal,
+            criadoEm: new Date().toISOString(),
+          },
+        ],
+      }
+      const confirmada = await salvarVendaStorageConfirmado(vendaAtualizada)
+      setVenda(confirmada)
+      if (consulta.autorizada) {
+        await registrarNumeracaoNFeAutorizada({
+          numero: venda.numeroNotaFiscal,
+          serie: venda.serieNotaFiscal || '1',
+          ambiente: 'PRODUCAO',
+          cStat: consulta.cStat,
+          chaveAcesso: consulta.chaveAcesso,
+          protocolo: consulta.protocolo,
+        })
+      }
+      alert(`NF-e nº ${venda.numeroNotaFiscal}: ${statusNotaFiscal} na SEFAZ e vinculada ao pedido ${venda.numeroPedido}.`)
+    } catch (erro) {
+      alert(erro instanceof Error ? erro.message : 'Não foi possível consultar a NF-e na SEFAZ.')
+    }
   }
 
   function editarDadosNotaFiscal() {
@@ -5718,7 +5992,6 @@ Synergias Distribuidora`,
               className="pedido-acao pedido-acao-salvar"
               title="Salvar pedido"
               aria-label="Salvar pedido"
-              disabled={edicaoBloqueadaPedido}
               onClick={salvarPedido}
             >
               <Save size={25} strokeWidth={2.4} />
@@ -7009,7 +7282,7 @@ Synergias Distribuidora`,
               <h2>Pagamento</h2>
             </div>
 
-            <div className="orcamento-pagamento-area">
+            <div className="orcamento-pagamento-area pedido-pagamento-editavel">
               <div className="orcamento-pagamento-lateral">
                 <div className="pagamento-total">
                   <small>Total a pagar</small>
@@ -7021,6 +7294,7 @@ Synergias Distribuidora`,
                   <select
                     value={venda.formaPagamento || ''}
                     onChange={(e) => alterarFormaPagamento(e.target.value)}
+                    data-synergias-pagamento="PEDIDOS_GERAL_V308"
                   >
                     <option value="">Selecione</option>
                     {FORMAS_PAGAMENTO_PADRAO.map((forma) => (
@@ -7088,6 +7362,102 @@ Synergias Distribuidora`,
                     }
                   />
                 </label>
+
+                {String(venda.tipoCobranca || '').toUpperCase().includes('C6') && (
+                  <div className="c6-encargos-grid">
+                    <strong>Encargos após o vencimento</strong>
+                    <label>
+                      Juros
+                      <select
+                        value={venda.jurosBoletoTipo || 'P'}
+                        onChange={(e) => atualizarVenda('jurosBoletoTipo', e.target.value as 'P' | 'V')}
+                      >
+                        <option value="P">Percentual mensal (%)</option>
+                        <option value="V">Valor por dia (R$)</option>
+                      </select>
+                    </label>
+                    <label>
+                      Valor dos juros
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={venda.jurosBoletoValor || 0}
+                        onChange={(e) => atualizarVenda('jurosBoletoValor', Math.max(0, Number(e.target.value)))}
+                      />
+                    </label>
+                    <label>
+                      Aplicar após (dias)
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={venda.jurosBoletoPrazo || 0}
+                        onChange={(e) => atualizarVenda('jurosBoletoPrazo', Math.max(0, Math.trunc(Number(e.target.value))))}
+                      />
+                    </label>
+                    <label>
+                      Multa
+                      <select
+                        value={venda.multaBoletoTipo || 'P'}
+                        onChange={(e) => atualizarVenda('multaBoletoTipo', e.target.value as 'P' | 'V')}
+                      >
+                        <option value="P">Percentual (%)</option>
+                        <option value="V">Valor fixo (R$)</option>
+                      </select>
+                    </label>
+                    <label>
+                      Valor da multa
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={venda.multaBoletoValor || 0}
+                        onChange={(e) => atualizarVenda('multaBoletoValor', Math.max(0, Number(e.target.value)))}
+                      />
+                    </label>
+                    <label>
+                      Aplicar após (dias)
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={venda.multaBoletoPrazo || 0}
+                        onChange={(e) => atualizarVenda('multaBoletoPrazo', Math.max(0, Math.trunc(Number(e.target.value))))}
+                      />
+                    </label>
+                    <label>
+                      Desconto
+                      <select
+                        value={venda.descontoBoletoTipo || 'P'}
+                        onChange={(e) => atualizarVenda('descontoBoletoTipo', e.target.value as 'P' | 'V')}
+                      >
+                        <option value="P">Percentual (%)</option>
+                        <option value="V">Valor (R$)</option>
+                      </select>
+                    </label>
+                    <label>
+                      Valor do desconto
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={venda.descontoBoletoValor || 0}
+                        onChange={(e) => atualizarVenda('descontoBoletoValor', Math.max(0, Number(e.target.value)))}
+                      />
+                    </label>
+                    <label>
+                      Até quantos dias antes
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={venda.descontoBoletoPrazo || 1}
+                        onChange={(e) => atualizarVenda('descontoBoletoPrazo', Math.max(1, Math.trunc(Number(e.target.value))))}
+                      />
+                    </label>
+                  </div>
+                )}
 
                 {dadosPagamentoSelecionado && (
                   <div className="dados-pagamento-box">
@@ -7377,7 +7747,7 @@ Synergias Distribuidora`,
             </div>
 
             <div className="pedido-acoes-documentos pedido-documentos-vertical">
-              <section className="pedido-documento-card nota">
+              <section className="pedido-documento-card nota pedido-fiscal-editavel">
                 <div className="pedido-documento-titulo pedido-documento-titulo-com-acoes">
                   <div><ReceiptText size={28} color="#0284c7" /><h3>NOTA FISCAL</h3></div>
                   <span className={`nf-status-badge status-${String(venda.statusNotaFiscal || 'Pendente').toLowerCase().replace(/\s+/g, '-')}`}>
@@ -7487,6 +7857,7 @@ Synergias Distribuidora`,
 
                 <div className="boleto-contadores">
                   <div><span>Banco Inter</span><strong>{resumoBoletosInter.usados}/{resumoBoletosInter.limite}</strong><small>{resumoBoletosInter.disponiveis} disponíveis</small></div>
+                  <div><span>C6 Bank</span><strong>{resumoBoletosC6.usados}/{resumoBoletosC6.limite}</strong><small>{resumoBoletosC6.disponiveis} disponíveis</small></div>
                 </div>
 
                 <div className="boleto-parcelas-lista">
@@ -7506,6 +7877,7 @@ Synergias Distribuidora`,
                           {status === 'Erro' && <button type="button" className="documento-icon-btn" title="Tentar novamente" onClick={gerarBoleto}><RefreshCw size={18}/></button>}
                           {emitido && <button type="button" className="documento-icon-btn" title="Visualizar boleto" onClick={() => visualizarBoleto(parcela)}><Eye size={18}/></button>}
                           {emitido && <button type="button" className="documento-icon-btn" title="Imprimir boleto" onClick={() => imprimirBoleto(parcela)}><Printer size={18}/></button>}
+                          {emitido && banco === 'C6' && status !== 'Pago' && status !== 'Cancelado' && <button type="button" className="documento-icon-btn" title="Alterar vencimento" onClick={() => alterarBoleto(parcela)}><FilePenLine size={18}/></button>}
                           {emitido && status !== 'Pago' && status !== 'Cancelado' && <button type="button" className="documento-icon-btn perigo" title="Cancelar boleto" onClick={() => cancelarBoleto(parcela)}><XCircle size={18}/></button>}
                         </div>
                       </article>
@@ -7697,7 +8069,6 @@ Synergias Distribuidora`,
                 type="button"
                 className="save-secondary-button"
                 onClick={salvarPedido}
-                disabled={edicaoBloqueadaPedido}
               >
                 <Save size={18} />
                 Salvar
@@ -7707,7 +8078,6 @@ Synergias Distribuidora`,
                 type="button"
                 className="save-button"
                 onClick={salvarEVoltar}
-                disabled={edicaoBloqueadaPedido}
               >
                 <Save size={18} />
                 Salvar e Voltar
@@ -7721,3 +8091,6 @@ Synergias Distribuidora`,
 }
 
 export default PedidoForm
+
+
+

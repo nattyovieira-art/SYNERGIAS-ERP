@@ -695,6 +695,20 @@
   gap: 7px;
 }
 
+.c6-encargos-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+}
+
+.c6-encargos-grid > strong {
+  color: #166534;
+}
+
 .dados-pagamento-box strong {
   color: #15803d;
   font-size: 14px;
@@ -2544,4 +2558,16 @@
 .orcamento-page.pedido-page-bloqueado select,
 .orcamento-page.pedido-page-bloqueado textarea {
   pointer-events: none;
+}
+.orcamento-page.pedido-page-bloqueado .pedido-pagamento-editavel input,
+.orcamento-page.pedido-page-bloqueado .pedido-pagamento-editavel select,
+.orcamento-page.pedido-page-bloqueado .pedido-pagamento-editavel textarea,
+.orcamento-page.pedido-page-bloqueado .pedido-pagamento-editavel button {
+  pointer-events: auto;
+}
+.orcamento-page.pedido-page-bloqueado .pedido-fiscal-editavel input,
+.orcamento-page.pedido-page-bloqueado .pedido-fiscal-editavel select,
+.orcamento-page.pedido-page-bloqueado .pedido-fiscal-editavel textarea,
+.orcamento-page.pedido-page-bloqueado .pedido-fiscal-editavel button {
+  pointer-events: auto;
 }

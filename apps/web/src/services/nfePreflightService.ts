@@ -17,6 +17,17 @@ export type ResultadoPreEmissaoNFe = {
   validadoEm: string
 }
 
+export type ResultadoConsultaNFe = {
+  ok: boolean
+  cStat: string
+  motivo: string
+  protocolo: string
+  dataRecebimento: string
+  autorizada: boolean
+  cancelada: boolean
+  chaveAcesso: string
+}
+
 const API = '/api/fiscal/nfe-preflight-v56.php'
 
 type OpcoesRequisicaoFiscal = {
@@ -76,6 +87,36 @@ async function requisicaoFiscal(
       `${expirou ? ' dentro do tempo esperado' : ''}. ` +
       `Nenhuma NF-e foi transmitida nesta etapa. Atualize a página e tente novamente.`,
   )
+}
+
+export async function consultarNFeNaSefaz(chaveAcesso: string): Promise<ResultadoConsultaNFe> {
+  const chave = String(chaveAcesso || '').replace(/\D/g, '')
+  if (chave.length !== 44) throw new Error('A chave de acesso da NF-e precisa ter 44 dígitos.')
+  const response = await requisicaoFiscal('/api/fiscal/nfe-consulta.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chaveAcesso: chave, ambiente: 'PRODUCAO' }),
+  }, {
+    etapa: 'Consulta da NF-e na SEFAZ',
+    repeticoesSeguras: 1,
+    timeoutMs: 30000,
+  })
+  const raw = await response.text()
+  let data: any = {}
+  try { data = raw ? JSON.parse(raw) : {} } catch { throw new Error('A consulta da NF-e retornou uma resposta inválida.') }
+  if (!response.ok || data?.ok !== true) {
+    throw new Error(data?.error || data?.motivo || `Não foi possível consultar a NF-e (HTTP ${response.status}).`)
+  }
+  return {
+    ok: true,
+    cStat: String(data.cStat || ''),
+    motivo: String(data.motivo || ''),
+    protocolo: String(data.protocolo || ''),
+    dataRecebimento: String(data.dataRecebimento || ''),
+    autorizada: data.autorizada === true,
+    cancelada: data.cancelada === true,
+    chaveAcesso: chave,
+  }
 }
 
 const CODIGOS_IBGE_MUNICIPIOS: Record<string, string> = {

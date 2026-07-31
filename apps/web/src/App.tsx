@@ -44,6 +44,7 @@ const NumeracaoFiscal = lazy(() => import('./pages/Configuracoes/NumeracaoFiscal
 const NaturezasOperacao = lazy(() => import('./pages/Configuracoes/NaturezasOperacao'))
 const UsuariosPermissoes = lazy(() => import('./pages/Configuracoes/UsuariosPermissoes'))
 const IntegracoesBancarias = lazy(() => import('./pages/Configuracoes/IntegracoesBancarias'))
+const IntegracaoC6 = lazy(() => import('./pages/Configuracoes/IntegracaoC6'))
 const IntegracaoSefazNFe = lazy(() => import('./pages/Configuracoes/IntegracaoSefazNFe'))
 const Sistema = lazy(() => import('./pages/Configuracoes/Sistema'))
 const Marcas = lazy(() => import('./pages/Produtos/Marcas'))
@@ -258,6 +259,7 @@ function App() {
         <Route path="/configuracoes/fiscal/naturezas-operacao" element={<NaturezasOperacao />} />
         <Route path="/configuracoes/acesso/usuarios-permissoes" element={<UsuariosPermissoes />} />
         <Route path="/configuracoes/integracoes/bancos" element={<IntegracoesBancarias />} />
+        <Route path="/configuracoes/integracoes/c6" element={<IntegracaoC6 />} />
         <Route path="/configuracoes/integracoes/sefaz-nfe" element={<IntegracaoSefazNFe />} />
         <Route path="/configuracoes/sistema" element={<Sistema />} />
 

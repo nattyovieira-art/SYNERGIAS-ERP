@@ -53,7 +53,7 @@ export type StatusBoleto =
   | 'Cancelado'
   | 'Erro'
 
-export type BancoCobranca = '' | 'Cora' | 'Inter'
+export type BancoCobranca = '' | 'Cora' | 'Inter' | 'C6'
 
 export type TipoCobranca =
   | ''
@@ -64,6 +64,7 @@ export type TipoCobranca =
   | 'Cartão'
   | 'Boleto + Pix'
   | 'BOLETO BANCO INTER'
+  | 'BOLETO BANCO C6'
   | 'BOLETO BANCO CORA'
   | 'PIX BANCO CORA'
   | 'PIX BANCO INTER'
@@ -190,6 +191,15 @@ export type Venda = {
 
   numeroOrcamento?: string
   numeroPedido?: string
+  jurosBoletoTipo?: 'P' | 'V'
+  jurosBoletoValor?: number
+  jurosBoletoPrazo?: number
+  multaBoletoTipo?: 'P' | 'V'
+  multaBoletoValor?: number
+  multaBoletoPrazo?: number
+  descontoBoletoTipo?: 'P' | 'V'
+  descontoBoletoValor?: number
+  descontoBoletoPrazo?: number
 
   orcamentoOrigemId?: string
   orcamentoOrigemNumero?: string

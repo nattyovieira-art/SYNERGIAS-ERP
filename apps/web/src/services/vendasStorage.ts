@@ -551,7 +551,7 @@ export async function salvarVendaStorageConfirmado(venda: Venda) {
     atualizadoEm: gerarDataAtual(),
   }) as unknown as Venda
 
-  const atualizacao = await atualizarRegistroColecaoCentral('vendas', vendaAtualizada)
+  const atualizacao = await atualizarRegistroColecaoCentral('vendas', vendaAtualizada, existente)
   if (String((atualizacao.record as any)?.id || '') !== String((vendaAtualizada as any).id || '')) {
     throw new Error('O MySQL confirmou um ID diferente do orçamento enviado.')
   }

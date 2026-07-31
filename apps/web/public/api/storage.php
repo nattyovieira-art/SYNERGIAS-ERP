@@ -457,6 +457,7 @@ if ($method === 'PATCH') {
     $raw = file_get_contents('php://input') ?: '{}';
     $body = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
     $record = $body['record'] ?? null;
+    $expectedRecord = $body['expectedRecord'] ?? null;
     $expectedHash = strtolower(trim((string)($body['expectedHash'] ?? '')));
     $expectedUpdatedAt = trim((string)($body['expectedUpdatedAt'] ?? ''));
     if (!is_array($record)) responder(422, ['ok' => false, 'error' => 'O campo record precisa ser um objeto de venda.']);
@@ -471,16 +472,33 @@ if ($method === 'PATCH') {
         if (!is_array($central)) throw new RuntimeException('Coleção vendas não encontrada.');
         $hashCentral = strtolower((string)$central['payload_hash']);
         $updatedAtCentral = (string)$central['updated_at'];
-        if (($expectedHash !== '' && !hash_equals($hashCentral, $expectedHash)) || ($expectedUpdatedAt !== '' && $expectedUpdatedAt !== $updatedAtCentral)) {
-            $pdo->rollBack();
-            responder(409, [
-                'ok' => false, 'conflict' => true, 'reloadRequired' => true,
-                'error' => 'Conflito de versão: vendas mudou no MySQL. Recarregue o orçamento antes de salvar novamente.',
-                'currentHash' => $hashCentral, 'currentUpdatedAt' => $updatedAtCentral,
-            ]);
-        }
-
         $atual = decodificarLista((string)$central['payload']);
+        $colecaoMudou = ($expectedHash !== '' && !hash_equals($hashCentral, $expectedHash))
+            || ($expectedUpdatedAt !== '' && $expectedUpdatedAt !== $updatedAtCentral);
+        if ($colecaoMudou) {
+            $registroAtual = null;
+            foreach ($atual as $itemAtual) {
+                if (is_array($itemAtual) && mesmoRegistroVendaCentral($itemAtual, $record)) {
+                    $registroAtual = $itemAtual;
+                    break;
+                }
+            }
+            $mesmoRegistro = is_array($expectedRecord)
+                && is_array($registroAtual)
+                && hash_equals(
+                    hash('sha256', json_encode($registroAtual, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
+                    hash('sha256', json_encode($expectedRecord, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+                );
+            $novoAindaAusente = $registroAtual === null && $expectedRecord === null;
+            if (!$mesmoRegistro && !$novoAindaAusente) {
+                $pdo->rollBack();
+                responder(409, [
+                    'ok' => false, 'conflict' => true, 'reloadRequired' => true,
+                    'error' => 'Conflito de versão: este pedido mudou no MySQL. Recarregue o pedido antes de salvar novamente.',
+                    'currentHash' => $hashCentral, 'currentUpdatedAt' => $updatedAtCentral,
+                ]);
+            }
+        }
         $indiceAlvo = null;
         foreach ($atual as $indice => $item) {
             if (!is_array($item)) continue;
@@ -540,47 +558,54 @@ if ($method === 'PATCH') {
 }
 
 if ($method === 'DELETE') {
-    if ($collection !== 'vendas') responder(405, ['ok' => false, 'error' => 'Exclusão unitária disponível somente para vendas.']);
+    if (!in_array($collection, ['vendas', 'compras'], true)) responder(405, ['ok' => false, 'error' => 'Exclusão unitária indisponível para esta coleção.']);
     $raw = file_get_contents('php://input') ?: '{}';
     $body = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
     $recordId = trim((string)($body['id'] ?? ''));
     $expectedHash = strtolower(trim((string)($body['expectedHash'] ?? '')));
     $expectedUpdatedAt = trim((string)($body['expectedUpdatedAt'] ?? ''));
-    if ($recordId === '') responder(422, ['ok' => false, 'error' => 'Informe o ID da venda que será excluída.']);
+    if ($recordId === '') responder(422, ['ok' => false, 'error' => 'Informe o ID do registro que será excluído.']);
 
     $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare('SELECT payload,item_count,payload_hash,updated_at FROM erp_storage WHERE collection=:collection FOR UPDATE');
-        $stmt->execute(['collection' => 'vendas']);
+        $stmt->execute(['collection' => $collection]);
         $central = $stmt->fetch();
-        if (!is_array($central)) throw new RuntimeException('Coleção vendas não encontrada.');
+        if (!is_array($central)) throw new RuntimeException('Coleção não encontrada.');
         $hashCentral = strtolower((string)$central['payload_hash']);
         $updatedAtCentral = (string)$central['updated_at'];
         if (($expectedHash !== '' && !hash_equals($hashCentral, $expectedHash)) || ($expectedUpdatedAt !== '' && $expectedUpdatedAt !== $updatedAtCentral)) {
             $pdo->rollBack();
-            responder(409, ['ok' => false, 'conflict' => true, 'reloadRequired' => true, 'error' => 'Conflito de versão: vendas mudou no MySQL. Recarregue a tela antes de excluir.']);
+            responder(409, ['ok' => false, 'conflict' => true, 'reloadRequired' => true, 'error' => 'Conflito de versão: os dados mudaram no MySQL. Recarregue a tela antes de excluir.']);
         }
 
         $atual = decodificarLista((string)$central['payload']);
-        $encontrados = array_values(array_filter($atual, static fn($item): bool => is_array($item) && vendaId($item) === $recordId));
+        $obterId = static fn($item): string => is_array($item)
+            ? ($collection === 'vendas' ? vendaId($item) : trim((string)($item['id'] ?? '')))
+            : '';
+        $encontrados = array_values(array_filter($atual, static fn($item): bool => $obterId($item) === $recordId));
         if (count($encontrados) !== 1) {
             $pdo->rollBack();
-            responder(count($encontrados) === 0 ? 404 : 409, ['ok' => false, 'error' => count($encontrados) === 0 ? 'Venda não encontrada no MySQL.' : 'Existem registros duplicados com este ID; exclusão bloqueada.']);
+            responder(count($encontrados) === 0 ? 404 : 409, ['ok' => false, 'error' => count($encontrados) === 0 ? 'Registro não encontrado no MySQL.' : 'Existem registros duplicados com este ID; exclusão bloqueada.']);
         }
-        $nova = array_values(array_filter($atual, static fn($item): bool => !is_array($item) || vendaId($item) !== $recordId));
-        salvarHistorico($pdo, 'vendas', $atual);
+        if ($collection === 'compras' && !empty($encontrados[0]['movimentouEstoque']) && empty($encontrados[0]['estoqueEstornado'])) {
+            $pdo->rollBack();
+            responder(409, ['ok' => false, 'error' => 'Compra com estoque movimentado não pode ser excluída antes do estorno.']);
+        }
+        $nova = array_values(array_filter($atual, static fn($item): bool => $obterId($item) !== $recordId));
+        salvarHistorico($pdo, $collection, $atual);
         $payload = codificarLista($nova);
         $hash = hashPayload($payload);
-        $up = $pdo->prepare("UPDATE erp_storage SET payload=:payload,item_count=:count,payload_hash=:hash,updated_at=CURRENT_TIMESTAMP WHERE collection='vendas'");
-        $up->execute(['payload' => $payload, 'count' => count($nova), 'hash' => $hash]);
-        $confirmacao = lerRegistro($pdo, 'vendas');
+        $up = $pdo->prepare('UPDATE erp_storage SET payload=:payload,item_count=:count,payload_hash=:hash,updated_at=CURRENT_TIMESTAMP WHERE collection=:collection');
+        $up->execute(['payload' => $payload, 'count' => count($nova), 'hash' => $hash, 'collection' => $collection]);
+        $confirmacao = lerRegistro($pdo, $collection);
         $releitura = $confirmacao ? decodificarLista((string)$confirmacao['payload']) : [];
         foreach ($releitura as $item) {
-            if (is_array($item) && vendaId($item) === $recordId) throw new RuntimeException('O MySQL não confirmou a exclusão da venda.');
+            if ($obterId($item) === $recordId) throw new RuntimeException('O MySQL não confirmou a exclusão do registro.');
         }
-        salvarHistorico($pdo, 'vendas', $nova);
+        salvarHistorico($pdo, $collection, $nova);
         $pdo->commit();
-        responder(200, ['ok' => true, 'verified' => true, 'collection' => 'vendas', 'deletedId' => $recordId, 'count' => count($nova), 'hash' => $hash, 'updatedAt' => $confirmacao['updated_at'] ?? null, 'storage' => 'mysql']);
+        responder(200, ['ok' => true, 'verified' => true, 'collection' => $collection, 'deletedId' => $recordId, 'count' => count($nova), 'hash' => $hash, 'updatedAt' => $confirmacao['updated_at'] ?? null, 'storage' => 'mysql']);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;

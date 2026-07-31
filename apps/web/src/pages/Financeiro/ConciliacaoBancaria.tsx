@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { consultarCobrancaInter } from '../../services/interCobrancaApi'
+import { consultarBoletoC6 } from '../../services/c6BoletoApi'
 import {
   listarVendasStorage,
   salvarVendaStorageConfirmado,
@@ -1279,18 +1280,21 @@ function ConciliacaoBancaria() {
           ).trim()
           const codigoSolicitacaoValido =
             /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(codigo)
+          const ehInter = bancoCobranca.includes('inter') && codigoSolicitacaoValido
+          const ehC6 = bancoCobranca.includes('c6') && codigo.length > 0
           if (
-            !bancoCobranca.includes('inter') ||
-            !codigoSolicitacaoValido ||
+            (!ehInter && !ehC6) ||
             String(parcela.statusBoleto || '').toLowerCase() === 'pago'
           ) {
             parcelas.push(parcela)
             continue
           }
 
-          const cobranca = await consultarCobrancaInter(codigo)
+          const cobranca = ehC6
+            ? await consultarBoletoC6(codigo)
+            : await consultarCobrancaInter(codigo)
           const status = normalizarTexto(cobranca.status)
-          const paga = ['pago', 'recebido', 'liquidado', 'concluido'].some((termo) =>
+          const paga = ['pago', 'paid', 'recebido', 'liquidado', 'concluido'].some((termo) =>
             status.includes(termo))
 
           if (!paga) {
@@ -1298,8 +1302,19 @@ function ConciliacaoBancaria() {
             continue
           }
 
-          const valorRecebido = Number(cobranca.valorRecebido || parcela.valor || 0)
-          const dataRecebimento = String(cobranca.dataPagamento || hoje()).slice(0, 10)
+          const cobrancaC6 = ehC6 ? cobranca as Awaited<ReturnType<typeof consultarBoletoC6>> : null
+          const pagamentoC6 = cobrancaC6 && Array.isArray(cobrancaC6.pagamentos)
+            ? cobrancaC6.pagamentos.find((item: any) => Number(item?.amount || 0) > 0) as any
+            : null
+          const valorRecebido = Number(
+            (ehC6 ? pagamentoC6?.amount || cobrancaC6?.valor : (cobranca as any).valorRecebido)
+            || parcela.valor
+            || 0,
+          )
+          const dataRecebimento = String(
+            (ehC6 ? pagamentoC6?.date : (cobranca as any).dataPagamento)
+            || hoje(),
+          ).slice(0, 10)
           parcelas.push({
             ...parcela,
             statusBoleto: 'Pago' as const,
@@ -1320,7 +1335,7 @@ function ConciliacaoBancaria() {
               valorPrincipalRecebido: Number(conta.valorOriginal || valorRecebido),
               saldoAberto: 0,
               dataRecebimento,
-              contaRecebimento: 'Banco Inter',
+              contaRecebimento: ehC6 ? 'C6 Bank' : 'Banco Inter',
               conciliado: true,
               status: 'Paga',
             })
@@ -1350,10 +1365,10 @@ function ConciliacaoBancaria() {
 
       atualizarDadosTela()
       setMensagemInter(baixas
-        ? `${baixas} pagamento(s) confirmado(s) pelo Banco Inter.`
-        : 'Nenhum novo pagamento confirmado pelo Banco Inter.')
+        ? `${baixas} pagamento(s) confirmado(s) automaticamente pelos bancos.`
+        : 'Nenhum novo pagamento confirmado pelo Banco Inter ou C6.')
     } catch (erro) {
-      setMensagemInter(erro instanceof Error ? erro.message : 'Não foi possível consultar o Banco Inter.')
+      setMensagemInter(erro instanceof Error ? erro.message : 'Não foi possível consultar os bancos.')
     } finally {
       setSincronizandoInter(false)
     }
@@ -1378,6 +1393,7 @@ function ConciliacaoBancaria() {
             <select className="financeiro-banco-select" value={bancoSelecionado} onChange={(e) => setBancoSelecionado(e.target.value)}>
               <option value="">Banco não informado</option>
               <option value="Banco Inter">Banco Inter</option>
+              <option value="C6 Bank">C6 Bank</option>
             </select>
           </div>
           <div className="financeiro-toolbar-right-actions">

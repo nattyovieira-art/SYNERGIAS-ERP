@@ -31,7 +31,7 @@ import { extrairTextoDocumentoCompra } from '../../services/documentoCompra'
 
 import '../../styles/compras.css'
 
-const API_BACKEND = 'http://localhost:3333'
+const API_BACKEND = ''
 
 const STATUS_COMPRAS: Array<'Todos' | StatusCompra> = [
   'Todos',
@@ -56,6 +56,20 @@ type RespostaSincronizacaoDFe = {
   maxNSU?: string
   lotesConsultados?: number
   movimentouEstoque?: boolean
+}
+
+async function lerRespostaJson<T>(resposta: Response): Promise<T> {
+  const texto = await resposta.text()
+
+  try {
+    return JSON.parse(texto) as T
+  } catch {
+    throw new Error(
+      resposta.ok
+        ? 'O servidor retornou uma resposta inválida.'
+        : `A consulta não está disponível no servidor (HTTP ${resposta.status}).`,
+    )
+  }
 }
 
 function dinheiro(valor: number) {
@@ -152,18 +166,21 @@ function Compras() {
           itensFallback: compra.itens,
           motivo: `Compra duplicada no ERP - NF-e ${compra.numeroNFe || '-'}`,
         })
-        await salvarCompraStorageConfirmado({
+        const compraEstornada: Compra = {
           ...compra,
           status: 'Cancelado',
           movimentarEstoque: false,
+          movimentouEstoque: true,
           estoqueEstornado: true,
           estoqueEstornadoEm: new Date().toISOString(),
           idsMovimentacoesEstorno: estornos.map((item) => item.id),
           motivoCancelamento: 'Compra já registrada no sistema anterior',
           atualizadoEm: new Date().toISOString(),
-        })
+        }
+        await salvarCompraStorageConfirmado(compraEstornada)
+        await excluirCompraEspecificaStorageConfirmado(compraEstornada)
         setCompras(listarComprasStorage())
-        alert('Compra cancelada e estoque estornado com sucesso.')
+        alert('Compra excluída e estoque estornado com sucesso.')
       } catch (erro) {
         alert(erro instanceof Error ? erro.message : 'Não foi possível estornar a compra.')
       }
@@ -251,7 +268,7 @@ function Compras() {
     window.location.reload()
   }
 
-  function buscarNFePorChave() {
+  async function buscarNFePorChave() {
     const chave = chaveBuscaNFe.replace(/\D/g, '')
 
     if (chave.length !== 44) {
@@ -269,11 +286,50 @@ function Compras() {
       return
     }
 
-    navigate('/compras/novo', {
-      state: {
-        chaveAcessoNFe: chave,
-      },
-    })
+    if (sincronizandoSefaz) return
+    setSincronizandoSefaz(true)
+
+    try {
+      const resposta = await fetch(`${API_BACKEND}/api/fiscal/nfe-consulta.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          chaveAcesso: chave,
+          ambiente: 'PRODUCAO',
+        }),
+      })
+
+      const dados = await lerRespostaJson<{
+        ok: boolean
+        mensagem?: string
+        motivo?: string
+        autorizada?: boolean
+        cancelada?: boolean
+      }>(resposta)
+
+      if (!resposta.ok || !dados.ok) {
+        throw new Error(dados.mensagem || dados.motivo || 'Não foi possível consultar a NF-e.')
+      }
+
+      const situacao = dados.cancelada
+        ? 'cancelada'
+        : dados.autorizada
+          ? 'autorizada'
+          : dados.motivo || 'localizada'
+
+      alert(
+        `NF-e ${situacao} na SEFAZ.\n\n` +
+          'A consulta pela chave não fornece os produtos da nota. Importe o XML para criar a compra completa.\n\n' +
+          'Nenhuma compra vazia foi criada.',
+      )
+    } catch (error) {
+      const mensagem =
+        error instanceof Error ? error.message : 'Erro ao consultar a NF-e.'
+      alert(`${mensagem}\n\nNenhuma compra foi criada.`)
+    } finally {
+      setSincronizandoSefaz(false)
+    }
   }
 
   async function sincronizarSefaz() {
@@ -296,7 +352,7 @@ function Compras() {
         },
       )
 
-      const dados = (await resposta.json()) as RespostaSincronizacaoDFe
+      const dados = await lerRespostaJson<RespostaSincronizacaoDFe>(resposta)
 
       if (!resposta.ok || !dados.ok) {
         if (dados.codigo === 'CERTIFICADO_A1_NAO_CONFIGURADO') {

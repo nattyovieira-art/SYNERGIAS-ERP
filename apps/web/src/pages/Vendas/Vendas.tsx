@@ -791,11 +791,11 @@ function Vendas() {
     }
 
     if (abaAtiva === 'pedidos') {
-      navigate(`/vendas/pedidos/editar/${venda.id}`)
+      navigate(`/vendas/pedidos/editar/${encodeURIComponent(String(venda.id))}`)
       return
     }
 
-    navigate(`/vendas/orcamentos/editar/${venda.id}`)
+    navigate(`/vendas/orcamentos/editar/${encodeURIComponent(String(venda.id))}`)
   }
 
   async function conciliarPedido(event: MouseEvent<HTMLButtonElement>, venda: VendaLista) {

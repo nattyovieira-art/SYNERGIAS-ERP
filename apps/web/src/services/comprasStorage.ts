@@ -1,6 +1,9 @@
 import type { Compra } from '../types/Compra'
 import {
+  aguardarSincronizacaoCentral,
+  carregarColecaoCentral,
   definirColecaoMemoria,
+  excluirRegistroColecaoCentral,
   obterColecaoMemoria,
   sincronizarColecaoCentral,
   sincronizarColecaoCentralAgora,
@@ -131,8 +134,34 @@ export function salvarCompraStorage(compra: Compra): void {
 }
 
 export async function salvarCompraStorageConfirmado(compra: Compra): Promise<void> {
-  salvarCompraStorage(compra)
-  await sincronizarColecaoCentralAgora('compras', listarComprasStorage())
+  await aguardarSincronizacaoCentral('compras')
+
+  const servidor = await carregarColecaoCentral<Compra>('compras')
+  const compras = [...servidor.data]
+  const indice = compras.findIndex(
+    (existente) => existente.id === compra.id || mesmaNota(existente, compra),
+  )
+
+  if (indice >= 0) {
+    compras[indice] = compra
+  } else {
+    compras.unshift(compra)
+  }
+
+  definirColecaoMemoria('compras', compras)
+  localStorage.setItem(CHAVE_COMPRAS, JSON.stringify(compras))
+  await sincronizarColecaoCentralAgora('compras', compras)
+
+  const confirmacao = await carregarColecaoCentral<Compra>('compras')
+  const compraConfirmada = confirmacao.data.some(
+    (existente) => existente.id === compra.id || mesmaNota(existente, compra),
+  )
+  if (!compraConfirmada) {
+    throw new Error('O servidor não confirmou o salvamento da compra. Tente novamente sem movimentar o estoque.')
+  }
+
+  definirColecaoMemoria('compras', confirmacao.data)
+  localStorage.setItem(CHAVE_COMPRAS, JSON.stringify(confirmacao.data))
 }
 
 export function excluirCompraStorage(id: string): void {
@@ -155,20 +184,17 @@ export async function excluirCompraEspecificaStorageConfirmado(compraAlvo: Compr
     throw new Error('Compra com estoque movimentado não pode ser excluída. Registre uma devolução ou estorno auditado.')
   }
 
-  const chaveAlvo = String(compraAlvo.chaveAcessoNFe || '').replace(/\D/g, '')
-  const compras = listarComprasStorage().filter((compra) => {
-    if (chaveAlvo.length === 44) {
-      return String(compra.chaveAcessoNFe || '').replace(/\D/g, '') !== chaveAlvo
-    }
-    return compra !== compraAlvo && !(
-      compra.id === compraAlvo.id &&
-      String(compra.numeroNFe || '') === String(compraAlvo.numeroNFe || '') &&
-      String(compra.fornecedorDocumento || '') === String(compraAlvo.fornecedorDocumento || '')
-    )
-  })
+  await aguardarSincronizacaoCentral('compras')
+  await excluirRegistroColecaoCentral('compras', compraAlvo.id)
 
-  persistirCompras(compras)
-  await sincronizarColecaoCentralAgora('compras', compras, true)
+  const confirmacao = await carregarColecaoCentral<Compra>('compras')
+  const permaneceu = confirmacao.data.some((compra) => compra.id === compraAlvo.id)
+  if (permaneceu) {
+    throw new Error('O servidor não confirmou a exclusão da compra.')
+  }
+
+  definirColecaoMemoria('compras', confirmacao.data)
+  localStorage.setItem(CHAVE_COMPRAS, JSON.stringify(confirmacao.data))
 }
 
 export function gerarNumeroCompraStorage(): string {

@@ -127,9 +127,7 @@ function normalizarItem(item: ItemCompra): ItemCompra {
   const fatorInformado = Math.max(1, numero(item.fatorConversao || 1))
   const fatorDescricao = inferirFatorEmbalagemNFe(item.descricao, unidadeFiscal)
   const fatorConversao = Math.max(fatorInformado, fatorDescricao)
-  const quantidadeConvertida = fatorDescricao > fatorInformado
-    ? quantidadeFiscal * fatorConversao
-    : numero(item.quantidadeConvertida) || quantidadeFiscal * fatorConversao
+  const quantidadeConvertida = quantidadeFiscal * fatorConversao
   const custoUnitarioConvertido =
     numero(item.custoFinalItem) > 0 && quantidadeConvertida > 0
       ? numero(item.custoFinalItem) / quantidadeConvertida
@@ -161,25 +159,27 @@ function aplicarTotaisDoXml(compra: Compra): Compra {
     if (!total) return compra
     const valor = (campo: string) => numero(total.querySelector(campo)?.textContent)
     const desconto = valor('vDesc')
-    if (desconto <= 0) return compra
-
-    const baseProdutos = compra.itens.reduce(
-      (soma, item) => soma + numero(item.totalFiscal ?? item.total),
-      0,
-    )
-    let descontoAcumulado = 0
+    const detalhes = Array.from(documento.querySelectorAll('det'))
     const itens = compra.itens.map((item, indice) => {
-      const descontoItem = indice === compra.itens.length - 1
-        ? desconto - descontoAcumulado
-        : Number((desconto * numero(item.totalFiscal ?? item.total) / baseProdutos).toFixed(2))
-      descontoAcumulado += descontoItem
-      const descontoAnterior = numero(item.descontoRateado)
-      const custoBase = numero(item.custoFinalItem) + descontoAnterior
-      const custoFinalItem = Math.max(0, custoBase - descontoItem)
+      const detalhe = detalhes[indice]
+      if (!detalhe) return item
+      const produto = detalhe.querySelector('prod')
+      const imposto = detalhe.querySelector('imposto')
+      const totalFiscal = numero(produto?.querySelector('vProd')?.textContent)
+      const icmsSt = numero(imposto?.querySelector('vICMSST')?.textContent)
+      const ipi = numero(imposto?.querySelector('vIPI')?.textContent)
+      const custoFinalItem = totalFiscal + icmsSt + ipi + numero(item.difal)
       const quantidade = numero(item.quantidadeConvertida || item.quantidade)
       return {
         ...item,
-        descontoRateado: descontoItem,
+        custoUnitarioFiscal: numero(produto?.querySelector('vUnCom')?.textContent),
+        totalFiscal,
+        total: totalFiscal,
+        icmsSt,
+        ipi,
+        frete: 0,
+        outrosCustosRateados: 0,
+        descontoRateado: 0,
         custoFinalItem,
         custoUnitarioConvertido: quantidade > 0 ? custoFinalItem / quantidade : 0,
       }
@@ -194,7 +194,7 @@ function aplicarTotaisDoXml(compra: Compra): Compra {
       totalFinal: valor('vNF'),
       descontoFinanceiroNFe: desconto,
       valorLiquidoCobrancaNFe: valor('vNF'),
-      decisaoDescontoFinanceiro: 'LIQUIDO_COM_DESCONTO',
+      decisaoDescontoFinanceiro: desconto > 0 ? 'LIQUIDO_COM_DESCONTO' : undefined,
     }
   } catch {
     return compra
@@ -1057,11 +1057,6 @@ function CompraForm({ modo }: CompraFormProps) {
       return
     }
 
-    if (compra.movimentouEstoque) {
-      alert('O estoque desta compra já foi movimentado.')
-      return
-    }
-
     if (compra.itens.length === 0) {
       alert('A compra não possui itens.')
       return
@@ -1094,7 +1089,7 @@ function CompraForm({ modo }: CompraFormProps) {
       `Confirmar recebimento da compra ${
         compra.numeroNFe ? `NF-e ${compra.numeroNFe}` : `#${compra.numeroCompra}`
       } e dar entrada no estoque?\n\n` +
-        'Esta operação movimenta o estoque uma única vez.',
+        'O sistema movimentará somente as quantidades que ainda estiverem faltando.',
     )
 
     if (!confirmar) return
@@ -1135,7 +1130,26 @@ function CompraForm({ modo }: CompraFormProps) {
       return
     }
 
-    const movimentacoesCriadas = resultadoEntrada.idsMovimentacoes
+    if (resultadoEntrada.resultados.length === 0) {
+      alert(
+        `Nenhum produto foi movimentado.\n\n` +
+          `${resultadoEntrada.mensagem}\n\n` +
+          'O recebimento NÃO foi marcado como concluído.',
+      )
+      return
+    }
+
+    const movimentacoesCriadas = Array.from(
+      new Set(
+        [
+          ...String(compra.idMovimentacaoEstoque || '')
+            .split(',')
+            .map((id) => id.trim())
+            .filter(Boolean),
+          ...resultadoEntrada.idsMovimentacoes,
+        ],
+      ),
+    )
 
     const itensComCustoFinal = itensNormalizados.map((item) => {
       const resultado = resultadoEntrada.resultados.find((atual) => atual.produtoCodigo === item.produtoCodigo)
@@ -1796,7 +1810,6 @@ function CompraForm({ modo }: CompraFormProps) {
                                   Number(event.target.value),
                                 )
                               }
-                              disabled={compra.movimentouEstoque}
                             />
                           </label>
 
@@ -1813,7 +1826,6 @@ function CompraForm({ modo }: CompraFormProps) {
                                   Number(event.target.value),
                                 )
                               }
-                              disabled={compra.movimentouEstoque}
                             />
                           </label>
 
@@ -1979,16 +1991,16 @@ function CompraForm({ modo }: CompraFormProps) {
           </button>
         </div>
 
-        {!compra.movimentouEstoque && (
+        {compra.movimentarEstoque && (
           <section className="compras-confirmar-recebimento-card">
             <div>
               <PackageCheck size={26} />
               <div>
                 <strong>Mercadoria chegou e foi conferida?</strong>
                 <span>
-                  {compra.movimentarEstoque
-                    ? 'Confirme somente depois de revisar os códigos dos produtos e a conversão CX → UN de cada item.'
-                    : 'Confirme o recebimento da compra sem alterar saldos ou custos do estoque.'}
+                  {compra.movimentouEstoque
+                    ? 'Confira novamente: somente diferenças ainda não movimentadas serão lançadas.'
+                    : 'Confirme somente depois de revisar os códigos dos produtos e a conversão CX → UN de cada item.'}
                 </span>
               </div>
             </div>
@@ -2002,11 +2014,11 @@ function CompraForm({ modo }: CompraFormProps) {
               <PackageCheck size={19} />
               {processandoRecebimento
                 ? 'Processando com segurança...'
-                : compra.movimentarEstoque
-                ? compra.status === 'Recebido'
-                  ? 'Dar Entrada no Estoque'
-                  : 'Confirmar Recebimento e Dar Entrada no Estoque'
-                : 'Confirmar Recebimento sem Movimentar Estoque'}
+                : compra.movimentouEstoque
+                ? 'Conferir e Completar Estoque'
+                : compra.status === 'Recebido'
+                ? 'Dar Entrada no Estoque'
+                : 'Confirmar Recebimento e Dar Entrada no Estoque'}
             </button>
           </section>
         )}

@@ -1,4 +1,4 @@
-import { corrigirOrcamento2492LifeSquare } from './corrigirOrcamento2492LifeSquare'
+﻿import { corrigirOrcamento2492LifeSquare } from './corrigirOrcamento2492LifeSquare'
 import { corrigirOrcamento2151Pedido2453PorDescricao } from './corrigirOrcamento2151Pedido2453PorDescricao'
 import { criarOrcamentoOttoClub } from './criarOrcamentoOttoClub'
 import { criarOrcamentosJoy } from './criarOrcamentosJoy'
@@ -162,6 +162,7 @@ export async function substituirColecaoCentral<T>(collection: ColecaoCentral, da
 export async function atualizarRegistroColecaoCentral<T extends { id?: unknown }>(
   collection: ColecaoCentral,
   record: T,
+  expectedRecord?: T,
 ): Promise<{ record: T; count: number }> {
   const versaoEsperada = versoesCentrais.get(collection)
   const response = await fetch(`${API_STORAGE_URL}?collection=${encodeURIComponent(collection)}`, {
@@ -170,6 +171,7 @@ export async function atualizarRegistroColecaoCentral<T extends { id?: unknown }
     credentials: 'same-origin',
     body: JSON.stringify({
       record,
+      expectedRecord: expectedRecord || null,
       expectedHash: versaoEsperada?.hash || '',
       expectedUpdatedAt: versaoEsperada?.updatedAt || '',
     }),
@@ -1034,6 +1036,7 @@ async function restaurarVinculoDoPedido2505UmaVez(vendas: any[]): Promise<any[]>
   return atuais
 }
 
+
 export async function restaurarHistoricoFiscalVisivel(vendas: any[]): Promise<any[]> {
   const somenteNumero = (valor: unknown) => String(valor || '').replace(/\D/g, '').replace(/^0+/, '')
   const notasCanceladasConfirmadas = new Set(['2497'])
@@ -1193,7 +1196,7 @@ export async function inicializarArmazenamentoCentral(): Promise<void> {
     carregarColecaoCentral<unknown>('movimentacoesEstoque'),
   ])
   const [clientes, produtos, vendas, compras, movimentacoesEstoque] = await Promise.race([carregar, timeout])
-  definirColecaoMemoria('clientes', Array.isArray(clientes.data) ? clientes.data : [])
+definirColecaoMemoria('clientes', Array.isArray(clientes.data) ? clientes.data : [])
   definirColecaoMemoria('produtos', Array.isArray(produtos.data) ? produtos.data : [])
   let comprasIniciais = Array.isArray(compras.data) ? compras.data : []
   let movimentosIniciais = Array.isArray(movimentacoesEstoque.data) ? movimentacoesEstoque.data : []
@@ -1239,11 +1242,10 @@ export async function inicializarArmazenamentoCentral(): Promise<void> {
   // SYNERGIAS_V292A: a coleção central do MySQL é a única fonte de vendas.
   // Nenhuma importação, reconstrução, mesclagem com cache local ou correção pontual
   // pode regravar a coleção completa durante a abertura do ERP.
-  let vendasEstaveis = vendasServidor as any[]
-
-  // A abertura apenas carrega os dados atuais. Migrações históricas já aplicadas
+  let vendasEstaveis = vendasServidor as any[]
+// A abertura apenas carrega os dados atuais. Migrações históricas já aplicadas
   // não devem bloquear todos os novos acessos ao ERP.
-  definirColecaoMemoria('clientes', Array.isArray(clientes.data) ? clientes.data : [])
+definirColecaoMemoria('clientes', Array.isArray(clientes.data) ? clientes.data : [])
   definirColecaoMemoria('vendas', vendasEstaveis)
   // A reconstrução financeira é pesada e não deve bloquear a abertura do ERP.
   const sincronizarFinanceiro = () => sincronizarFinanceiroComOperacoes(vendasEstaveis, comprasIniciais as any[])
@@ -1363,7 +1365,7 @@ export async function inicializarArmazenamentoCentral(): Promise<void> {
   } catch (erro) {
     console.warn('[Synergias ERP] Restauração do vínculo 2423/2505 ignorada durante a inicialização.', erro)
   }
-  definirColecaoMemoria('clientes', Array.isArray(clientes.data) ? clientes.data : [])
+definirColecaoMemoria('clientes', Array.isArray(clientes.data) ? clientes.data : [])
   definirColecaoMemoria('vendas', vendasEstaveis)
 
   sincronizarFinanceiroComOperacoes(vendasEstaveis, comprasIniciais as any[])
@@ -1373,3 +1375,6 @@ export async function inicializarArmazenamentoCentral(): Promise<void> {
 
   limparCachePesadoDoNavegador()
 }
+
+
+

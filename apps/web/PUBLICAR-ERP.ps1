@@ -188,6 +188,9 @@ try {
     $apiDanfeHtmlStage = Join-Path $apiDanfeStageDir 'nfe-danfe.php'
     $apiXmlPreviewLocal = Join-Path $dist 'api\fiscal\nfe-xml-preview-v63.php'
     $apiXmlPreviewStage = Join-Path $apiDanfeStageDir 'nfe-xml-preview-v63.php'
+    $apiNfeConsultaLocal = Join-Path $dist 'api\fiscal\nfe-consulta.php'
+    $apiNfeConsultaStage = Join-Path $apiDanfeStageDir 'nfe-consulta.php'
+    $apiC6Names = @('c6-config.php', 'c6-client.php', 'c6-config-admin.php', 'c6-boleto.php', 'c6-webhook.php')
     if (-not (Test-Path -LiteralPath $apiNumeracaoLocal -PathType Leaf)) {
         throw 'A API api\numeracao-fiscal.php não foi encontrada no dist.'
     }
@@ -208,7 +211,7 @@ try {
         throw 'A API api\cnpj-consulta.php não foi encontrada no dist.'
     }
     Copy-Item -LiteralPath $apiCnpjLocal -Destination $apiCnpjStage -Force
-    foreach ($apiObrigatoria in @($apiBootstrapLocal, $apiEmailLocal, $apiDanfeLocal, $apiDanfeHtmlLocal, $apiXmlPreviewLocal)) {
+    foreach ($apiObrigatoria in @($apiBootstrapLocal, $apiEmailLocal, $apiDanfeLocal, $apiDanfeHtmlLocal, $apiXmlPreviewLocal, $apiNfeConsultaLocal)) {
         if (-not (Test-Path -LiteralPath $apiObrigatoria -PathType Leaf)) {
             throw "API de segurança não encontrada no build: $apiObrigatoria"
         }
@@ -219,6 +222,14 @@ try {
     Copy-Item -LiteralPath $apiDanfeLocal -Destination $apiDanfeStage -Force
     Copy-Item -LiteralPath $apiDanfeHtmlLocal -Destination $apiDanfeHtmlStage -Force
     Copy-Item -LiteralPath $apiXmlPreviewLocal -Destination $apiXmlPreviewStage -Force
+    Copy-Item -LiteralPath $apiNfeConsultaLocal -Destination $apiNfeConsultaStage -Force
+    foreach ($apiC6Name in $apiC6Names) {
+        $apiC6Local = Join-Path $dist "api\$apiC6Name"
+        if (-not (Test-Path -LiteralPath $apiC6Local -PathType Leaf)) {
+            throw "A API C6 não foi encontrada no build: $apiC6Name"
+        }
+        Copy-Item -LiteralPath $apiC6Local -Destination (Join-Path $stage "api\$apiC6Name") -Force
+    }
 
     $lines = @(
         'option batch abort',
@@ -238,6 +249,12 @@ try {
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/fiscal/nfe-danfe-pdf.php"' -f $apiDanfeStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/fiscal/nfe-danfe.php"' -f $apiDanfeHtmlStage, $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/fiscal/nfe-xml-preview-v63.php"' -f $apiXmlPreviewStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/fiscal/nfe-consulta.php"' -f $apiNfeConsultaStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/c6-config.php"' -f (Join-Path $stage 'api\c6-config.php'), $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/c6-client.php"' -f (Join-Path $stage 'api\c6-client.php'), $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/c6-config-admin.php"' -f (Join-Path $stage 'api\c6-config-admin.php'), $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/c6-boleto.php"' -f (Join-Path $stage 'api\c6-boleto.php'), $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/api/c6-webhook.php"' -f (Join-Path $stage 'api\c6-webhook.php'), $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/index.html"' -f $indexStage, $remoteBase),
         'exit'
     )

@@ -316,12 +316,16 @@ export async function estornarEntradaCompraStorage(dados: {
       .map((movimento) => String(movimento.movimentoOriginalId || ''))
       .filter(Boolean),
   )
-  const entradasPendentes = entradas.filter(
-    (movimento) => !idsJaEstornados.has(movimento.id),
-  )
-  if (entradasPendentes.length === 0) {
-    throw new Error('O estoque desta compra já foi estornado.')
-  }
+    const entradasPendentes = entradas.filter(
+      (movimento) => !idsJaEstornados.has(movimento.id),
+    )
+    if (entradasPendentes.length === 0) {
+      return movimentacoes.filter(
+        (movimento) =>
+          movimento.origem === 'estorno_compra' &&
+          idsJaEstornados.has(String(movimento.movimentoOriginalId || '')),
+      )
+    }
 
   let produtos = listarProdutosStorage()
   const agora = new Date().toISOString()
@@ -413,21 +417,18 @@ export function confirmarEntradaCompraComCustoMedioStorage(
     normalizarDocumento(dados.chaveAcessoNFe) ||
     normalizarDocumento(dados.numeroNFe) ||
     normalizarDocumento(dados.numeroCompra)
-  const movimentosExistentes = listarMovimentacoesEstoque().filter(
+  const movimentacoesAtuais = listarMovimentacoesEstoque()
+  const idsEntradasEstornadas = new Set(
+    movimentacoesAtuais
+      .filter((movimento) => movimento.origem === 'estorno_compra' && movimento.movimentoOriginalId)
+      .map((movimento) => String(movimento.movimentoOriginalId)),
+  )
+  const movimentosExistentes = movimentacoesAtuais.filter(
     (movimento) =>
       movimento.origem === 'compra' &&
+      !idsEntradasEstornadas.has(String(movimento.id)) &&
       normalizarDocumento(movimento.documentoOrigem) === documentoOrigem,
   )
-  if (documentoOrigem && movimentosExistentes.length > 0) {
-    return {
-      ok: true,
-      mensagem: 'A entrada desta compra já havia sido processada; nenhuma nova movimentação foi criada.',
-      resultados: [],
-      idsMovimentacoes: movimentosExistentes.map((movimento) => movimento.id),
-      produtos: produtosAtuais,
-      movimentacoes: listarMovimentacoesEstoque(),
-    }
-  }
   const itensValidos = dados.itens
     .map((item) => ({
       ...item,
@@ -528,14 +529,36 @@ export function confirmarEntradaCompraComCustoMedioStorage(
   for (const entrada of entradasPorProduto.values()) {
     const produto = entrada.produto
     const produtoAny = produto as any
+    const quantidadeEsperada = arredondarQuantidade(entrada.quantidadeEntrada)
+    const quantidadeJaMovimentada = arredondarQuantidade(
+      movimentosExistentes
+        .filter((movimento) => {
+          const mesmoId =
+            produtoAny.id &&
+            movimento.produtoId &&
+            String(movimento.produtoId) === String(produtoAny.id)
+          const mesmoCodigo =
+            movimento.produtoCodigo &&
+            String(movimento.produtoCodigo) === String(produtoAny.codigo || '')
+          return Boolean(mesmoId || mesmoCodigo)
+        })
+        .reduce((total, movimento) => total + Math.abs(numeroSeguro(movimento.quantidade)), 0),
+    )
+    const quantidadeEntrada = arredondarQuantidade(
+      Math.max(0, quantidadeEsperada - quantidadeJaMovimentada),
+    )
+
+    if (quantidadeEntrada <= 0) continue
+
+    const proporcaoPendente =
+      quantidadeEsperada > 0 ? quantidadeEntrada / quantidadeEsperada : 0
     const estoqueAnterior = obterEstoqueProduto(produto)
-    const quantidadeEntrada = entrada.quantidadeEntrada
     const estoqueAtual = estoqueAnterior + quantidadeEntrada
     const custoMedioAnterior = obterCustoMedioProduto(produto)
     const ultimoCustoAnterior = obterUltimoCustoCompraProduto(produto)
     const valorEstoqueAnterior =
       estoqueAnterior > 0 ? estoqueAnterior * custoMedioAnterior : 0
-    const valorEntrada = entrada.valorEntrada
+    const valorEntrada = entrada.valorEntrada * proporcaoPendente
     const custoEntrada = quantidadeEntrada > 0 ? valorEntrada / quantidadeEntrada : 0
     const custoMedioAtual =
       estoqueAnterior > 0 && estoqueAtual > 0
@@ -642,6 +665,18 @@ export function confirmarEntradaCompraComCustoMedioStorage(
       valorEstoqueAtual: arredondarValor(valorEstoqueAtual),
       idMovimentacao,
     })
+  }
+
+  if (novasMovimentacoes.length === 0) {
+    return {
+      ok: false,
+      mensagem:
+        'Todos os produtos desta NF-e já possuem a quantidade esperada no estoque. Nenhuma movimentação duplicada foi criada.',
+      resultados: [],
+      idsMovimentacoes: movimentosExistentes.map((movimento) => movimento.id),
+      produtos: produtosAtuais,
+      movimentacoes: movimentacoesAtuais,
+    }
   }
 
   salvarProdutosStorage(produtosAtualizados)

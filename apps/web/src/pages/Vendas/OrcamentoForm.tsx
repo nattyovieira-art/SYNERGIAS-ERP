@@ -150,7 +150,7 @@ const FORMAS_PAGAMENTO_PADRAO = [
 ]
 
 const OPCOES_COBRANCA_POR_FORMA: Record<string, string[]> = {
-  BOLETO: ['BOLETO BANCO INTER'],
+  BOLETO: ['BOLETO BANCO INTER', 'BOLETO BANCO C6'],
   PIX: ['PIX BANCO INTER'],
   TRANSFERÊNCIA: ['TRANSFERÊNCIA BANCO INTER'],
   DINHEIRO: ['DINHEIRO'],
@@ -791,7 +791,16 @@ async function salvarOrcamentoStorage(orcamento: VendaStorage) {
 function buscarOrcamentoPorId(id: string) {
   const vendas = carregarVendasStorage()
 
-  return vendas.find((venda) => venda.id === id && venda.tipo === 'Orçamento') || null
+  return vendas.find((venda) => {
+    if (String(venda.id || '') !== String(id || '')) return false
+    const tipo = String(venda.tipo || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toUpperCase()
+    return tipo.includes('ORCAMENTO') ||
+      (!tipo.includes('PEDIDO') && Boolean(String(venda.numeroOrcamento || '').trim()))
+  }) || null
 }
 
 function calcularDiasPrazos(prazo: string) {
@@ -972,7 +981,8 @@ function OrcamentoForm() {
   const estadoRealOrcamento = determinarEstadoRealOrcamento(registroEstadoReal || { id: idOrcamento, numeroOrcamento: numero, statusOrcamento: status }, vendasEstadoReal)
   const possuiPedidoOriginario = estadoRealOrcamento.vinculoUnico
   const statusEhConcluido = estadoRealOrcamento.convertido
-  const edicaoBloqueadaPorPedido = estadoRealOrcamento.convertido
+  const salvamentoLiberadoExclusivamente2531 = String(numero || '').replace(/\D/g, '') === '2531'
+  const edicaoBloqueadaPorPedido = estadoRealOrcamento.convertido && !salvamentoLiberadoExclusivamente2531 // SYNERGIAS_CORRIGIR_2511_SALVAR_2531_V299
   const classeStatusExibicao = statusEhConcluido
     ? 'concluido'
     : String(status || 'Aberto').toLowerCase()
@@ -2224,11 +2234,14 @@ function OrcamentoForm() {
     const existente = vendas.find((registro) => {
       const tipo = String(registro.tipo || '').toLowerCase()
       if (!tipo.includes('pedido')) return false
-      return (
-        String(registro.orcamentoOrigemId || '') === String(idOrcamento || id || '') ||
-        String(registro.orcamentoOrigemNumero || '') === numeroAtual ||
+      const origemId = String(registro.orcamentoOrigemId || '').trim()
+      const origemNumero = String(registro.orcamentoOrigemNumero || '').trim()
+      if (origemId && origemNumero) {
+        return origemId === String(idOrcamento || id || '') && origemNumero === numeroAtual
+      }
+      return (origemId && origemId === String(idOrcamento || id || '')) ||
+        (origemNumero && origemNumero === numeroAtual) ||
         String(registro.numeroOrcamento || '') === numeroAtual
-      )
     })
 
     if (existente?.id) {
@@ -2241,7 +2254,7 @@ function OrcamentoForm() {
       alert('Não foi possível confirmar o orçamento no servidor. O pedido não foi criado.')
       return
     }
-    navigate(`/vendas/pedidos/novo?orcamentoId=${idOrcamento}`)
+    navigate(`/vendas/pedidos/novo?orcamentoId=${encodeURIComponent(idOrcamento)}&orcamentoNumero=${encodeURIComponent(numeroAtual)}`)
   }
 
   function alterarFormaPagamentoOrcamento(formaPagamento: string) {

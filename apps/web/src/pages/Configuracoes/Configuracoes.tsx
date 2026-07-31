@@ -189,6 +189,12 @@ const GRUPOS: GrupoConfiguracao[] = [
         icone: Plug,
       },
       {
+        titulo: 'C6 Bank',
+        descricao: 'Credenciais mTLS e homologação de boletos.',
+        rota: '/configuracoes/integracoes/c6',
+        icone: Plug,
+      },
+      {
         titulo: 'SEFAZ / NF-e',
         descricao: 'Ambiente, serviços fiscais e status da comunicação NF-e.',
         rota: '/configuracoes/integracoes/sefaz-nfe',

@@ -33,6 +33,14 @@ export function localizarPedidosReaisDoOrcamento(orcamento: RegistroVendaEstado,
     if (idOrcamento && String(registro.id || '').trim() === idOrcamento) return false
     const origemId = String(registro.orcamentoOrigemId || '').trim()
     const origemNumero = numeroLogico(registro.orcamentoOrigemNumero)
+    const possuiOrigemExplicita = Boolean(origemId || origemNumero)
+    const origemConfere = origemId && origemNumero
+      ? Boolean(idOrcamento && numeroOrcamento && origemId === idOrcamento && origemNumero === numeroOrcamento)
+      : origemId
+        ? Boolean(idOrcamento && origemId === idOrcamento)
+        : Boolean(numeroOrcamento && origemNumero === numeroOrcamento)
+    // A origem gravada no Pedido prevalece sobre referencias antigas mantidas no Orcamento.
+    if (possuiOrigemExplicita) return origemConfere
     // Campos copiados no Orçamento por importações antigas não provam conversão.
     // Com ID interno disponível, somente o vínculo ID -> ID é inequívoco.
     const pedidoGeradoId = String(orcamento.pedidoGeradoId || orcamento.pedidoId || '').trim()

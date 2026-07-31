@@ -92,10 +92,46 @@ final class InterApiClient
 
     public function obterPdfCobranca(string $codigoSolicitacao): array
     {
-        $response = $this->requestRaw(
-            'GET',
-            '/cobrancas/' . rawurlencode($codigoSolicitacao) . '/pdf'
-        );
+        $response = null;
+        $ultimoErro = null;
+
+        // O Inter pode confirmar a cobrança antes de concluir a geração do PDF.
+        // Nessa situação a própria API orienta tentar novamente após o processamento.
+        // Repetimos somente esse caso transitório, sem alterar os demais erros da integração.
+        for ($tentativa = 1; $tentativa <= 5; $tentativa++) {
+            try {
+                $response = $this->requestRaw(
+                    'GET',
+                    '/cobrancas/' . rawurlencode($codigoSolicitacao) . '/pdf'
+                );
+                $ultimoErro = null;
+                break;
+            } catch (InterApiException $erro) {
+                $ultimoErro = $erro;
+                $payload = is_array($erro->interPayload) ? $erro->interPayload : [];
+                $mensagem = mb_strtolower($this->extrairMensagemErro($payload) . ' ' . $erro->getMessage());
+                $pdfEmProcessamento = $erro->httpStatus === 400
+                    && str_contains($mensagem, 'pdf')
+                    && (str_contains($mensagem, 'process') || str_contains($mensagem, 'tente novamente'));
+
+                if (!$pdfEmProcessamento || $tentativa >= 5) {
+                    if ($pdfEmProcessamento) {
+                        throw new InterApiException(
+                            'Boleto gerado com sucesso. O Banco Inter ainda está processando o PDF. Tente visualizar ou imprimir novamente em alguns segundos.',
+                            409,
+                            $payload,
+                        );
+                    }
+                    throw $erro;
+                }
+
+                sleep(2);
+            }
+        }
+
+        if (!is_array($response)) {
+            throw $ultimoErro ?? new InterApiException('Não foi possível obter o PDF da cobrança no Banco Inter.', 502);
+        }
 
         $contentType = strtolower((string)($response['contentType'] ?? ''));
         $body = (string)($response['body'] ?? '');

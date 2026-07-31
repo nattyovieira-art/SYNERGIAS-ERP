@@ -1,5 +1,6 @@
 const MARCADOR = 'SYNERGIAS_ORCAMENTOS_2406_2411_DESCRICAO_V312'
 const MARCADOR_KARPATHOS_2397 = 'SYNERGIAS_ORCAMENTO_2397_DESCRICAO_PDF_V313'
+const MARCADOR_2411 = 'SYNERGIAS_ORCAMENTO_2411_DESCRICAO_PDF_V314'
 
 type ItemCarga = readonly [string, number, number, number?]
 type Carga = {
@@ -340,7 +341,9 @@ export async function corrigirOrcamentos2406e2411PorDescricao(
   for (const carga of CARGAS) {
     const marcadorCarga = carga.numero === '2397'
       ? MARCADOR_KARPATHOS_2397
-      : `${MARCADOR}_${carga.numero}`
+      : carga.numero === '2411'
+        ? MARCADOR_2411
+        : `${MARCADOR}_${carga.numero}`
     const candidatos = vendas.filter((venda) =>
       normalizar(venda?.tipo).includes('ORCAMENTO') &&
       String(venda?.numeroOrcamento || venda?.numero || '').replace(/\D/g, '') === carga.numero)
