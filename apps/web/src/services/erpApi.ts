@@ -53,6 +53,7 @@ const memoria: Record<ColecaoCentral, unknown[]> = {
   movimentacoesEstoque: [],
 }
 const filas = new Map<ColecaoCentral, Promise<void>>()
+const filasRegistros = new Map<ColecaoCentral, Promise<unknown>>()
 const leiturasEmAndamento = new Map<ColecaoCentral, Promise<RespostaColecao<unknown>>>()
 const versoesCentrais = new Map<ColecaoCentral, { hash: string; updatedAt: string }>()
 export const ERP_STORAGE_UPDATED_EVENT = 'synergias:storage-updated'
@@ -164,34 +165,43 @@ export async function atualizarRegistroColecaoCentral<T extends { id?: unknown }
   record: T,
   expectedRecord?: T,
 ): Promise<{ record: T; count: number }> {
-  const versaoEsperada = versoesCentrais.get(collection)
-  const response = await fetch(`${API_STORAGE_URL}?collection=${encodeURIComponent(collection)}`, {
-    method: 'PATCH',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
-    body: JSON.stringify({
-      record,
-      expectedRecord: expectedRecord || null,
-      expectedHash: versaoEsperada?.hash || '',
-      expectedUpdatedAt: versaoEsperada?.updatedAt || '',
-    }),
+  const anterior = filasRegistros.get(collection) ?? Promise.resolve()
+  const atual = anterior.catch(() => undefined).then(async () => {
+    const versaoEsperada = versoesCentrais.get(collection)
+    const response = await fetch(`${API_STORAGE_URL}?collection=${encodeURIComponent(collection)}`, {
+      method: 'PATCH',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        record,
+        expectedRecord: expectedRecord || null,
+        expectedHash: versaoEsperada?.hash || '',
+        expectedUpdatedAt: versaoEsperada?.updatedAt || '',
+      }),
+    })
+    const confirmacao = await lerResposta<{
+      ok: boolean
+      verified?: boolean
+      record?: T
+      count?: number
+      hash?: string
+      updatedAt?: string
+    }>(response)
+    if (confirmacao.verified !== true || !confirmacao.record) {
+      throw new Error(`O servidor não confirmou a atualização unitária de ${collection}.`)
+    }
+    versoesCentrais.set(collection, {
+      hash: String(confirmacao.hash || ''),
+      updatedAt: String(confirmacao.updatedAt || ''),
+    })
+    return { record: confirmacao.record, count: Number(confirmacao.count || 0) }
   })
-  const confirmacao = await lerResposta<{
-    ok: boolean
-    verified?: boolean
-    record?: T
-    count?: number
-    hash?: string
-    updatedAt?: string
-  }>(response)
-  if (confirmacao.verified !== true || !confirmacao.record) {
-    throw new Error(`O servidor não confirmou a atualização unitária de ${collection}.`)
+  filasRegistros.set(collection, atual)
+  try {
+    return await atual
+  } finally {
+    if (filasRegistros.get(collection) === atual) filasRegistros.delete(collection)
   }
-  versoesCentrais.set(collection, {
-    hash: String(confirmacao.hash || ''),
-    updatedAt: String(confirmacao.updatedAt || ''),
-  })
-  return { record: confirmacao.record, count: Number(confirmacao.count || 0) }
 }
 
 export async function excluirRegistroColecaoCentral(
