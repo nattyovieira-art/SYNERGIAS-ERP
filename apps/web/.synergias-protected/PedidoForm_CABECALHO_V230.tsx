@@ -4097,6 +4097,7 @@ function PedidoForm() {
       const codigo = String(cobranca.codigoSolicitacao || '').trim()
       let cobrancaConfirmada: CobrancaInterApi | undefined
       let erroConfirmacao: unknown
+      let erroConfirmacaoDefinitivo = false
       const statusDefinitivo = (status?: string) => {
         const normalizado = String(status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[\s-]+/g, '_')
         return ['A_RECEBER', 'EM_ABERTO', 'ATIVO', 'PAGO', 'RECEBIDO', 'LIQUIDADO', 'CANCELADO', 'BAIXADO', 'ERRO', 'REJEITADO', 'FALHA_EMISSAO', 'NEGADO'].includes(normalizado)
@@ -4108,10 +4109,16 @@ function PedidoForm() {
           if (tentativa < 10) await new Promise((resolve) => window.setTimeout(resolve, 2000))
         } catch (error) {
           erroConfirmacao = error
+          const mensagemErro = error instanceof Error ? error.message : String(error || '')
+          erroConfirmacaoDefinitivo = /Status Banco Inter:\s*4\d\d|Invalid billing|Found violation/i.test(mensagemErro)
+          if (erroConfirmacaoDefinitivo) {
+            cobrancaConfirmada = undefined
+            break
+          }
           if (tentativa < 10) await new Promise((resolve) => window.setTimeout(resolve, 2000))
         }
       }
-      if (!cobrancaConfirmada) {
+      if (!cobrancaConfirmada || erroConfirmacaoDefinitivo) {
         const mensagem = erroConfirmacao instanceof Error
           ? erroConfirmacao.message
           : 'O Banco Inter não confirmou a existência da cobrança emitida.'
@@ -4187,7 +4194,9 @@ function PedidoForm() {
     const parcelasBase = vendaBase.parcelas.length > 0 ? vendaBase.parcelas : []
     if (parcelasBase.length === 0) return alert('Defina as parcelas do pagamento antes de emitir os boletos.')
 
-    const pendentes = parcelasBase.filter((parcela) => !boletoFoiGerado(parcela))
+    const pendentes = parcelasBase.filter((parcela) =>
+      parcela.statusBoleto === 'Erro' || !boletoFoiGerado(parcela),
+    )
     if (pendentes.length === 0) return alert('Os boletos deste pedido já foram emitidos. Use Atualizar cobranças para consultar o banco.')
 
     const usadosOutros = contarBoletosGeradosNoMesPorBanco(bancoSelecionado, mesAtualBoletos, venda.id)
