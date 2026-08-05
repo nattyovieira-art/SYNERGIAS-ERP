@@ -4269,7 +4269,8 @@ function PedidoForm() {
         }
         const cobranca = await consultarCobrancaInter(codigo)
         let pdfBase64 = parcela.boletoPdfBase64 || ''
-        if (!pdfBase64) {
+        const statusConfirmado = statusInterParaBoleto(cobranca.status)
+        if (!pdfBase64 && ['Gerado', 'Pago'].includes(String(statusConfirmado))) {
           try { pdfBase64 = await obterPdfCobrancaInter(codigo) } catch { pdfBase64 = '' }
         }
         const atualizada = aplicarRetornoInterNaParcela({

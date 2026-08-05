@@ -223,7 +223,8 @@ export function salvarVendasStorage(vendas: Venda[]) {
   void (async () => {
     try {
       for (const venda of alteradas) {
-        await atualizarRegistroColecaoCentral('vendas', venda as any)
+        const anterior = anterioresPorId.get(String((venda as any)?.id || ''))
+        await atualizarRegistroColecaoCentral('vendas', venda as any, anterior as any)
       }
       for (const venda of removidas) {
         await excluirRegistroColecaoCentral('vendas', String((venda as any).id))

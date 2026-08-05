@@ -478,7 +478,13 @@ if ($method === 'PATCH') {
         if ($colecaoMudou) {
             $registroAtual = null;
             foreach ($atual as $itemAtual) {
-                if (is_array($itemAtual) && mesmoRegistroVendaCentral($itemAtual, $record)) {
+                if (is_array($itemAtual) && vendaId($itemAtual) === $recordId) {
+                    $registroAtual = $itemAtual;
+                    break;
+                }
+            }
+            foreach ($atual as $itemAtual) {
+                if ($registroAtual === null && is_array($itemAtual) && mesmoRegistroVendaCentral($itemAtual, $record)) {
                     $registroAtual = $itemAtual;
                     break;
                 }
@@ -502,7 +508,7 @@ if ($method === 'PATCH') {
         $indiceAlvo = null;
         foreach ($atual as $indice => $item) {
             if (!is_array($item)) continue;
-            if (mesmoRegistroVendaCentral($item, $record)) {
+            if (vendaId($item) === $recordId) {
                 if ($indiceAlvo !== null) {
                     $pdo->rollBack();
                     responder(409, ['ok' => false, 'error' => 'O registro que está sendo editado possui duplicidade própria no MySQL.']);
