@@ -6,7 +6,7 @@ require __DIR__ . '/bootstrap.php';
 exigirAutenticacao();
 require_once __DIR__ . '/inter-client.php';
 
-const SYNERGIAS_INTER_API_VERSION = 'V233-DESCRICAO-PEDIDO-NFE-20260717';
+const SYNERGIAS_INTER_API_VERSION = 'V233-INTER-V3-FORMA-BOLETO-20260805';
 
 function corpoJson(): array
 {
@@ -208,6 +208,7 @@ function montarPayloadInter(array $body): array
         'valorNominal' => $valor,
         'dataVencimento' => $vencimento,
         'numDiasAgenda' => 60,
+        'formasRecebimento' => ['BOLETO'],
         'pagador' => [
             'cpfCnpj' => $documento,
             'tipoPessoa' => strlen($documento) === 14 ? 'JURIDICA' : 'FISICA',
