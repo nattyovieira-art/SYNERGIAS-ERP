@@ -98,22 +98,18 @@ function c6PayloadEmissao(array $body): array {
         is_array($body['instructions'] ?? null) ? array_slice($body['instructions'], 0, 4) : []
     )));
     if ($instrucoes) $payload['instructions'] = $instrucoes;
-    $jurosValor = round((float)($pedido['jurosBoletoValor'] ?? 0), 2);
-    if ($jurosValor > 0) {
-        $payload['interest'] = [
-            'type' => strtoupper((string)($pedido['jurosBoletoTipo'] ?? 'P')) === 'V' ? 'V' : 'P',
-            'value' => $jurosValor,
-            'dead_line' => max(0, (int)($pedido['jurosBoletoPrazo'] ?? 0)),
-        ];
-    }
-    $multaValor = round((float)($pedido['multaBoletoValor'] ?? 0), 2);
-    if ($multaValor > 0) {
-        $payload['fine'] = [
-            'type' => strtoupper((string)($pedido['multaBoletoTipo'] ?? 'P')) === 'V' ? 'V' : 'P',
-            'value' => $multaValor,
-            'dead_line' => max(0, (int)($pedido['multaBoletoPrazo'] ?? 0)),
-        ];
-    }
+    // C6 Bank: encargos padrao definidos pela Synergias para todas as novas emissoes.
+    // Homologacao B_02: juros 1% e multa 2%, ambos com dead_line 0.
+    $payload['interest'] = [
+        'type' => 'P',
+        'value' => 1,
+        'dead_line' => 0,
+    ];
+    $payload['fine'] = [
+        'type' => 'P',
+        'value' => 2,
+        'dead_line' => 0,
+    ];
     $descontoValor = round((float)($pedido['descontoBoletoValor'] ?? 0), 2);
     if ($descontoValor > 0) {
         $payload['discount'] = [
@@ -124,6 +120,7 @@ function c6PayloadEmissao(array $body): array {
             ],
         ];
     }
+
     return $payload;
 }
 
@@ -137,13 +134,13 @@ try {
         $url = 'https://erp-teste.synergias.com.br/api/c6-webhook.php';
         c6BoletoResponder(200, ['ok' => true, 'webhook' => $client->cadastrarWebhook($url), 'url' => $url]);
     }
-    if ($action === 'emitir') c6BoletoResponder(200, ['ok' => true, 'cobranca' => c6Normalizar($client->emitir(c6PayloadEmissao($body)))]);
+    if ($action === 'emitir') c6BoletoResponder(201, ['ok' => true, 'cobranca' => c6Normalizar($client->emitir(c6PayloadEmissao($body)))]);
     $id = trim((string)($body['c6Id'] ?? ''));
     if ($action === 'consultar') c6BoletoResponder(200, ['ok' => true, 'cobranca' => c6Normalizar($client->consultar($id))]);
     if ($action === 'cancelar') c6BoletoResponder(200, ['ok' => true, 'cobranca' => c6Normalizar($client->cancelar($id))]);
     if ($action === 'pdf') c6BoletoResponder(200, ['ok' => true, 'pdf' => $client->pdf($id)]);
     if ($action === 'alterar') {
-        $permitidos = ['amount', 'due_date', 'discount', 'interest', 'fine'];
+        $permitidos = ['amount', 'due_date', 'payer', 'discount', 'interest', 'fine'];
         $alteracao = array_intersect_key(is_array($body['alteracao'] ?? null) ? $body['alteracao'] : [], array_flip($permitidos));
         if (!$alteracao) throw new C6ApiException('Nenhuma alteração válida informada.', 422);
         c6BoletoResponder(200, ['ok' => true, 'cobranca' => c6Normalizar($client->alterar($id, $alteracao))]);

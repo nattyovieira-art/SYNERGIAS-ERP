@@ -10,6 +10,7 @@ import {
   List,
   Mail,
   Printer,
+  TrendingUp,
   Upload,
   WalletCards,
 } from 'lucide-react'
@@ -18,6 +19,7 @@ import Sidebar from '../../components/Sidebar/Sidebar'
 import PageHeader from '../../components/PageHeader/PageHeader'
 import FluxoCaixaPainel from './FluxoCaixaPainel'
 import { ERP_STORAGE_UPDATED_EVENT } from '../../services/erpApi'
+import { listarPedidosStorage } from '../../services/vendasStorage'
 
 import '../../styles/financeiro.css'
 
@@ -90,15 +92,32 @@ function formatarData(data?: string) {
   return `${dia}/${mes}/${ano}`
 }
 
+function obterMesAno(data?: string) {
+  const valor = String(data || '').trim()
+  const formatoIso = valor.match(/^(\d{4})-(\d{2})/)
+
+  if (formatoIso) return `${formatoIso[1]}-${formatoIso[2]}`
+
+  const formatoBrasileiro = valor.match(/^(\d{2})\/(\d{2})\/(\d{4})/)
+
+  if (formatoBrasileiro) return `${formatoBrasileiro[3]}-${formatoBrasileiro[2]}`
+
+  return ''
+}
+
 
 
 function Financeiro() {
   const navigate = useNavigate()
 
   const [contas, setContas] = useState<ContaReceber[]>(listarContasReceberStorage)
+  const [pedidos, setPedidos] = useState(listarPedidosStorage)
 
   useEffect(() => {
-    const atualizar = () => setContas(listarContasReceberStorage())
+    const atualizar = () => {
+      setContas(listarContasReceberStorage())
+      setPedidos(listarPedidosStorage())
+    }
     window.addEventListener(ERP_STORAGE_UPDATED_EVENT, atualizar)
     window.addEventListener('storage', atualizar)
     return () => {
@@ -106,6 +125,19 @@ function Financeiro() {
       window.removeEventListener('storage', atualizar)
     }
   }, [])
+
+  const vendasMes = useMemo(() => {
+    const hoje = new Date()
+    const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+    const pedidosDoMes = pedidos.filter((pedido) => {
+      return pedido.statusPedido !== 'Cancelado' && obterMesAno(pedido.dataEmissao) === mesAtual
+    })
+
+    return {
+      quantidade: pedidosDoMes.length,
+      valor: pedidosDoMes.reduce((total, pedido) => total + Number(pedido.totalFinal || 0), 0),
+    }
+  }, [pedidos])
 
 
   const resumo = useMemo(() => {
@@ -310,6 +342,18 @@ function Financeiro() {
         </div>
 
         <div className="financeiro-dashboard">
+          <div className="financeiro-card resumo">
+            <div className="financeiro-card-icon azul">
+              <TrendingUp size={28} />
+            </div>
+
+            <div>
+              <span>Vendas do mês</span>
+              <strong>{formatarDinheiro(vendasMes.valor)}</strong>
+              <small>{vendasMes.quantidade} pedido(s) no mês atual</small>
+            </div>
+          </div>
+
           <div className="financeiro-card resumo">
             <div className="financeiro-card-icon verde">
               <CircleDollarSign size={28} />

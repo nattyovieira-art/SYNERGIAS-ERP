@@ -132,7 +132,7 @@ export async function inserirOrcamento2380Pedido2458Nfe2358(
     tipo: 'Orçamento',
     numeroOrcamento: '2380',
     numeroPedido: undefined,
-    statusOrcamento: 'Efetivado',
+    statusOrcamento: 'Gerado',
     aprovadoEm: orcamentoExistente?.aprovadoEm || agora,
     pedidoGeradoId: pedidoId,
     pedidoGeradoEm: agora,

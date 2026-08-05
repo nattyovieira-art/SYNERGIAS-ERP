@@ -84,6 +84,9 @@ type VendaLista = {
   status?: string
   statusOrcamento?: string
   aprovadoEm?: string
+  dataImpressaoOrcamento?: string
+  horarioImpressaoOrcamento?: string
+  impressoEm?: string
   reprovadoEm?: string
   pedidoGeradoEm?: string
   pedidoGeradoId?: string
@@ -182,6 +185,7 @@ function obterStatus(venda: VendaLista): StatusVenda {
 
   if (status === 'APROVADA') return 'APROVADO'
   if (status === 'REPROVADA') return 'REPROVADO'
+  if (status === 'EFETIVADO') return 'GERADO'
   if (
     status === 'CONVERTIDO' ||
     status === 'CONVERTIDA' ||
@@ -348,6 +352,7 @@ function obterCliente(venda: VendaLista) {
 }
 
 function obterVendedor(venda: VendaLista) {
+  if (tipoIndicaOrcamento(venda)) return 'Natália Vieira'
   return venda.vendedorNome || venda.vendedor || venda.nomeVendedor || '-'
 }
 
@@ -393,7 +398,6 @@ function obterInscricaoEstadual(venda: VendaLista) {
 
 function obterStatusPagamento(venda: VendaLista) {
   if (pedidoFoiCancelado(venda)) return 'CANCELADO'
-  if (pagamentoDispensaBoleto(venda)) return 'PAGO'
   const parcelas = Array.isArray(venda.parcelas) ? venda.parcelas : []
   if (parcelas.length === 0) return 'PENDENTE'
   return parcelas.every((parcela) => {
@@ -873,6 +877,19 @@ function Vendas() {
       `synergias-impressao-${abaAtiva}-${String(venda.id)}`,
     )
 
+    if (abaAtiva === 'orcamentos' && determinarEstadoRealOrcamento(venda as any, vendas).aprovado) {
+      const agora = new Date()
+      const atualizada = {
+        ...venda,
+        dataImpressaoOrcamento: agora.toISOString().slice(0, 10),
+        horarioImpressaoOrcamento: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        impressoEm: agora.toISOString(),
+      }
+      void salvarVendaStorageConfirmado(atualizada as any)
+        .then(() => setVendas(carregarVendasStorage()))
+        .catch((erro) => console.error('[Synergias ERP] Não foi possível registrar a impressão.', erro))
+    }
+
     if (!janelaImpressao) {
       window.location.assign(destino)
       return
@@ -1301,6 +1318,11 @@ function Vendas() {
                             <span>
                               ENTREGA EM: <strong>{formatarData(obterDataEntrega(venda))}</strong>
                             </span>
+                            {venda.dataImpressaoOrcamento && (
+                              <span>
+                                IMPRESSO EM: <strong>{formatarData(venda.dataImpressaoOrcamento)}</strong>
+                              </span>
+                            )}
                           </>
                         ) : (
                           <>

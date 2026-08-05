@@ -65,6 +65,19 @@ export async function alterarBoletoC6(
   alteracao: {
     amount?: number
     due_date?: string
+    payer?: {
+      name?: string
+      tax_id?: string
+      email?: string
+      address?: {
+        street?: string
+        number?: number
+        complement?: string
+        city?: string
+        state?: string
+        zip_code?: string
+      }
+    }
     discount?: unknown
     interest?: unknown
     fine?: unknown

@@ -1,4 +1,4 @@
-﻿// SYNERGIAS_PEDIDO_SALVAR_CONFIRMADO_V284
+// SYNERGIAS_PEDIDO_SALVAR_CONFIRMADO_V284
 // SYNERGIAS_PIX_TRANSFERENCIA_60_DIAS_V263C
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -1070,11 +1070,11 @@ function criarPedidoAPartirDoOrcamento(
       : []
   const primeiraCobranca = pagamentosOrigem[0] || {}
   const formaPagamentoInicial = normalizarFormaPagamento(
-    orcamentoOrigem.formaPagamento || primeiraCobranca.formaPagamento || primeiraCobranca.tipoCobranca,
+    primeiraCobranca.formaPagamento || primeiraCobranca.tipoCobranca || orcamentoOrigem.formaPagamento,
   )
   const tipoCobrancaInicial = normalizarTipoCobranca(
     String(formaPagamentoInicial || ''),
-    orcamentoOrigem.tipoCobranca || primeiraCobranca.formaPagamento || primeiraCobranca.tipoCobranca,
+    primeiraCobranca.tipoCobranca || primeiraCobranca.formaPagamento || orcamentoOrigem.tipoCobranca,
     orcamentoOrigem.bancoCobranca || primeiraCobranca.bancoCobranca,
   )
   const dataInicial = orcamentoOrigem.dataEmissao || hoje()
@@ -1328,13 +1328,19 @@ function PedidoForm() {
   const [clientes, setClientes] = useState<Cliente[]>(clientesIniciais)
   const produtos = listarProdutosAtivosStorage()
 
+  const tipoPagamentoParcelas = ((vendaInicial?.parcelas || []) as ParcelaVenda[])
+    .map((parcela: ParcelaVenda) => String(parcela.tipoCobranca || '').trim())
+    .find((tipo: string) => Boolean(normalizarFormaPagamento(tipo)))
+
+  // A parcela representa a cobranca efetivamente criada. Em pedidos antigos,
+  // ela pode divergir do cabecalho que ficou salvo antes da ultima alteracao.
   const formaPagamentoInicial = normalizarFormaPagamento(
-    vendaInicial?.formaPagamento,
+    tipoPagamentoParcelas || vendaInicial?.formaPagamento,
   )
 
   const tipoCobrancaInicial = normalizarTipoCobranca(
     String(formaPagamentoInicial || ''),
-    vendaInicial?.tipoCobranca,
+    tipoPagamentoParcelas || vendaInicial?.tipoCobranca,
     vendaInicial?.bancoCobranca,
   )
 
@@ -1781,6 +1787,23 @@ function PedidoForm() {
     }).format(instante)
   }
 
+  function obterDataEmissaoNotaFiscal(vendaBase: Venda) {
+    const xmlOriginal = String(vendaBase.xmlNotaFiscal || '').trim()
+    let xml = xmlOriginal
+    if (xmlOriginal && !xmlOriginal.includes('<')) {
+      try { xml = atob(xmlOriginal.replace(/^data:[^,]+,/, '')) } catch { xml = '' }
+    }
+    const dataXml = xml.match(/<(?:dhEmi|dEmi)>([^<]+)<\/(?:dhEmi|dEmi)>/i)?.[1]
+    return String(dataXml || vendaBase.dataEmissaoNotaFiscal || '').trim()
+  }
+
+  function formatarDataEmissaoNotaFiscalEmail(vendaBase: Venda) {
+    const dataFiscal = obterDataEmissaoNotaFiscal(vendaBase)
+    if (!dataFiscal) return '-'
+    const partes = /^(\d{4})-(\d{2})-(\d{2})/.exec(dataFiscal)
+    return partes ? `${partes[3]}/${partes[2]}/${partes[1]}` : formatarDataBrasil(dataFiscal)
+  }
+
   function formatarMoedaInput(valor: number) {
     return Number(valor || 0).toLocaleString('pt-BR', {
       minimumFractionDigits: 2,
@@ -2142,6 +2165,7 @@ function PedidoForm() {
       .replace(/[\s-]+/g, '_')
     // "A_RECEBER" significa cobrança aberta, não recebida.
     if (valor === 'A_RECEBER' || valor === 'EM_ABERTO' || valor === 'ATIVO') return 'Gerado'
+    if (valor === 'EM_PROCESSAMENTO' || valor === 'PROCESSANDO' || valor === 'CRIADA') return 'Gerando'
     if (
       valor === 'PAGO' ||
       valor === 'RECEBIDO' ||
@@ -2150,8 +2174,14 @@ function PedidoForm() {
     ) return 'Pago'
     if (valor.includes('CANCEL') || valor.includes('BAIX')) return 'Cancelado'
     if (valor.includes('VENC')) return 'Vencido'
-    if (valor.includes('ERRO') || valor.includes('REJEIT')) return 'Erro'
-    if (valor) return 'Gerado'
+    if (
+      valor.includes('ERRO')
+      || valor.includes('REJEIT')
+      || valor.includes('FALHA')
+      || valor.includes('NEGAD')
+    ) return 'Erro'
+    if (valor === 'ATRASADO') return 'Vencido'
+    if (valor === 'MARCADO_RECEBIDO' || valor === 'PROTESTO') return 'Gerado'
     return 'Pendente'
   }
 
@@ -2587,6 +2617,32 @@ function PedidoForm() {
       entregaEstado: localEntrega?.uf || cliente.estadoEntrega || cliente.estado || '',
       entregaCodigoIbge: localEntrega?.codigoIbgeMunicipio || String((cliente as any).codigoIbgeMunicipioEntrega || ''),
     }))
+  }
+
+  async function alterarIndicadorIECliente(indicadorIE: string) {
+    const inscricaoEstadual = indicadorIE === '1' ? String(venda.clienteIeRg || '').trim() : ''
+    setVenda((atual) => ({
+      ...atual,
+      clienteIndicadorIE: indicadorIE,
+      clienteIeRg: indicadorIE === '1' ? atual.clienteIeRg : '',
+    }))
+
+    const codigo = String(venda.clienteCodigo || '').trim()
+    const cliente = clientes.find((item) => String(item.codigo || '') === codigo)
+    if (!cliente) return
+
+    try {
+      const atualizados = await salvarClienteStorageConfirmado({
+        ...cliente,
+        indicadorIE,
+        inscricaoEstadual,
+      })
+      setClientes(atualizados)
+    } catch (erro) {
+      alert(erro instanceof Error
+        ? `O indicador foi alterado no pedido, mas não foi gravado no cadastro: ${erro.message}`
+        : 'O indicador foi alterado no pedido, mas não foi gravado no cadastro do cliente.')
+    }
   }
 
   function selecionarProduto(produto: Produto) {
@@ -4019,16 +4075,11 @@ function PedidoForm() {
           ...emitindo,
           bancoCobranca: 'C6',
           tipoCobranca: 'BOLETO BANCO C6',
-          statusBoleto: 'Gerado',
+          statusBoleto: 'Erro',
           seuNumero: referenciaExistente,
-          dataGeracaoBoleto: parcela.dataGeracaoBoleto || hoje(),
           ambienteBoleto: 'homologacao',
-          erroBoleto: '',
-          motivoErroBoleto: '',
-          observacao: [
-            String(parcela.observacao || '').trim(),
-            `Cobrança já registrada no C6 com seu número ${referenciaExistente}.`,
-          ].filter(Boolean).join('\n'),
+          erroBoleto: `${mensagem} O C6 não forneceu o identificador principal da cobrança existente.`,
+          motivoErroBoleto: `${mensagem} O C6 não forneceu o identificador principal da cobrança existente.`,
         }
       }
       return { ...emitindo, statusBoleto: 'Erro', erroBoleto: mensagem, motivoErroBoleto: mensagem }
@@ -4043,14 +4094,49 @@ function PedidoForm() {
 
     try {
       const cobranca = await emitirCobrancaInter(pedidoBase, emitindo)
-      let pdfBase64 = ''
-      try {
-        pdfBase64 = await obterPdfCobrancaInter(cobranca.codigoSolicitacao)
-      } catch {
-        pdfBase64 = ''
+      const codigo = String(cobranca.codigoSolicitacao || '').trim()
+      let cobrancaConfirmada: CobrancaInterApi | undefined
+      let erroConfirmacao: unknown
+      const statusDefinitivo = (status?: string) => {
+        const normalizado = String(status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[\s-]+/g, '_')
+        return ['A_RECEBER', 'EM_ABERTO', 'ATIVO', 'PAGO', 'RECEBIDO', 'LIQUIDADO', 'CANCELADO', 'BAIXADO', 'ERRO', 'REJEITADO', 'FALHA_EMISSAO', 'NEGADO'].includes(normalizado)
       }
-      const atualizada = aplicarRetornoInterNaParcela(emitindo, cobranca, pdfBase64)
-      atualizarContaReceberComBoleto(atualizada, cobranca)
+      for (let tentativa = 1; tentativa <= 10; tentativa += 1) {
+        try {
+          cobrancaConfirmada = await consultarCobrancaInter(codigo)
+          if (statusDefinitivo(cobrancaConfirmada.status)) break
+          if (tentativa < 10) await new Promise((resolve) => window.setTimeout(resolve, 2000))
+        } catch (error) {
+          erroConfirmacao = error
+          if (tentativa < 10) await new Promise((resolve) => window.setTimeout(resolve, 2000))
+        }
+      }
+      if (!cobrancaConfirmada) {
+        const mensagem = erroConfirmacao instanceof Error
+          ? erroConfirmacao.message
+          : 'O Banco Inter não confirmou a existência da cobrança emitida.'
+        return {
+          ...emitindo,
+          bancoCobranca: 'Inter',
+          tipoCobranca: 'BOLETO BANCO INTER',
+          idCobrancaBanco: codigo,
+          idCobrancaApi: codigo,
+          statusBoleto: 'Erro',
+          erroBoleto: mensagem,
+          motivoErroBoleto: mensagem,
+        }
+      }
+      let pdfBase64 = ''
+      if (['Gerado', 'Pago'].includes(String(statusInterParaBoleto(cobrancaConfirmada.status)))) {
+        try {
+          pdfBase64 = await obterPdfCobrancaInter(codigo)
+        } catch {
+          pdfBase64 = ''
+        }
+      }
+      const retornoConfirmado = { ...cobranca, ...cobrancaConfirmada, codigoSolicitacao: codigo }
+      const atualizada = aplicarRetornoInterNaParcela(emitindo, retornoConfirmado, pdfBase64)
+      atualizarContaReceberComBoleto(atualizada, retornoConfirmado)
       return atualizada
     } catch (error) {
       const mensagem = error instanceof Error ? error.message : 'Falha ao emitir cobrança no Banco Inter.'
@@ -4122,12 +4208,29 @@ function PedidoForm() {
         ? await emitirParcelaC6(parcelas[indice])
         : await emitirParcelaInter(parcelas[indice])
       parcelas = parcelas.map((parcela, posicao) => posicao === indice ? atualizada : parcela)
-      salvarParcelasBoleto(parcelas)
+      const vendaComVinculo = salvarParcelasBoleto(parcelas)
+      try {
+        await salvarVendaStorageConfirmado(vendaComVinculo)
+      } catch (error) {
+        console.error('[Synergias ERP] O identificador bancário não foi confirmado no MySQL.', error)
+      }
     }
 
     const erros = parcelas.filter((parcela) => parcela.statusBoleto === 'Erro')
     if (erros.length > 0) {
       alert(`Emissão concluída com ${erros.length} erro(s). O motivo real retornado pela integração está visível em cada parcela.`)
+      return
+    }
+
+    const processando = parcelas.filter((parcela) => parcela.statusBoleto === 'Gerando')
+    if (processando.length > 0) {
+      alert('O Banco Inter recebeu a solicitação, mas a emissão ainda está em processamento. O boleto não será enviado até o banco confirmar o status A_RECEBER. Use Atualizar cobranças em alguns instantes.')
+      return
+    }
+
+    const naoConfirmadas = parcelas.filter((parcela) => !boletoFoiGerado(parcela))
+    if (naoConfirmadas.length > 0) {
+      alert(`O banco não confirmou ${naoConfirmadas.length} cobrança(s). Nenhum boleto sem identificador bancário principal será tratado como emitido.`)
       return
     }
 
@@ -4198,7 +4301,7 @@ function PedidoForm() {
 
     if (!pdfBase64 && codigo && banco === 'Inter') {
       try {
-        pdfBase64 = await obterPdfCobrancaInter(codigo)
+        pdfBase64 = await obterPdfInterComEspera(codigo)
         const parcelas = venda.parcelas.map((item) =>
           Number(item.numero) === Number(parcela.numero) ? { ...item, boletoPdfBase64: pdfBase64 } : item,
         )
@@ -4246,9 +4349,19 @@ function PedidoForm() {
     if (banco !== 'C6') return alert('A alteração por esta ação está disponível para boletos C6.')
     const codigo = String(parcela.idCobrancaApi || parcela.idCobrancaBanco || '').trim()
     if (!codigo) return alert('O boleto C6 não possui o identificador principal necessário para alteração.')
-    const novoVencimento = window.prompt('Nova data de vencimento (AAAA-MM-DD):', parcela.vencimento)
-    if (!novoVencimento) return
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(novoVencimento)) return alert('Informe a data no formato AAAA-MM-DD.')
+    const vencimentoAtual = formatarDataBrasil(parcela.vencimento).slice(0, 10)
+    const novoVencimentoBrasil = window.prompt('Nova data de vencimento (DD/MM/AAAA):', vencimentoAtual)
+    if (!novoVencimentoBrasil) return
+    const partesData = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(novoVencimentoBrasil.trim())
+    if (!partesData) return alert('Informe a data no formato DD/MM/AAAA.')
+    const novoVencimento = `${partesData[3]}-${partesData[2]}-${partesData[1]}`
+    const dataValidada = new Date(`${novoVencimento}T12:00:00`)
+    if (
+      Number.isNaN(dataValidada.getTime())
+      || dataValidada.getFullYear() !== Number(partesData[3])
+      || dataValidada.getMonth() + 1 !== Number(partesData[2])
+      || dataValidada.getDate() !== Number(partesData[1])
+    ) return alert('Informe uma data válida no formato DD/MM/AAAA.')
     try {
       const cobranca = await alterarBoletoC6(codigo, { due_date: novoVencimento })
       const parcelas = venda.parcelas.map((item) =>
@@ -4333,8 +4446,13 @@ function PedidoForm() {
     'SYNERGIAS_EMAIL_PIX_TRANSFERENCIA_COMPLETO_V264'
 
   function identificarPagamentoEmail(vendaBase: Venda) {
+    const tiposParcelas = (vendaBase.parcelas || [])
+      .map((parcela) => String(parcela.tipoCobranca || '').trim())
+      .filter(Boolean)
     const texto = normalizarBuscaCredito(
-      `${vendaBase.formaPagamento || ''} ${vendaBase.tipoCobranca || ''}`,
+      tiposParcelas.length > 0
+        ? tiposParcelas.join(' ')
+        : `${vendaBase.formaPagamento || ''} ${vendaBase.tipoCobranca || ''}`,
     )
 
     return {
@@ -4354,8 +4472,6 @@ function PedidoForm() {
     void SYNERGIAS_EMAIL_CONTA_SELECIONADA_V264A
 
     const candidatos = [
-      vendaBase.tipoCobranca,
-      vendaBase.bancoCobranca,
       ...(Array.isArray(vendaBase.parcelas)
         ? vendaBase.parcelas.flatMap((parcela) => [
             parcela.tipoCobranca,
@@ -4363,6 +4479,8 @@ function PedidoForm() {
             parcela.contaRecebimento,
           ])
         : []),
+      vendaBase.tipoCobranca,
+      vendaBase.bancoCobranca,
     ]
       .map((valor) => String(valor || '').trim())
       .filter(Boolean)
@@ -4412,7 +4530,10 @@ function PedidoForm() {
   }
 
   function parcelasBoletoParaEmail(vendaBase: Venda) {
-    const parcelasGeradas = (vendaBase.parcelas || []).filter((parcela) => boletoFoiGerado(parcela))
+    const parcelasGeradas = (vendaBase.parcelas || []).filter((parcela) =>
+      boletoFoiGerado(parcela)
+      && !['Gerando', 'Erro', 'Pendente'].includes(String(parcela.statusBoleto || '')),
+    )
     if (!contaCobrancaAtraso) return parcelasGeradas
     return parcelasGeradas.filter(
       (parcela) => Number(parcela.numero) === Number(contaCobrancaAtraso.parcelaNumero),
@@ -4506,7 +4627,7 @@ ${anexosTexto}
 Dados do pedido:
 Pedido: ${vendaBase.numeroPedido || '-'}
 Nota Fiscal: ${vendaBase.numeroNotaFiscal || '-'}
-Data de emissão: ${formatarDataBrasil(vendaBase.dataEmissao)}
+Data de emissão: ${formatarDataEmissaoNotaFiscalEmail(vendaBase)}
 Valor total: ${dinheiro(Number(vendaBase.totalFinal || totais.totalFinal || 0))}${dadosBancarios ? `\n\n${dadosBancarios}` : ''}${parcelasTexto}
 
 ${orientacao}
@@ -4573,7 +4694,7 @@ Endereço: ${EMPRESA_ENDERECO}`
       ? `Os <strong>${quantidadeBoletos} boleto${quantidadeBoletos === 1 ? '' : 's'}</strong> seguem anexos separadamente, correspondendo às parcelas abaixo.`
       : 'A Nota Fiscal e o XML autorizado seguem anexos. Os dados bancários da conta escolhida no pedido estão informados abaixo. <strong>Não há boleto anexado</strong> para esta forma de pagamento.'
 
-    return `<div style="font-family:Arial,sans-serif;color:#111827;font-size:15px;line-height:1.6;max-width:760px;"><div style="background:#7ac72f;color:#000;text-align:center;padding:12px;font-weight:700;font-size:18px;">${tituloPagamento}</div><div style="padding:28px 24px;"><p>Olá, <strong>${vendaBase.clienteNome || 'cliente'}</strong>,</p><p>Encaminhamos os documentos referentes à compra de materiais realizada com a <strong>SYNERGIAS SL COMÉRCIO LTDA ME.</strong></p><p><strong>Anexos enviados:</strong></p><ul>${listaAnexos}</ul><p><strong>Dados do pedido:</strong></p><p>Pedido: <strong>${vendaBase.numeroPedido || '-'}</strong><br/>Nota Fiscal: <strong>${vendaBase.numeroNotaFiscal || '-'}</strong><br/>Data de emissão: <strong>${formatarDataBrasil(vendaBase.dataEmissao)}</strong><br/>Valor total: <strong>${dinheiro(Number(vendaBase.totalFinal || totais.totalFinal || 0))}</strong></p>${blocoPagamento}${tabelaParcelas}<p>${orientacao}</p><p>Em caso de dúvidas ou divergências, estamos à disposição.</p><p>Atenciosamente,</p><table style="border-collapse:collapse;margin-top:24px;border:1px solid #222;width:625px;max-width:100%;"><tr><td style="padding:16px;width:200px;text-align:center;border-right:1px solid #222;"><img src="cid:logoSynergias" alt="Synergias Distribuidora" style="max-width:155px;height:auto;"/></td><td style="padding:16px;"><strong>SYNERGIAS DISTRIBUIDORA</strong><br/>Produtos de limpeza, soluções e assessoria para condomínios<br/><br/>Telefone/WhatsApp: ${EMPRESA_TELEFONE_WHATSAPP}<br/>Site: ${EMPRESA_SITE}<br/>E-mail: ${EMPRESA_EMAIL_FINANCEIRO}<br/>Endereço: ${EMPRESA_ENDERECO}</td></tr></table></div></div>`
+    return `<div style="font-family:Arial,sans-serif;color:#111827;font-size:15px;line-height:1.6;max-width:760px;"><div style="background:#7ac72f;color:#000;text-align:center;padding:12px;font-weight:700;font-size:18px;">${tituloPagamento}</div><div style="padding:28px 24px;"><p>Olá, <strong>${vendaBase.clienteNome || 'cliente'}</strong>,</p><p>Encaminhamos os documentos referentes à compra de materiais realizada com a <strong>SYNERGIAS SL COMÉRCIO LTDA ME.</strong></p><p><strong>Anexos enviados:</strong></p><ul>${listaAnexos}</ul><p><strong>Dados do pedido:</strong></p><p>Pedido: <strong>${vendaBase.numeroPedido || '-'}</strong><br/>Nota Fiscal: <strong>${vendaBase.numeroNotaFiscal || '-'}</strong><br/>Data de emissão: <strong>${formatarDataEmissaoNotaFiscalEmail(vendaBase)}</strong><br/>Valor total: <strong>${dinheiro(Number(vendaBase.totalFinal || totais.totalFinal || 0))}</strong></p>${blocoPagamento}${tabelaParcelas}<p>${orientacao}</p><p>Em caso de dúvidas ou divergências, estamos à disposição.</p><p>Atenciosamente,</p><table style="border-collapse:collapse;margin-top:24px;border:1px solid #222;width:625px;max-width:100%;"><tr><td style="padding:16px;width:200px;text-align:center;border-right:1px solid #222;"><img src="cid:logoSynergias" alt="Synergias Distribuidora" style="max-width:155px;height:auto;"/></td><td style="padding:16px;"><strong>SYNERGIAS DISTRIBUIDORA</strong><br/>Produtos de limpeza, soluções e assessoria para condomínios<br/><br/>Telefone/WhatsApp: ${EMPRESA_TELEFONE_WHATSAPP}<br/>Site: ${EMPRESA_SITE}<br/>E-mail: ${EMPRESA_EMAIL_FINANCEIRO}<br/>Endereço: ${EMPRESA_ENDERECO}</td></tr></table></div></div>`
   }
 
   // SYNERGIAS_EMAIL_USAR_DANFE_VISUAL_DO_SISTEMA_V233
@@ -4738,6 +4859,23 @@ Endereço: ${EMPRESA_ENDERECO}`
   const SYNERGIAS_EMAIL_TRES_ANEXOS_BOLETO_V242 =
     'SYNERGIAS_EMAIL_TRES_ANEXOS_BOLETO_V242'
 
+  async function obterPdfInterComEspera(codigo: string) {
+    let ultimoErro: unknown
+    for (let tentativa = 1; tentativa <= 3; tentativa += 1) {
+      try {
+        return await obterPdfCobrancaInter(codigo)
+      } catch (error) {
+        ultimoErro = error
+        const mensagem = error instanceof Error ? error.message.toLowerCase() : ''
+        const processamentoTemporario = mensagem.includes('pdf')
+          && (mensagem.includes('process') || mensagem.includes('tente novamente') || mensagem.includes('409'))
+        if (!processamentoTemporario || tentativa === 3) throw error
+        await new Promise((resolve) => window.setTimeout(resolve, 4000))
+      }
+    }
+    throw ultimoErro
+  }
+
   async function garantirPdfBoletoAntesDoEnvio(
     vendaBase: Venda,
   ): Promise<Venda> {
@@ -4782,7 +4920,7 @@ Endereço: ${EMPRESA_ENDERECO}`
           parcelasAtualizadas[indice] = { ...parcelaC6, boletoPdfBase64: pdfBase64 }
         } else {
           if (!codigo) throw new Error('A cobrança do Banco Inter não possui identificador.')
-          pdfBase64 = await obterPdfCobrancaInter(codigo)
+          pdfBase64 = await obterPdfInterComEspera(codigo)
           parcelasAtualizadas[indice] = { ...parcela, boletoPdfBase64: pdfBase64 }
         }
       } catch (error) {
@@ -4844,8 +4982,8 @@ Endereço: ${EMPRESA_ENDERECO}`
       numeroNotaFiscal: vendaBase.numeroNotaFiscal || '',
       valorTotal: Number(vendaBase.totalFinal || totais.totalFinal || 0),
       totalFinal: Number(vendaBase.totalFinal || totais.totalFinal || 0),
-      dataEmissao: vendaBase.dataEmissao || '',
-      dataEmissaoNotaFiscal: vendaBase.dataEmissaoNotaFiscal || '',
+      dataEmissao: obterDataEmissaoNotaFiscal(vendaBase),
+      dataEmissaoNotaFiscal: obterDataEmissaoNotaFiscal(vendaBase),
       assunto: montarAssuntoEmailNotaBoleto(vendaBase),
       texto: montarTextoEmailNotaBoleto(vendaBase),
       html: montarHtmlEmailNotaBoleto(vendaBase),
@@ -5293,6 +5431,54 @@ Endereço: ${EMPRESA_ENDERECO}`
     }
     salvarVendaStorage(atualizada)
     setVenda(atualizada)
+  }
+
+  async function liberarNovaEmissaoNoMesmoPedido() {
+    if (venda.statusNotaFiscal !== 'Cancelada') {
+      alert('A nova emissão no mesmo pedido só é liberada quando a NF-e anterior está cancelada.')
+      return
+    }
+
+    const confirmou = window.confirm(
+      `A NF-e nº ${venda.numeroNotaFiscal || '-'} está cancelada.\n\n` +
+        `Deseja liberar uma NOVA NF-e neste mesmo Pedido ${venda.numeroPedido || ''}?\n\n` +
+        `A nota cancelada continuará preservada no histórico fiscal.`,
+    )
+
+    if (!confirmou) return
+
+    const atualizada: Venda = {
+      ...montarPedidoAtualizado(),
+      statusNotaFiscal: 'Pendente',
+      numeroNotaFiscal: '',
+      serieNotaFiscal: '',
+      chaveAcessoNotaFiscal: '',
+      protocoloNotaFiscal: '',
+      dataEmissaoNotaFiscal: '',
+      dataCancelamentoNotaFiscal: '',
+      xmlNotaFiscal: '',
+      danfePdf: '',
+      motivoRejeicaoNotaFiscal: '',
+      cStatNotaFiscal: '',
+      ambienteNotaFiscal: 'PRODUCAO',
+      dispensaEmissaoNfe: false,
+      historicoNotaFiscal: [...(venda.historicoNotaFiscal || [])],
+    }
+
+    try {
+      const confirmada = await salvarVendaStorageConfirmado(atualizada)
+      setVenda(confirmada)
+      alert(
+        `Nova emissão liberada no mesmo Pedido ${confirmada.numeroPedido || venda.numeroPedido || ''}.\n\n` +
+          `A NF-e cancelada foi mantida no histórico. Revise os dados e clique em Validar emissão.`,
+      )
+      document
+        .querySelector('.pedido-documento-card.nota')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } catch (erro) {
+      console.error('[Synergias ERP] Falha ao liberar nova emissão no mesmo pedido.', erro)
+      alert('Não foi possível confirmar a liberação no servidor. Nenhuma nova emissão foi iniciada.')
+    }
   }
 
   function corrigirNotaFiscal() {
@@ -7369,7 +7555,7 @@ Synergias Distribuidora`,
                     <label>
                       Juros
                       <select
-                        value={venda.jurosBoletoTipo || 'P'}
+                        value={venda.jurosBoletoTipo ?? 'P'}
                         onChange={(e) => atualizarVenda('jurosBoletoTipo', e.target.value as 'P' | 'V')}
                       >
                         <option value="P">Percentual mensal (%)</option>
@@ -7382,7 +7568,7 @@ Synergias Distribuidora`,
                         type="number"
                         min="0"
                         step="0.01"
-                        value={venda.jurosBoletoValor || 0}
+                        value={venda.jurosBoletoValor ?? 1}
                         onChange={(e) => atualizarVenda('jurosBoletoValor', Math.max(0, Number(e.target.value)))}
                       />
                     </label>
@@ -7392,14 +7578,14 @@ Synergias Distribuidora`,
                         type="number"
                         min="0"
                         step="1"
-                        value={venda.jurosBoletoPrazo || 0}
+                        value={venda.jurosBoletoPrazo ?? 0}
                         onChange={(e) => atualizarVenda('jurosBoletoPrazo', Math.max(0, Math.trunc(Number(e.target.value))))}
                       />
                     </label>
                     <label>
                       Multa
                       <select
-                        value={venda.multaBoletoTipo || 'P'}
+                        value={venda.multaBoletoTipo ?? 'P'}
                         onChange={(e) => atualizarVenda('multaBoletoTipo', e.target.value as 'P' | 'V')}
                       >
                         <option value="P">Percentual (%)</option>
@@ -7412,7 +7598,7 @@ Synergias Distribuidora`,
                         type="number"
                         min="0"
                         step="0.01"
-                        value={venda.multaBoletoValor || 0}
+                        value={venda.multaBoletoValor ?? 2}
                         onChange={(e) => atualizarVenda('multaBoletoValor', Math.max(0, Number(e.target.value)))}
                       />
                     </label>
@@ -7422,14 +7608,14 @@ Synergias Distribuidora`,
                         type="number"
                         min="0"
                         step="1"
-                        value={venda.multaBoletoPrazo || 0}
+                        value={venda.multaBoletoPrazo ?? 0}
                         onChange={(e) => atualizarVenda('multaBoletoPrazo', Math.max(0, Math.trunc(Number(e.target.value))))}
                       />
                     </label>
                     <label>
                       Desconto
                       <select
-                        value={venda.descontoBoletoTipo || 'P'}
+                        value={venda.descontoBoletoTipo ?? 'P'}
                         onChange={(e) => atualizarVenda('descontoBoletoTipo', e.target.value as 'P' | 'V')}
                       >
                         <option value="P">Percentual (%)</option>
@@ -7442,7 +7628,7 @@ Synergias Distribuidora`,
                         type="number"
                         min="0"
                         step="0.01"
-                        value={venda.descontoBoletoValor || 0}
+                        value={venda.descontoBoletoValor ?? 0}
                         onChange={(e) => atualizarVenda('descontoBoletoValor', Math.max(0, Number(e.target.value)))}
                       />
                     </label>
@@ -7452,7 +7638,7 @@ Synergias Distribuidora`,
                         type="number"
                         min="1"
                         step="1"
-                        value={venda.descontoBoletoPrazo || 1}
+                        value={venda.descontoBoletoPrazo ?? 1}
                         onChange={(e) => atualizarVenda('descontoBoletoPrazo', Math.max(1, Math.trunc(Number(e.target.value))))}
                       />
                     </label>
@@ -7772,7 +7958,7 @@ Synergias Distribuidora`,
                         <input type="date" min={hoje()} value={venda.dataEntrega || hoje()} onChange={(e) => setVenda((atual) => ({ ...atual, dataEntrega: e.target.value }))} onBlur={() => { const atualizada = montarPedidoAtualizado(); salvarVendaStorage(atualizada); setVenda(atualizada) }} />
                       </label>
                       <label>Indicador de IE
-                        <select value={venda.clienteIndicadorIE || ''} onChange={(e) => setVenda((a) => ({ ...a, clienteIndicadorIE: e.target.value, clienteIeRg: e.target.value === '1' ? a.clienteIeRg : '' }))} onBlur={() => { const atualizada = montarPedidoAtualizado(); salvarVendaStorage(atualizada); setVenda(atualizada) }}>
+                        <select value={venda.clienteIndicadorIE || ''} onChange={(e) => void alterarIndicadorIECliente(e.target.value)} onBlur={() => { const atualizada = montarPedidoAtualizado(); salvarVendaStorage(atualizada); setVenda(atualizada) }}>
                           <option value="">Selecione</option>
                           <option value="1">Contribuinte do ICMS</option>
                           <option value="2">Contribuinte isento</option>
@@ -7823,6 +8009,14 @@ Synergias Distribuidora`,
                         <button type="button" className="documento-btn" onClick={abrirNotaFiscalSimplificada}><ReceiptText size={18}/> NF Simplificada</button>
                         <button type="button" className="documento-btn perigo" onClick={cancelarNotaFiscal}><XCircle size={18}/> Cancelar NF-e</button>
                         <button type="button" className="documento-btn" onClick={consultarNotaFiscal}><Search size={18}/> Consultar</button>
+                      </div>
+                    ) : venda.statusNotaFiscal === 'Cancelada' ? (
+                      <div className="documento-acoes-inline documento-acoes-principais">
+                        <button type="button" className="documento-btn destaque" onClick={liberarNovaEmissaoNoMesmoPedido}>
+                          <FileCheck size={18}/> Emitir nova NF-e neste pedido
+                        </button>
+                        <button type="button" className="documento-btn" onClick={consultarNotaFiscal}><Search size={18}/> Consultar</button>
+                        <button type="button" className="documento-btn" onClick={baixarXmlNotaFiscal}><Download size={18}/> XML</button>
                       </div>
                     ) : (
                       <div className="documento-acoes-inline documento-acoes-principais">

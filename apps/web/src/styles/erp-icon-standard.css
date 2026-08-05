@@ -621,7 +621,7 @@ button[title^="Excluir"],
 }
 
 /* Complemento de localização: barras planas e formulário de produto. */
-.produtos-form-actions {display:flex!important;align-items:center!important;gap:14px!important;width:100%!important;justify-content:flex-start!important}
+.produtos-form-actions {display:flex!important;align-items:center!important;gap:14px!important;width:100%!important;justify-content:space-between!important}
 .produtos-form-actions>button[title^="Voltar"]{order:10!important}
 .produtos-form-actions>button[title^="Lista"]{order:20!important}
 .produtos-form-actions>button[title^="Imprimir"]{order:100!important;margin-left:auto!important}

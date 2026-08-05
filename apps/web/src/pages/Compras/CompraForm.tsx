@@ -34,6 +34,7 @@ import {
   gerarProximoCodigoInternoProdutoStorage,
   salvarProdutoStorage,
 } from '../../services/produtosStorage'
+import { listarClientesStorage } from '../../services/clientesStorage'
 import { inferirFatorEmbalagemNFe, parseNFeCompraXml } from '../../services/nfeCompraXml'
 import { criarItensCompraDocumento, extrairTextoDocumentoCompra } from '../../services/documentoCompra'
 import {
@@ -126,7 +127,9 @@ function normalizarItem(item: ItemCompra): ItemCompra {
   const totalFiscal = numero(item.totalFiscal ?? item.total)
   const fatorInformado = Math.max(1, numero(item.fatorConversao || 1))
   const fatorDescricao = inferirFatorEmbalagemNFe(item.descricao, unidadeFiscal)
-  const fatorConversao = Math.max(fatorInformado, fatorDescricao)
+  // Uma conversão informada/ajustada pelo usuário prevalece sobre a inferência
+  // feita pela descrição da embalagem. Isso evita restaurar o fator antigo ao salvar.
+  const fatorConversao = fatorInformado > 1 ? fatorInformado : fatorDescricao
   const quantidadeConvertida = quantidadeFiscal * fatorConversao
   const custoUnitarioConvertido =
     numero(item.custoFinalItem) > 0 && quantidadeConvertida > 0
@@ -211,6 +214,7 @@ function CompraForm({ modo }: CompraFormProps) {
 
   const [buscaFormulario, setBuscaFormulario] = useState('')
   const produtosDisponiveis = useMemo(() => listarProdutosAtivosStorage(), [])
+  const fornecedoresDisponiveis = useMemo(() => listarClientesStorage(), [])
   const [buscasProduto, setBuscasProduto] = useState<Record<string, string>>({})
   const [produtoBuscaAberta, setProdutoBuscaAberta] = useState<string | null>(null)
   const [processandoRecebimento, setProcessandoRecebimento] = useState(false)
@@ -576,6 +580,8 @@ function CompraForm({ modo }: CompraFormProps) {
         ? {
             ...item,
             produtoCodigo: codigo,
+            descricao: produto?.descricao || produto?.nome || item.descricao,
+            unidadeControle: produto?.unidade || item.unidadeControle || 'UN',
             fatorConversao: Math.max(1, numero(produto?.quantidadePorEmbalagemCompra || item.fatorConversao || 1)),
             quantidadeConvertida:
               numero(item.quantidadeFiscal ?? item.quantidade) *
@@ -592,6 +598,25 @@ function CompraForm({ modo }: CompraFormProps) {
             correspondencia: produto ? 'DESCRICAO' : 'NAO_VINCULADO',
           }
         : item),
+    }))
+  }
+
+  function selecionarFornecedorPorNome(nome: string) {
+    atualizarCompra('fornecedorNome', nome)
+    const normalizado = normalizarBuscaProduto(nome)
+    const fornecedor = fornecedoresDisponiveis.find((cliente) =>
+      [cliente.razaoSocial, cliente.nomeFantasia]
+        .filter(Boolean)
+        .some((valor) => normalizarBuscaProduto(String(valor)) === normalizado),
+    )
+    if (!fornecedor) return
+    setCompra((atual) => ({
+      ...atual,
+      fornecedorCodigo: fornecedor.codigo,
+      fornecedorNome: fornecedor.razaoSocial || fornecedor.nomeFantasia || nome,
+      fornecedorDocumento: fornecedor.cnpj || fornecedor.cpf || '',
+      fornecedorEmail: fornecedor.email || fornecedor.emailNotaFiscal || '',
+      fornecedorTelefone: fornecedor.telefone || fornecedor.celular || '',
     }))
   }
 
@@ -1532,12 +1557,18 @@ function CompraForm({ modo }: CompraFormProps) {
             <label>
               Nome / Razão Social
               <input
+                list="compra-fornecedores-cadastrados"
                 value={compra.fornecedorNome}
-                onChange={(event) =>
-                  atualizarCompra('fornecedorNome', event.target.value)
-                }
+                onChange={(event) => selecionarFornecedorPorNome(event.target.value)}
                 placeholder="Digite o nome do fornecedor"
               />
+              <datalist id="compra-fornecedores-cadastrados">
+                {fornecedoresDisponiveis.map((fornecedor) => (
+                  <option key={fornecedor.codigo} value={fornecedor.razaoSocial || fornecedor.nomeFantasia || ''}>
+                    {fornecedor.cnpj || fornecedor.cpf || 'Documento não informado'}
+                  </option>
+                ))}
+              </datalist>
             </label>
 
             <label>
@@ -1655,19 +1686,40 @@ function CompraForm({ modo }: CompraFormProps) {
                         />
                       </label>
 
-                      <label>
+                      <label className="compras-produto-autocomplete">
                         Produto / descrição
                         <input
                           value={item.descricao}
-                          onChange={(event) =>
+                          onChange={(event) => {
                             atualizarItem(
                               item.id,
                               'descricao',
                               event.target.value,
                             )
-                          }
+                            setBuscasProduto((atual) => ({ ...atual, [item.id]: event.target.value }))
+                            setIndiceSugestaoProduto((atual) => ({ ...atual, [item.id]: 0 }))
+                            setProdutoBuscaAberta(item.id)
+                          }}
+                          onFocus={() => setProdutoBuscaAberta(item.id)}
+                          onBlur={() => window.setTimeout(() => setProdutoBuscaAberta(null), 150)}
                           disabled={compra.movimentouEstoque}
+                          placeholder="Digite uma palavra para buscar o produto"
                         />
+                        {produtoBuscaAberta === item.id && produtosSugeridos(buscasProduto[item.id] || item.descricao).length > 0 && (
+                          <div className="compras-produto-sugestoes">
+                            {produtosSugeridos(buscasProduto[item.id] || item.descricao).map((produto) => (
+                              <button
+                                key={produto.codigo}
+                                type="button"
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => vincularProduto(item.id, produto.codigo)}
+                              >
+                                <strong>{produto.descricao || produto.nome}</strong>
+                                <span>Código: {produto.codigo} · Unidade: {produto.unidade || 'UN'} · Estoque: {numero(produto.estoqueAtual)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </label>
                     </div>
 

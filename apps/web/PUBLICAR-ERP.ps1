@@ -139,6 +139,11 @@ try {
 
     Copy-Item -LiteralPath $indexLocal -Destination (Join-Path $stage 'index.html') -Force
     Copy-Item -Path (Join-Path $dist 'assets\*') -Destination (Join-Path $stage 'assets') -Recurse -Force
+    $serviceWorkerLocal = Join-Path $dist 'sw.js'
+    if (-not (Test-Path -LiteralPath $serviceWorkerLocal)) {
+        throw 'Build invalido: dist\sw.js nao foi encontrado.'
+    }
+    Copy-Item -LiteralPath $serviceWorkerLocal -Destination (Join-Path $stage 'sw.js') -Force
 
     $apiFiscalLocal = Join-Path $dist 'api\configuracao-fiscal.php'
     if (-not (Test-Path -LiteralPath $apiFiscalLocal -PathType Leaf)) {
@@ -166,6 +171,7 @@ try {
 
     $assetsLocal = Join-Path $stage 'assets\*'
     $indexStage = Join-Path $stage 'index.html'
+    $serviceWorkerStage = Join-Path $stage 'sw.js'
     $apiFiscalStage = Join-Path $stage 'api\configuracao-fiscal.php'
     $apiNumeracaoLocal = Join-Path $dist 'api\numeracao-fiscal.php'
     $apiNumeracaoStage = Join-Path $stage 'api\numeracao-fiscal.php'
@@ -256,6 +262,7 @@ try {
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/c6-boleto.php"' -f (Join-Path $stage 'api\c6-boleto.php'), $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/api/c6-webhook.php"' -f (Join-Path $stage 'api\c6-webhook.php'), $remoteBase),
         ('put -nopreservetime -transfer=binary "{0}" "{1}/index.html"' -f $indexStage, $remoteBase),
+        ('put -nopreservetime -transfer=binary "{0}" "{1}/sw.js"' -f $serviceWorkerStage, $remoteBase),
         'exit'
     )
 

@@ -5,7 +5,7 @@ export type StatusOrcamento =
   | 'Aprovado'
   | 'Reprovado'
   | 'Cancelado'
-  | 'Efetivado'
+  | 'Gerado'
 
 export type StatusPedido =
   | 'Aberto'
@@ -207,6 +207,9 @@ export type Venda = {
   pedidoGeradoId?: string
   pedidoGeradoEm?: string
   aprovadoEm?: string
+  dataImpressaoOrcamento?: string
+  horarioImpressaoOrcamento?: string
+  impressoEm?: string
 
   dataEmissao: string
   dataValidade?: string

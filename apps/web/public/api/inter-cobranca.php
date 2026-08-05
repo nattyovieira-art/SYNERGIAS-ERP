@@ -252,15 +252,14 @@ function montarPayloadInter(array $body): array
 
 function normalizarCobranca(array $retorno, ?array $pdf = null): array
 {
-    $pick = static function (array $data, array $keys): mixed {
+    $pick = static function (array $data, array $keys) use (&$pick): mixed {
         foreach ($keys as $key) {
             if (array_key_exists($key, $data) && !is_array($data[$key])) return $data[$key];
         }
         foreach ($data as $value) {
             if (is_array($value)) {
-                foreach ($keys as $key) {
-                    if (array_key_exists($key, $value) && !is_array($value[$key])) return $value[$key];
-                }
+                $encontrado = $pick($value, $keys);
+                if ($encontrado !== null) return $encontrado;
             }
         }
         return null;

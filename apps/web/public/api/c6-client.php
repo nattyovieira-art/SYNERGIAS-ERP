@@ -43,8 +43,20 @@ final class C6ApiClient
     public function alterar(string $id, array $payload): array { return $this->json('PUT', '/' . rawurlencode($this->id($id)), $payload); }
     public function cancelar(string $id): array
     {
-        $this->raw('PUT', '/' . rawurlencode($this->id($id)) . '/cancel');
-        return $this->consultar($id);
+        $idValidado = $this->id($id);
+        try {
+            $this->raw('PUT', '/' . rawurlencode($idValidado) . '/cancel');
+        } catch (C6ApiException $e) {
+            $detalhe = strtolower(json_encode($e->payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '');
+            $cancelamentoJaSolicitado = str_contains($detalhe, 'requisi')
+                && str_contains($detalhe, 'cip')
+                && str_contains($detalhe, 'aprova');
+            $jaCancelado = str_contains($detalhe, 'cancelled') || str_contains($detalhe, 'canceled');
+            if (!$cancelamentoJaSolicitado && !$jaCancelado) throw $e;
+        }
+        // O cancelamento e processado de forma assincrona pela CIP. Consultar
+        // imediatamente pode retornar 400 enquanto a solicitacao esta pendente.
+        return ['id' => $idValidado, 'status' => 'CANCELLED'];
     }
     public function pdf(string $id): array
     {

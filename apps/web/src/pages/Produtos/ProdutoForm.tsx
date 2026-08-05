@@ -670,7 +670,9 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
               <ArrowLeft size={25} strokeWidth={2.4} />
             </button>
 
-            <button
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>            <button
               type="button"
               title="Lista de produtos"
               aria-label="Lista de produtos"
@@ -690,9 +692,6 @@ function ProdutoForm({ modo }: ProdutoFormProps) {
             >
               <List size={25} strokeWidth={2.4} />
             </button>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {modo === 'editar' && produtoEncontrado ? (
               <button
                 type="button"

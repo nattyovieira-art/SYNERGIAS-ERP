@@ -252,7 +252,14 @@ try {
     $formaPagamentoXml = mb_strtoupper(sxV62Texto($venda['formaPagamento'] ?? $venda['tipoCobranca'] ?? ''), 'UTF-8');
     $ehBoletoXml = str_contains($formaPagamentoXml, 'BOLETO') || $duplicatasXml;
     $pag=$doc->createElement('pag'); $inf->appendChild($pag); $detPag=$doc->createElement('detPag'); $pag->appendChild($detPag); sxV62Add($doc,$detPag,'indPag','1'); sxV62Add($doc,$detPag,'tPag',$ehBoletoXml?'15':'99'); if(!$ehBoletoXml) sxV62Add($doc,$detPag,'xPag','OUTROS - CONFORME PEDIDO'); sxV62Add($doc,$detPag,'vPag',sxV62Moeda($vNF));
-    $infAdic=$doc->createElement('infAdic'); $inf->appendChild($infAdic); sxV62Add($doc,$infAdic,'infCpl',sxV62NormalizarTexto('DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL. NAO GERA DIREITO A CREDITO FISCAL DE ICMS, ISS E IPI. Pedido: '.sxV62Texto($venda['numeroPedido'] ?? ''),2000));
+    $textoAutomaticoInfCpl = 'DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL. NAO GERA DIREITO A CREDITO FISCAL DE ICMS, ISS E IPI.';
+    $textoDigitadoInfCpl = sxV62Texto($venda['observacoesNotaFiscal'] ?? $venda['observacoes'] ?? '');
+    $numeroPedidoInfCpl = sxV62Texto($venda['numeroPedido'] ?? '');
+    $partesInfCpl = [$textoAutomaticoInfCpl];
+    if ($textoDigitadoInfCpl !== '') $partesInfCpl[] = $textoDigitadoInfCpl;
+    if ($numeroPedidoInfCpl !== '') $partesInfCpl[] = 'Pedido: ' . $numeroPedidoInfCpl;
+    $infAdic=$doc->createElement('infAdic'); $inf->appendChild($infAdic);
+    sxV62Add($doc,$infAdic,'infCpl',sxV62NormalizarTexto(implode(' | ', $partesInfCpl),2000));
 
     $verProcNode = $doc->getElementsByTagName('verProc')->item(0);
     if (!$verProcNode instanceof DOMElement || trim($verProcNode->textContent) !== NFE_VERPROC || strlen(NFE_VERPROC) < 1 || strlen(NFE_VERPROC) > 20) {

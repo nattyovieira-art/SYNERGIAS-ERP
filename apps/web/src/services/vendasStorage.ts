@@ -7,11 +7,36 @@ import { determinarEstadoRealOrcamento, normalizarNovoOrcamentoImportado } from 
 
 const STORAGE_VENDAS_BACKUP = 'synergias_vendas'
 
+function compactarVendaParaBackupLocal(venda: Venda): Venda {
+  return {
+    ...venda,
+    xmlNotaFiscal: '',
+    danfePdf: '',
+    xmlCancelamentoNotaFiscal: '',
+    parcelas: (venda.parcelas || []).map((parcela) => ({
+      ...parcela,
+      boletoPdfBase64: '',
+      bancoRetornoOriginal: undefined,
+    })),
+  }
+}
+
 function salvarBackupLocal(vendas: Venda[]) {
-  try {
-    localStorage.setItem(STORAGE_VENDAS_BACKUP, JSON.stringify(vendas))
-  } catch (erro) {
-    console.warn('[Synergias ERP] Não foi possível gravar o backup local de vendas.', erro)
+  const backupCompacto = vendas.map(compactarVendaParaBackupLocal)
+  const maisRecentes = [...backupCompacto].sort((a, b) =>
+    String((b as any).atualizadoEm || (b as any).criadoEm || b.dataEmissao || '')
+      .localeCompare(String((a as any).atualizadoEm || (a as any).criadoEm || a.dataEmissao || '')),
+  )
+  const tentativas = [backupCompacto, maisRecentes.slice(0, 100), maisRecentes.slice(0, 25), []]
+
+  for (const tentativa of tentativas) {
+    try {
+      localStorage.removeItem(STORAGE_VENDAS_BACKUP)
+      localStorage.setItem(STORAGE_VENDAS_BACKUP, JSON.stringify(tentativa))
+      return
+    } catch {
+      // O MySQL permanece como fonte principal; tenta uma cópia local menor.
+    }
   }
 }
 
@@ -107,6 +132,16 @@ function detectarAmbienteFiscal(venda: VendaComMetadados): 'PRODUCAO' | 'HOMOLOG
 }
 
 function normalizarVenda(venda: VendaComMetadados): VendaComMetadados {
+  const tipoNormalizado = String((venda as any).tipo || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+  const ehOrcamento = tipoNormalizado.includes('orcamento')
+    || (tipoNormalizado.startsWith('or') && tipoNormalizado.endsWith('amento'))
+  const statusOrcamento = String((venda as any).statusOrcamento || '').toUpperCase().trim() === 'EFETIVADO'
+    ? 'Gerado'
+    : (venda as any).statusOrcamento
   const parcelas = Array.isArray(venda.parcelas)
     ? venda.parcelas.map((parcela) => normalizarParcela(parcela))
     : []
@@ -122,6 +157,14 @@ function normalizarVenda(venda: VendaComMetadados): VendaComMetadados {
   const ambienteFiscalDetectado = detectarAmbienteFiscal(venda)
   return {
     ...venda,
+    ...(ehOrcamento
+      ? {
+          vendedor: 'Natália Vieira',
+          vendedorNome: 'Natália Vieira',
+          nomeVendedor: 'Natália Vieira',
+          statusOrcamento,
+        }
+      : {}),
     ...(pedidoHistoricoEntregue
       ? { status: 'CONCLUÍDO', statusPedido: 'Entregue', logisticaStatus: 'Entregue' }
       : {}),
@@ -284,7 +327,7 @@ export function gerarPedidoAPartirDoOrcamento(orcamento: Venda) {
 
   const orcamentoAtualizado = {
     ...(orcamento as VendaComMetadados),
-    statusOrcamento: 'Efetivado',
+    statusOrcamento: 'Gerado',
     atualizadoEm: dataAtual,
   } as unknown as Venda
 
@@ -458,6 +501,7 @@ export async function salvarVendasStorageConfirmado(vendas: Venda[]) {
 export async function corrigirOrcamentosImportadosSemPedidoReal(): Promise<string[]> {
   const vendas = listarVendasStorage()
   const corrigidos: string[] = []
+  const registrosCorrigidos: Array<{ anterior: Venda; atualizado: Venda }> = []
   const atualizadas = vendas.map((venda) => {
     const registro = venda as any
     const tipo = String(registro.tipo || '').toLocaleLowerCase('pt-BR')
@@ -477,11 +521,13 @@ export async function corrigirOrcamentosImportadosSemPedidoReal(): Promise<strin
 
       if (!jaEstaAberto) {
         corrigidos.push('2535')
-        return {
+        const atualizado = {
           ...normalizado,
           correcaoDuplicacaoAbertaEm:
             registro.correcaoDuplicacaoAbertaEm || gerarDataAtual(),
         } as Venda
+        registrosCorrigidos.push({ anterior: venda, atualizado })
+        return atualizado
       }
 
       return venda
@@ -493,10 +539,20 @@ export async function corrigirOrcamentosImportadosSemPedidoReal(): Promise<strin
     const copia = { ...registro, tipo: 'Orçamento', status: 'ABERTO', statusOrcamento: 'Aberto', aprovado: false, reprovado: false, convertido: false, pedidoGerado: false }
     for (const campo of ['numeroPedido', 'pedidoId', 'pedidoGeradoId', 'pedidoGeradoEm', 'dataConversao']) delete copia[campo]
     corrigidos.push(String(registro.numeroOrcamento || registro.id))
-    return copia as Venda
+    const atualizado = copia as Venda
+    registrosCorrigidos.push({ anterior: venda, atualizado })
+    return atualizado
   })
 
-  if (corrigidos.length > 0) await salvarVendasStorageConfirmado(atualizadas)
+  // Esta rotina corrige somente os orcamentos identificados. Nunca reenvia uma
+  // fotografia completa da colecao, que pode conter um pedido entregue antigo.
+  for (const { anterior, atualizado } of registrosCorrigidos) {
+    await atualizarRegistroColecaoCentral('vendas', atualizado, anterior)
+  }
+  if (registrosCorrigidos.length > 0) {
+    definirColecaoMemoria('vendas', atualizadas)
+    salvarBackupLocal(atualizadas)
+  }
   return corrigidos
 }
 

@@ -307,7 +307,7 @@
   width: 100%;
   max-width: 100%;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin: 22px 0 18px;
   box-sizing: border-box;
@@ -381,6 +381,12 @@
   font-weight: 900;
   line-height: 1.1;
   word-break: break-word;
+}
+
+.financeiro-card.resumo strong {
+  font-size: 18px;
+  white-space: nowrap;
+  word-break: normal;
 }
 
 .financeiro-card small {

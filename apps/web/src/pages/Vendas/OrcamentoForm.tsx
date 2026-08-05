@@ -134,6 +134,9 @@ type VendaStorage = {
   pedidoGeradoId?: string
   pedidoGeradoEm?: string
   aprovadoEm?: string
+  dataImpressaoOrcamento?: string
+  horarioImpressaoOrcamento?: string
+  impressoEm?: string
 }
 
 const STORAGE_PRODUTOS = 'synergias_produtos'
@@ -2183,7 +2186,12 @@ function OrcamentoForm() {
     }
   }
 
-  async function salvar(statusAtual: StatusOrcamento = status, voltar = false, silencioso = false) {
+  async function salvar(
+    statusAtual: StatusOrcamento = status,
+    voltar = false,
+    silencioso = false,
+    registrarImpressao = false,
+  ) {
     if (edicaoBloqueadaPorPedido) {
       if (!silencioso) {
         alert('Este orçamento já possui pedido gerado e não pode mais ser alterado.')
@@ -2191,7 +2199,15 @@ function OrcamentoForm() {
       return false
     }
 
-    const orcamento = montarOrcamento(statusAtual)
+    const agora = new Date()
+    const orcamento = {
+      ...montarOrcamento(statusAtual),
+      ...(registrarImpressao && statusAtual === 'Aprovado' ? {
+        dataImpressaoOrcamento: agora.toISOString().slice(0, 10),
+        horarioImpressaoOrcamento: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        impressoEm: agora.toISOString(),
+      } : {}),
+    }
 
     try {
       await salvarDocumentoEmailNoCadastro()
@@ -3119,7 +3135,7 @@ function OrcamentoForm() {
 
 function abrirImpressaoOrcamento() {
   if (!edicaoBloqueadaPorPedido) {
-    void salvar(status, false, true)
+    void salvar(status, false, true, true)
   }
 
   const nomeArquivo = gerarNomeArquivoPdf(
@@ -3233,23 +3249,6 @@ function abrirImpressaoOrcamento() {
             </button>
 
 
-            <button
-              type="button"
-              className="orcamento-acao orcamento-acao-lista"
-              title="Lista de orçamentos"
-              onMouseDown={(event) => {
-                event.preventDefault()
-                event.stopPropagation()
-              }}
-              onClickCapture={(event) => {
-                event.preventDefault()
-                event.stopPropagation()
-                abrirLista()
-              }}
-            >
-              <List size={25} strokeWidth={2.4} />
-            </button>
-
             <div className="orcamento-iconbar topo">
             <button
               type="button"
@@ -3318,6 +3317,22 @@ function abrirImpressaoOrcamento() {
               }}
             >
               <Mail size={25} strokeWidth={2.4} />
+            </button>
+            <button
+              type="button"
+              className="orcamento-acao orcamento-acao-lista"
+              title="Lista de orçamentos"
+              onMouseDown={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+              }}
+              onClickCapture={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                abrirLista()
+              }}
+            >
+              <List size={25} strokeWidth={2.4} />
             </button>
 
             <button

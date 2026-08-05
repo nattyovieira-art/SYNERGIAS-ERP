@@ -413,10 +413,12 @@ export function confirmarEntradaCompraComCustoMedioStorage(
     const digitos = texto.replace(/\D/g, '')
     return digitos || texto
   }
-  const documentoOrigem =
-    normalizarDocumento(dados.chaveAcessoNFe) ||
-    normalizarDocumento(dados.numeroNFe) ||
-    normalizarDocumento(dados.numeroCompra)
+  const documentosOrigem = new Set(
+    [dados.chaveAcessoNFe, dados.numeroNFe, dados.numeroCompra]
+      .map(normalizarDocumento)
+      .filter(Boolean),
+  )
+  const documentoOrigem = Array.from(documentosOrigem)[0] || ''
   const movimentacoesAtuais = listarMovimentacoesEstoque()
   const idsEntradasEstornadas = new Set(
     movimentacoesAtuais
@@ -427,7 +429,7 @@ export function confirmarEntradaCompraComCustoMedioStorage(
     (movimento) =>
       movimento.origem === 'compra' &&
       !idsEntradasEstornadas.has(String(movimento.id)) &&
-      normalizarDocumento(movimento.documentoOrigem) === documentoOrigem,
+      documentosOrigem.has(normalizarDocumento(movimento.documentoOrigem)),
   )
   const itensValidos = dados.itens
     .map((item) => ({
