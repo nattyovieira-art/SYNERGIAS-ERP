@@ -308,6 +308,55 @@ function montarMensagem(array $body, array $config, array $para, array $cc): str
         $xmlAutorizado = $xmlPedido;
     }
 
+    // Ultima fonte: registro central do pedido importado no MySQL.
+    if ($xmlAutorizado === '') {
+        try {
+            $pdoEmail = obterPdo();
+            $consultaVendas = $pdoEmail->prepare("SELECT payload FROM erp_storage WHERE collection='vendas' LIMIT 1");
+            $consultaVendas->execute();
+            $payloadVendas = $consultaVendas->fetchColumn();
+            $vendasCentrais = is_string($payloadVendas) ? json_decode($payloadVendas, true) : null;
+            $idPedido = texto($pedidoXml['id'] ?? $body['pedidoId'] ?? '');
+            $numeroPedido = preg_replace('/\D+/', '', texto(
+                $pedidoXml['numeroPedido'] ?? $body['numeroPedido'] ?? ''
+            )) ?: '';
+            if (is_array($vendasCentrais)) {
+                foreach ($vendasCentrais as $vendaCentral) {
+                    if (!is_array($vendaCentral)) continue;
+                    $idCentral = texto($vendaCentral['id'] ?? '');
+                    $numeroCentral = preg_replace('/\D+/', '', texto($vendaCentral['numeroPedido'] ?? '')) ?: '';
+                    $chaveCentral = preg_replace('/\D+/', '', texto(
+                        $vendaCentral['chaveAcessoNotaFiscal'] ?? $vendaCentral['chaveAcesso'] ?? ''
+                    )) ?: '';
+                    $mesmoPedido = ($idPedido !== '' && hash_equals($idPedido, $idCentral))
+                        || ($numeroPedido !== '' && hash_equals($numeroPedido, $numeroCentral))
+                        || ($chaveXml !== '' && hash_equals($chaveXml, $chaveCentral));
+                    if (!$mesmoPedido) continue;
+                    $xmlCentral = trim(texto($vendaCentral['xmlNotaFiscal'] ?? $vendaCentral['xmlNfe'] ?? ''));
+                    if ($xmlCentral === '' && is_array($vendaCentral['historicoNotaFiscal'] ?? null)) {
+                        foreach (array_reverse($vendaCentral['historicoNotaFiscal']) as $eventoCentral) {
+                            if (!is_array($eventoCentral)) continue;
+                            $xmlCentral = trim(texto($eventoCentral['xml'] ?? $eventoCentral['xmlNotaFiscal'] ?? ''));
+                            if ($xmlCentral !== '') break;
+                        }
+                    }
+                    if ($xmlCentral !== '') {
+                        $xmlAutorizado = $xmlCentral;
+                        break;
+                    }
+                }
+            }
+        } catch (Throwable $erroXmlCentral) {
+            error_log('[SYNERGIAS EMAIL XML MYSQL] ' . $erroXmlCentral->getMessage());
+        }
+    }
+
+    if ($xmlAutorizado !== '' && !str_starts_with($xmlAutorizado, '<')) {
+        $xmlAutorizado = preg_replace('#^data:[^,]+,#i', '', $xmlAutorizado) ?? '';
+        $xmlDecodificado = base64_decode(preg_replace('/\s+/', '', $xmlAutorizado) ?? '', true);
+        $xmlAutorizado = is_string($xmlDecodificado) ? trim($xmlDecodificado) : '';
+    }
+
     if ($xmlAutorizado !== '' && str_contains($xmlAutorizado, '<nfeProc')) {
         $chaveConteudo = '';
         if (preg_match('/<chNFe>(\d{44})<\/chNFe>/i', $xmlAutorizado, $matchChave)) {
