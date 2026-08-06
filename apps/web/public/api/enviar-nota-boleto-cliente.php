@@ -284,7 +284,22 @@ function montarMensagem(array $body, array $config, array $para, array $cc): str
 
     // NF-es importadas ou vinculadas manualmente guardam o procNFe no pedido.
     if ($xmlAutorizado === '') {
-        $xmlPedido = trim(texto($pedidoXml['xmlNotaFiscal'] ?? $pedidoXml['xmlNfe'] ?? ''));
+        $xmlPedido = trim(texto(
+            $pedidoXml['xmlNotaFiscal']
+            ?? $pedidoXml['xmlNfe']
+            ?? $body['xmlNotaFiscal']
+            ?? ''
+        ));
+        if ($xmlPedido === '' && is_array($pedidoXml['historicoNotaFiscal'] ?? null)) {
+            foreach (array_reverse($pedidoXml['historicoNotaFiscal']) as $eventoFiscal) {
+                if (!is_array($eventoFiscal)) continue;
+                $xmlHistorico = trim(texto($eventoFiscal['xml'] ?? $eventoFiscal['xmlNotaFiscal'] ?? ''));
+                if ($xmlHistorico !== '') {
+                    $xmlPedido = $xmlHistorico;
+                    break;
+                }
+            }
+        }
         if ($xmlPedido !== '' && !str_starts_with($xmlPedido, '<')) {
             $xmlPedido = preg_replace('#^data:[^,]+,#i', '', $xmlPedido) ?? '';
             $decodificado = base64_decode(preg_replace('/\s+/', '', $xmlPedido) ?? '', true);
