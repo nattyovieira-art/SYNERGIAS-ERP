@@ -148,11 +148,14 @@ export async function inserirOrcamento2380Pedido2458Nfe2358(
     parcelas: [],
     criadoEm: orcamentoExistente?.criadoEm || agora,
   }
-  const parcelas = [
-    { numero: 1, vencimento: '2026-07-25', valor: 430.16, numeroBoleto: '001', tipoCobranca: 'BOLETO BANCO CORA', bancoCobranca: 'Cora', statusBoleto: 'Pendente' },
-    { numero: 2, vencimento: '2026-08-25', valor: 430.16, numeroBoleto: '002', tipoCobranca: 'BOLETO BANCO CORA', bancoCobranca: 'Cora', statusBoleto: 'Pendente' },
-    { numero: 3, vencimento: '2026-09-25', valor: 430.16, numeroBoleto: '003', tipoCobranca: 'BOLETO BANCO CORA', bancoCobranca: 'Cora', statusBoleto: 'Pendente' },
+  const parcelasHistoricas = [
+    { numero: 1, vencimento: '2026-07-25', valor: 430.16, tipoCobranca: 'BOLETO BANCO CORA', bancoCobranca: 'Cora', statusBoleto: 'Pendente' },
+    { numero: 2, vencimento: '2026-08-25', valor: 430.16, tipoCobranca: 'BOLETO BANCO CORA', bancoCobranca: 'Cora', statusBoleto: 'Pendente' },
+    { numero: 3, vencimento: '2026-09-25', valor: 430.16, tipoCobranca: 'BOLETO BANCO CORA', bancoCobranca: 'Cora', statusBoleto: 'Pendente' },
   ]
+  const parcelas = Array.isArray(pedidoExistente?.parcelas) && pedidoExistente.parcelas.length > 0
+    ? pedidoExistente.parcelas
+    : parcelasHistoricas
   const pedido = {
     ...pedidoExistente,
     ...comum,
@@ -198,10 +201,10 @@ export async function inserirOrcamento2380Pedido2458Nfe2358(
         criadoEm: '2026-06-29T00:18:29-03:00',
       },
     ],
-    formaPagamento: 'BOLETO BANCO CORA',
-    tipoCobranca: 'BOLETO BANCO CORA',
-    bancoCobranca: 'Cora',
-    statusBoleto: 'Pendente',
+    formaPagamento: pedidoExistente?.formaPagamento || 'BOLETO BANCO CORA',
+    tipoCobranca: pedidoExistente?.tipoCobranca || 'BOLETO BANCO CORA',
+    bancoCobranca: pedidoExistente?.bancoCobranca || 'Cora',
+    statusBoleto: pedidoExistente?.statusBoleto || 'Pendente',
     parcelas,
     conciliado: false,
     criadoEm: pedidoExistente?.criadoEm || agora,

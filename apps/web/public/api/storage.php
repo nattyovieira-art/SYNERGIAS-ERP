@@ -357,6 +357,83 @@ function lerRegistro(PDO $pdo, string $collection): ?array {
     return is_array($registro) ? $registro : null;
 }
 
+function pontuarVinculoBoleto(array $parcela): int {
+    $pontos = 0;
+    foreach (['idCobranca','codigoSolicitacao','numeroBoleto','nossoNumero','seuNumero','linhaDigitavel','codigoBarras','linkBoleto','boletoPdfUrl','boletoPdfBase64','dataGeracaoBoleto'] as $campo) {
+        if (trim((string)($parcela[$campo] ?? '')) !== '') $pontos++;
+    }
+    $status = mb_strtolower(trim((string)($parcela['statusBoleto'] ?? '')), 'UTF-8');
+    if (in_array($status, ['gerado','enviado','pago','cancelado'], true)) $pontos += 2;
+    if (trim((string)($parcela['bancoCobranca'] ?? '')) !== '') $pontos++;
+    return $pontos;
+}
+
+function temVinculoBoletoConfirmado(array $parcela): bool {
+    $identificadores = 0;
+    foreach (['idCobranca','codigoSolicitacao','numeroBoleto','nossoNumero','seuNumero','linhaDigitavel','codigoBarras','linkBoleto','boletoPdfUrl','boletoPdfBase64'] as $campo) {
+        if (trim((string)($parcela[$campo] ?? '')) !== '') $identificadores++;
+    }
+    $status = mb_strtolower(trim((string)($parcela['statusBoleto'] ?? '')), 'UTF-8');
+    $emissaoConfirmada = in_array($status, ['gerado','enviado','pago','cancelado'], true)
+        || trim((string)($parcela['dataGeracaoBoleto'] ?? '')) !== '';
+    return $identificadores > 0 && ($emissaoConfirmada || $identificadores > 1);
+}
+
+function recuperarVinculosBoletoDoHistorico(PDO $pdo, array $atuais): array {
+    if ($atuais === []) return [$atuais, false];
+    $consulta = $pdo->prepare("SELECT payload FROM erp_storage_history WHERE collection='vendas' AND item_count>0 ORDER BY id DESC LIMIT 20");
+    $consulta->execute();
+    $historicosPorVenda = [];
+    while (($payload = $consulta->fetchColumn()) !== false) {
+        foreach (decodificarLista(is_string($payload) ? $payload : '') as $vendaHistorica) {
+            if (!is_array($vendaHistorica)) continue;
+            $id = trim((string)($vendaHistorica['id'] ?? ''));
+            $numero = preg_replace('/\D+/', '', trim((string)($vendaHistorica['numeroPedido'] ?? ''))) ?: '';
+            foreach (array_filter([$id !== '' ? 'id:' . $id : '', $numero !== '' ? 'numero:' . $numero : '']) as $chave) {
+                $historicosPorVenda[$chave][] = $vendaHistorica;
+            }
+        }
+    }
+
+    $alterou = false;
+    foreach ($atuais as &$vendaAtual) {
+        if (!is_array($vendaAtual) || !is_array($vendaAtual['parcelas'] ?? null)) continue;
+        $id = trim((string)($vendaAtual['id'] ?? ''));
+        $numero = preg_replace('/\D+/', '', trim((string)($vendaAtual['numeroPedido'] ?? ''))) ?: '';
+        $candidatas = [];
+        foreach (array_filter([$id !== '' ? 'id:' . $id : '', $numero !== '' ? 'numero:' . $numero : '']) as $chave) {
+            foreach ($historicosPorVenda[$chave] ?? [] as $historica) $candidatas[] = $historica;
+        }
+        if ($candidatas === []) continue;
+
+        foreach ($vendaAtual['parcelas'] as $indice => &$parcelaAtual) {
+            if (!is_array($parcelaAtual)) continue;
+            $numeroParcela = (int)($parcelaAtual['numero'] ?? ($indice + 1));
+            $melhor = $parcelaAtual;
+            $melhorPontuacao = pontuarVinculoBoleto($parcelaAtual);
+            foreach ($candidatas as $vendaHistorica) {
+                foreach (($vendaHistorica['parcelas'] ?? []) as $indiceHistorico => $parcelaHistorica) {
+                    if (!is_array($parcelaHistorica)) continue;
+                    if ((int)($parcelaHistorica['numero'] ?? ($indiceHistorico + 1)) !== $numeroParcela) continue;
+                    if (!temVinculoBoletoConfirmado($parcelaHistorica)) continue;
+                    $pontuacao = pontuarVinculoBoleto($parcelaHistorica);
+                    if ($pontuacao > $melhorPontuacao) {
+                        $melhor = array_replace($parcelaAtual, $parcelaHistorica);
+                        $melhorPontuacao = $pontuacao;
+                    }
+                }
+            }
+            if ($melhor !== $parcelaAtual) {
+                $parcelaAtual = $melhor;
+                $alterou = true;
+            }
+        }
+        unset($parcelaAtual);
+    }
+    unset($vendaAtual);
+    return [$atuais, $alterou];
+}
+
 $maxPayloadBytes = 32 * 1024 * 1024;
 if (!in_array($method, ['GET', 'HEAD'], true) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > $maxPayloadBytes) {
     responder(413, ['ok' => false, 'error' => 'Payload excede o limite de 32 MB.']);
@@ -388,6 +465,22 @@ if ($method === 'GET') {
         }
     }
 
+    $boletosRecuperados = false;
+    if ($collection === 'vendas' && $data !== []) {
+        [$data, $boletosRecuperados] = recuperarVinculosBoletoDoHistorico($pdo, $data);
+        if ($boletosRecuperados) {
+            $payloadRecuperado = codificarLista($data);
+            $up = $pdo->prepare('UPDATE erp_storage SET payload=:payload,item_count=:count,payload_hash=:hash,updated_at=CURRENT_TIMESTAMP WHERE collection=:collection');
+            $up->execute([
+                'collection' => $collection,
+                'payload' => $payloadRecuperado,
+                'count' => count($data),
+                'hash' => hashPayload($payloadRecuperado),
+            ]);
+            $registro = lerRegistro($pdo, $collection);
+        }
+    }
+
     responder(200, [
         'ok' => true,
         'collection' => $collection,
@@ -397,6 +490,7 @@ if ($method === 'GET') {
         'hash' => $registro['payload_hash'] ?? ($data ? hashPayload(codificarLista($data)) : ''),
         'updatedAt' => $registro['updated_at'] ?? null,
         'recovered' => $recovered,
+        'boletoLinksRecovered' => $boletosRecuperados,
         'storage' => 'mysql',
     ]);
 }
