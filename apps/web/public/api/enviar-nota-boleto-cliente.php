@@ -268,6 +268,7 @@ function montarMensagem(array $body, array $config, array $para, array $cc): str
         ?? ''
     )) ?: '';
 
+    $xmlAutorizado = '';
     if (preg_match('/^\d{44}$/', $chaveXml)) {
         $homeXml = rtrim((string)(getenv('HOME') ?: ''), '/\\');
         if ($homeXml === '' || !is_dir($homeXml)) {
@@ -276,16 +277,37 @@ function montarMensagem(array $body, array $config, array $para, array $cc): str
 
         $arquivoXmlAutorizado = $homeXml . '/synergias_private/fiscal-nfe/' . $chaveXml . '-procNFe.xml';
         if (is_file($arquivoXmlAutorizado)) {
-            $xmlAutorizado = @file_get_contents($arquivoXmlAutorizado);
-            if (is_string($xmlAutorizado) && trim($xmlAutorizado) !== '' && str_contains($xmlAutorizado, '<nfeProc')) {
-                $nomeXml = 'NFe_' . $chaveXml . '.xml';
-                $partes[] = '--' . $boundary . "\r\n" .
-                    'Content-Type: application/xml; charset=UTF-8; name="' . $nomeXml . '"' . "\r\n" .
-                    'Content-Disposition: attachment; filename="' . $nomeXml . '"' . "\r\n" .
-                    "Content-Transfer-Encoding: base64\r\n\r\n" .
-                    chunk_split(base64_encode($xmlAutorizado));
-                $anexados['xmlNotaFiscal'] = 1;
-            }
+            $conteudoPrivado = @file_get_contents($arquivoXmlAutorizado);
+            if (is_string($conteudoPrivado)) $xmlAutorizado = trim($conteudoPrivado);
+        }
+    }
+
+    // NF-es importadas ou vinculadas manualmente guardam o procNFe no pedido.
+    if ($xmlAutorizado === '') {
+        $xmlPedido = trim(texto($pedidoXml['xmlNotaFiscal'] ?? $pedidoXml['xmlNfe'] ?? ''));
+        if ($xmlPedido !== '' && !str_starts_with($xmlPedido, '<')) {
+            $xmlPedido = preg_replace('#^data:[^,]+,#i', '', $xmlPedido) ?? '';
+            $decodificado = base64_decode(preg_replace('/\s+/', '', $xmlPedido) ?? '', true);
+            $xmlPedido = is_string($decodificado) ? trim($decodificado) : '';
+        }
+        $xmlAutorizado = $xmlPedido;
+    }
+
+    if ($xmlAutorizado !== '' && str_contains($xmlAutorizado, '<nfeProc')) {
+        $chaveConteudo = '';
+        if (preg_match('/<chNFe>(\d{44})<\/chNFe>/i', $xmlAutorizado, $matchChave)) {
+            $chaveConteudo = $matchChave[1];
+        } elseif (preg_match('/Id=["\']NFe(\d{44})["\']/i', $xmlAutorizado, $matchChave)) {
+            $chaveConteudo = $matchChave[1];
+        }
+        if ($chaveConteudo !== '' && ($chaveXml === '' || hash_equals($chaveXml, $chaveConteudo))) {
+            $nomeXml = 'NFe_' . $chaveConteudo . '.xml';
+            $partes[] = '--' . $boundary . "\r\n" .
+                'Content-Type: application/xml; charset=UTF-8; name="' . $nomeXml . '"' . "\r\n" .
+                'Content-Disposition: attachment; filename="' . $nomeXml . '"' . "\r\n" .
+                "Content-Transfer-Encoding: base64\r\n\r\n" .
+                chunk_split(base64_encode($xmlAutorizado));
+            $anexados['xmlNotaFiscal'] = 1;
         }
     }
 
