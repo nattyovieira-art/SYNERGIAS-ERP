@@ -381,18 +381,49 @@ function temVinculoBoletoConfirmado(array $parcela): bool {
 
 function recuperarVinculosBoletoDoHistorico(PDO $pdo, array $atuais): array {
     if ($atuais === []) return [$atuais, false];
-    $consulta = $pdo->prepare("SELECT payload FROM erp_storage_history WHERE collection='vendas' AND item_count>0 ORDER BY id DESC LIMIT 20");
-    $consulta->execute();
-    $historicosPorVenda = [];
-    while (($payload = $consulta->fetchColumn()) !== false) {
-        foreach (decodificarLista(is_string($payload) ? $payload : '') as $vendaHistorica) {
+    $chavesProcuradas = [];
+    foreach ($atuais as $vendaAtual) {
+        if (!is_array($vendaAtual) || !is_array($vendaAtual['parcelas'] ?? null)) continue;
+        $precisaRecuperar = false;
+        foreach ($vendaAtual['parcelas'] as $parcelaAtual) {
+            if (is_array($parcelaAtual) && !temVinculoBoletoConfirmado($parcelaAtual)) {
+                $precisaRecuperar = true;
+                break;
+            }
+        }
+        if (!$precisaRecuperar) continue;
+        $id = trim((string)($vendaAtual['id'] ?? ''));
+        $numero = preg_replace('/\D+/', '', trim((string)($vendaAtual['numeroPedido'] ?? ''))) ?: '';
+        if ($id !== '') $chavesProcuradas['id:' . $id] = true;
+        if ($numero !== '') $chavesProcuradas['numero:' . $numero] = true;
+    }
+    if ($chavesProcuradas === []) return [$atuais, false];
+
+    $consultaIds = $pdo->query("SELECT id FROM erp_storage_history WHERE collection='vendas' AND item_count>0 ORDER BY id DESC LIMIT 12");
+    $idsHistoricos = $consultaIds ? $consultaIds->fetchAll(PDO::FETCH_COLUMN) : [];
+    $consultaPayload = $pdo->prepare("SELECT payload FROM erp_storage_history WHERE id=:id AND collection='vendas' LIMIT 1");
+    $parcelasHistoricas = [];
+    foreach ($idsHistoricos as $idHistorico) {
+        $consultaPayload->execute(['id' => $idHistorico]);
+        $payload = $consultaPayload->fetchColumn();
+        if (!is_string($payload) || $payload === '') continue;
+        foreach (decodificarLista($payload) as $vendaHistorica) {
             if (!is_array($vendaHistorica)) continue;
             $id = trim((string)($vendaHistorica['id'] ?? ''));
             $numero = preg_replace('/\D+/', '', trim((string)($vendaHistorica['numeroPedido'] ?? ''))) ?: '';
             foreach (array_filter([$id !== '' ? 'id:' . $id : '', $numero !== '' ? 'numero:' . $numero : '']) as $chave) {
-                $historicosPorVenda[$chave][] = $vendaHistorica;
+                if (!isset($chavesProcuradas[$chave])) continue;
+                foreach (($vendaHistorica['parcelas'] ?? []) as $indice => $parcela) {
+                    if (!is_array($parcela) || !temVinculoBoletoConfirmado($parcela)) continue;
+                    $numeroParcela = (int)($parcela['numero'] ?? ($indice + 1));
+                    $atual = $parcelasHistoricas[$chave][$numeroParcela] ?? null;
+                    if (!is_array($atual) || pontuarVinculoBoleto($parcela) > pontuarVinculoBoleto($atual)) {
+                        $parcelasHistoricas[$chave][$numeroParcela] = $parcela;
+                    }
+                }
             }
         }
+        unset($payload);
     }
 
     $alterou = false;
@@ -400,27 +431,20 @@ function recuperarVinculosBoletoDoHistorico(PDO $pdo, array $atuais): array {
         if (!is_array($vendaAtual) || !is_array($vendaAtual['parcelas'] ?? null)) continue;
         $id = trim((string)($vendaAtual['id'] ?? ''));
         $numero = preg_replace('/\D+/', '', trim((string)($vendaAtual['numeroPedido'] ?? ''))) ?: '';
-        $candidatas = [];
-        foreach (array_filter([$id !== '' ? 'id:' . $id : '', $numero !== '' ? 'numero:' . $numero : '']) as $chave) {
-            foreach ($historicosPorVenda[$chave] ?? [] as $historica) $candidatas[] = $historica;
-        }
-        if ($candidatas === []) continue;
+        $chavesVenda = array_filter([$id !== '' ? 'id:' . $id : '', $numero !== '' ? 'numero:' . $numero : '']);
 
         foreach ($vendaAtual['parcelas'] as $indice => &$parcelaAtual) {
             if (!is_array($parcelaAtual)) continue;
             $numeroParcela = (int)($parcelaAtual['numero'] ?? ($indice + 1));
             $melhor = $parcelaAtual;
             $melhorPontuacao = pontuarVinculoBoleto($parcelaAtual);
-            foreach ($candidatas as $vendaHistorica) {
-                foreach (($vendaHistorica['parcelas'] ?? []) as $indiceHistorico => $parcelaHistorica) {
-                    if (!is_array($parcelaHistorica)) continue;
-                    if ((int)($parcelaHistorica['numero'] ?? ($indiceHistorico + 1)) !== $numeroParcela) continue;
-                    if (!temVinculoBoletoConfirmado($parcelaHistorica)) continue;
-                    $pontuacao = pontuarVinculoBoleto($parcelaHistorica);
-                    if ($pontuacao > $melhorPontuacao) {
-                        $melhor = array_replace($parcelaAtual, $parcelaHistorica);
-                        $melhorPontuacao = $pontuacao;
-                    }
+            foreach ($chavesVenda as $chave) {
+                $parcelaHistorica = $parcelasHistoricas[$chave][$numeroParcela] ?? null;
+                if (!is_array($parcelaHistorica)) continue;
+                $pontuacao = pontuarVinculoBoleto($parcelaHistorica);
+                if ($pontuacao > $melhorPontuacao) {
+                    $melhor = array_replace($parcelaAtual, $parcelaHistorica);
+                    $melhorPontuacao = $pontuacao;
                 }
             }
             if ($melhor !== $parcelaAtual) {
@@ -467,17 +491,27 @@ if ($method === 'GET') {
 
     $boletosRecuperados = false;
     if ($collection === 'vendas' && $data !== []) {
-        [$data, $boletosRecuperados] = recuperarVinculosBoletoDoHistorico($pdo, $data);
-        if ($boletosRecuperados) {
-            $payloadRecuperado = codificarLista($data);
-            $up = $pdo->prepare('UPDATE erp_storage SET payload=:payload,item_count=:count,payload_hash=:hash,updated_at=CURRENT_TIMESTAMP WHERE collection=:collection');
-            $up->execute([
-                'collection' => $collection,
-                'payload' => $payloadRecuperado,
-                'count' => count($data),
-                'hash' => hashPayload($payloadRecuperado),
+        $marcadorRecuperacao = '__boleto_links_recovery_v1';
+        if (lerRegistro($pdo, $marcadorRecuperacao) === null) {
+            [$data, $boletosRecuperados] = recuperarVinculosBoletoDoHistorico($pdo, $data);
+            if ($boletosRecuperados) {
+                $payloadRecuperado = codificarLista($data);
+                $up = $pdo->prepare('UPDATE erp_storage SET payload=:payload,item_count=:count,payload_hash=:hash,updated_at=CURRENT_TIMESTAMP WHERE collection=:collection');
+                $up->execute([
+                    'collection' => $collection,
+                    'payload' => $payloadRecuperado,
+                    'count' => count($data),
+                    'hash' => hashPayload($payloadRecuperado),
+                ]);
+                $registro = lerRegistro($pdo, $collection);
+            }
+            $payloadMarcador = codificarLista([['executadoEm' => gmdate('c'), 'recuperou' => $boletosRecuperados]]);
+            $upMarcador = $pdo->prepare('INSERT INTO erp_storage (collection,payload,item_count,payload_hash) VALUES (:collection,:payload,1,:hash) ON DUPLICATE KEY UPDATE payload=VALUES(payload),item_count=1,payload_hash=VALUES(payload_hash),updated_at=CURRENT_TIMESTAMP');
+            $upMarcador->execute([
+                'collection' => $marcadorRecuperacao,
+                'payload' => $payloadMarcador,
+                'hash' => hashPayload($payloadMarcador),
             ]);
-            $registro = lerRegistro($pdo, $collection);
         }
     }
 
