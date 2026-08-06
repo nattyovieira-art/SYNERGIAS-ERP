@@ -5023,6 +5023,7 @@ Endereço: ${EMPRESA_ENDERECO}`
       totalFinal: Number(vendaBase.totalFinal || totais.totalFinal || 0),
       dataEmissao: obterDataEmissaoNotaFiscal(vendaBase),
       dataEmissaoNotaFiscal: obterDataEmissaoNotaFiscal(vendaBase),
+      xmlNotaFiscal: vendaBase.xmlNotaFiscal || venda.xmlNotaFiscal || '',
       assunto: montarAssuntoEmailNotaBoleto(vendaBase),
       texto: montarTextoEmailNotaBoleto(vendaBase),
       html: montarHtmlEmailNotaBoleto(vendaBase),
@@ -5132,9 +5133,14 @@ Endereço: ${EMPRESA_ENDERECO}`
       const vendaComBoleto = pagamentoEmail.ehBoleto
         ? await garantirPdfBoletoAntesDoEnvio(vendaBase)
         : vendaBase
-      const danfeAtualBase64 = await gerarDanfeAtualDoSistemaParaEmail(vendaComBoleto)
+      const vendaComDocumentos: Venda = {
+        ...vendaComBoleto,
+        xmlNotaFiscal: vendaComBoleto.xmlNotaFiscal || venda.xmlNotaFiscal || '',
+        danfePdf: vendaComBoleto.danfePdf || venda.danfePdf || '',
+      }
+      const danfeAtualBase64 = await gerarDanfeAtualDoSistemaParaEmail(vendaComDocumentos)
       const payload = montarPayloadEmailNotaBoleto(
-        vendaComBoleto,
+        vendaComDocumentos,
         emailDestino,
         danfeAtualBase64,
       )
