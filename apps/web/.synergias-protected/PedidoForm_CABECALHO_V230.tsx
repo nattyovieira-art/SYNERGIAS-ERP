@@ -4277,6 +4277,23 @@ function PedidoForm() {
           continue
         }
         const cobranca = await consultarCobrancaInter(codigo)
+        const possuiConfirmacaoBancaria = Boolean(
+          String(cobranca.status || '').trim()
+          || String(cobranca.nossoNumero || '').trim()
+          || String(cobranca.linhaDigitavel || '').trim()
+          || String(cobranca.codigoBarras || '').trim(),
+        )
+        if (!possuiConfirmacaoBancaria) {
+          parcelas = parcelas.map((item, posicao) => posicao === indice ? {
+            ...item,
+            idCobrancaBanco: codigo,
+            idCobrancaApi: codigo,
+            statusBoleto: 'Erro',
+            erroBoleto: 'O Banco Inter não confirmou a cobrança nem retornou os dados do boleto.',
+            motivoErroBoleto: 'Solicitação preservada, mas sem título bancário confirmado pelo Inter.',
+          } : item)
+          continue
+        }
         let pdfBase64 = parcela.boletoPdfBase64 || ''
         const statusConfirmado = statusInterParaBoleto(cobranca.status)
         if (!pdfBase64 && ['Gerado', 'Pago'].includes(String(statusConfirmado))) {
