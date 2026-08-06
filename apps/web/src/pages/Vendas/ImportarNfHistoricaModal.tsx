@@ -10,6 +10,7 @@ type Props = { aberto: boolean; onClose: () => void; onConcluido: () => void }
 type Linha = { id: string; descricao: string; quantidade: number; unitario: number; produtoCodigo: string }
 const norm = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, ' ').trim().toLowerCase()
 const txt = (raiz: ParentNode, nome: string) => raiz.querySelector(nome)?.textContent?.trim() || ''
+const pagamentoPorCodigo: Record<string, string> = { '01': 'Dinheiro', '03': 'Cartao', '04': 'Cartao', '15': 'Boleto', '16': 'Transferencia', '17': 'Pix', '18': 'Transferencia' }
 
 function candidatos(descricao: string, produtos: any[]) {
   const termos = norm(descricao).split(' ').filter((t) => t.length > 1)
@@ -52,17 +53,24 @@ export default function ImportarNfHistoricaModal({ aberto, onClose, onConcluido 
     const desconto = Number(txt(documento, 'ICMSTot vDesc') || 0)
     const outrosCustos = Number(txt(documento, 'ICMSTot vOutro') || 0)
     const valorNf = Number(txt(documento, 'ICMSTot vNF') || 0)
+    const duplicatas = Array.from(documento.querySelectorAll('cobr dup'))
+    const codigoPagamento = Array.from(documento.querySelectorAll('pag detPag tPag')).map((item) => item.textContent?.trim() || '').find((codigo) => pagamentoPorCodigo[codigo]) || ''
+    const formaNf = duplicatas.length ? 'Boleto' : pagamentoPorCodigo[codigoPagamento]
+    const mencionaCora = norm(xmlOriginal).includes('cora')
+    const parcelasNf = duplicatas.map((duplicata, indice) => ({ numero: Number(txt(duplicata, 'nDup') || indice + 1), vencimento: txt(duplicata, 'dVenc') || emissao, valor: Number(txt(duplicata, 'vDup') || 0) }))
     const itens = Array.from(documento.querySelectorAll('infNFe > det')).map((det, indice) => {
       const descricao = txt(det, 'prod xProd')
       const opcoes = candidatos(descricao, produtos)
       const automatico = opcoes[0]?.pontos >= .82 && opcoes[0]?.pontos > (opcoes[1]?.pontos || 0) ? opcoes[0].produto : undefined
       return { id: `nf-${indice}-${Date.now()}`, descricao, quantidade: Number(txt(det, 'prod qCom') || 0), unitario: Number(txt(det, 'prod vUnCom') || 0), produtoCodigo: String(automatico?.codigo || '') }
     })
-    setDadosNf({ chave, cnpj, nome, numeroNf, emissao, valorProdutos, frete, desconto, outrosCustos, valorNf, xmlOriginal })
+    setDadosNf({ chave, cnpj, nome, numeroNf, emissao, valorProdutos, frete, desconto, outrosCustos, valorNf, xmlOriginal, formaNf, mencionaCora, parcelasNf })
     setDataOrcamento((atual) => atual || emissao)
     setDataPedido((atual) => atual || emissao)
     setDataVencimento((atual) => atual || emissao)
     setValorPagamento((atual) => atual || valorNf.toFixed(2))
+    if (formaNf) setFormaPagamento(formaNf)
+    if (parcelasNf[0]?.vencimento) setDataVencimento(parcelasNf[0].vencimento)
     setLinhas(itens)
   }
 
@@ -86,7 +94,10 @@ export default function ImportarNfHistoricaModal({ aberto, onClose, onConcluido 
     const total = Number(dadosNf.valorNf || (subtotal + Number(dadosNf.frete || 0) + Number(dadosNf.outrosCustos || 0) - Number(dadosNf.desconto || 0)))
     const agora = new Date().toISOString()
     const clienteId = String(cliente.codigo || cliente.id || '')
-    const base = { clienteId, clienteCodigo: clienteId, clienteNome: String(cliente.razaoSocial || cliente.nomeFantasia || dadosNf.nome), clienteDocumento: String(cliente.cnpj || dadosNf.cnpj), dataEmissao: dadosNf.emissao, itens, subtotal, totalFinal: total, valorTotal: total, frete: Number(dadosNf.frete || 0), outrosCustos: Number(dadosNf.outrosCustos || 0), descontoInformado: Number(dadosNf.desconto || 0), formaPagamento, tipoCobranca: formaPagamento, valorPagamento: Number(valorPagamento), estoqueMovimentado: true, importacaoHistorica: true, movimentarEstoque: false, criadoEm: agora, atualizadoEm: agora }
+    const tipoPagamento = dadosNf.mencionaCora ? `${formaPagamento} Banco Cora` : formaPagamento
+    const parcelasNf = dadosNf.parcelasNf?.length ? dadosNf.parcelasNf : [{ numero: 1, vencimento: dataVencimento, valor: Number(valorPagamento) }]
+    const parcelasHistoricas = parcelasNf.map((parcela: any) => ({ ...parcela, tipoCobranca: tipoPagamento, bancoCobranca: dadosNf.mencionaCora ? 'Cora' : '' }))
+    const base = { clienteId, clienteCodigo: clienteId, clienteNome: String(cliente.razaoSocial || cliente.nomeFantasia || dadosNf.nome), clienteDocumento: String(cliente.cnpj || dadosNf.cnpj), dataEmissao: dadosNf.emissao, itens, subtotal, totalFinal: total, valorTotal: total, frete: Number(dadosNf.frete || 0), outrosCustos: Number(dadosNf.outrosCustos || 0), descontoInformado: Number(dadosNf.desconto || 0), formaPagamento, tipoCobranca: tipoPagamento, bancoCobranca: dadosNf.mencionaCora ? 'Cora' : '', valorPagamento: parcelasHistoricas.reduce((soma: number, parcela: any) => soma + Number(parcela.valor || 0), 0), estoqueMovimentado: true, importacaoHistorica: true, movimentarEstoque: false, criadoEm: agora, atualizadoEm: agora }
     setOcupado(true)
     try {
       const idOrcamento = String(orcamentoExistente?.id || `orc-historico-${orcamento}-${Date.now()}`)
@@ -113,14 +124,9 @@ export default function ImportarNfHistoricaModal({ aberto, onClose, onConcluido 
         movimentarEstoqueHistorico: false,
         movimentacaoEstoqueHistoricaAutorizada: false,
         formaPagamento,
-        tipoCobranca: formaPagamento,
+        tipoCobranca: tipoPagamento,
         valorPagamento: Number(valorPagamento),
-        parcelas: [{
-          numero: 1,
-          vencimento: dataVencimento,
-          valor: Number(valorPagamento),
-          tipoCobranca: formaPagamento,
-        }],
+        parcelas: parcelasHistoricas,
         boletoDispensado: true,
         envioDocumentosDispensado: true,
         importacaoHistoricaSemEnvio: true,

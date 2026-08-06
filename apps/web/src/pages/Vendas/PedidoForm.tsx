@@ -980,6 +980,7 @@ function montarParcelasPedidoAPartirDoOrcamento(
       vencimento: pagamento.vencimento || hoje(),
       observacao: pagamento.observacoes || pagamento.observacao || '',
       valor: Number(pagamento.valor || 0),
+      formaPagamento: normalizarFormaPagamento(pagamento.formaPagamento || pagamento.tipoCobranca || ''),
       bancoCobranca,
       tipoCobranca,
       statusBoleto: pagamento.statusBoleto || 'Pendente',
@@ -1240,6 +1241,18 @@ function calcularSaldoRealPedido(vendaBase?: Partial<Venda> | null) {
   )
 
   return Number(Math.max(totalPedido - totalRecebido, 0).toFixed(2))
+}
+
+function calcularSaldoNaoDistribuidoPedido(vendaBase?: Partial<Venda> | null) {
+  if (!vendaBase) return 0
+  const totalPedido = calcularTotalDocumento(vendaBase)
+  const totalDistribuido = (vendaBase.parcelas || []).reduce(
+    (total, parcela) => parcela.statusBoleto === 'Cancelado'
+      ? total
+      : total + Number(parcela.valor || 0),
+    0,
+  )
+  return Number(Math.max(totalPedido - totalDistribuido, 0).toFixed(2))
 }
 
 const SYNERGIAS_CONSOLIDADO_PEDIDO_V248 = 'SYNERGIAS_CONSOLIDADO_PEDIDO_V248'
@@ -2792,10 +2805,9 @@ function PedidoForm() {
           tipoCobranca: normalizarTipoCobrancaValor(tipoPadrao),
           bancoCobranca: bancoPadrao,
           parcelamento: prazoPadrao,
-          parcelas: [],
           // Ao trocar a forma de pagamento, sempre inicia com o saldo real do
           // pedido. Não reaproveita valor antigo salvo em orçamento/parcela.
-          valorPagamento: calcularTotais(atual).totalFinal,
+          valorPagamento: calcularSaldoNaoDistribuidoPedido(atual),
         }) as Venda,
     )
   }
@@ -2809,7 +2821,6 @@ function PedidoForm() {
           ...atual,
           tipoCobranca: normalizarTipoCobrancaValor(tipoCobranca),
           bancoCobranca: banco,
-          parcelas: [],
         }) as Venda,
     )
   }
@@ -2853,8 +2864,8 @@ function PedidoForm() {
     const formaPagamento = String(venda.formaPagamento || '')
     const tipoCobranca = venda.tipoCobranca
     const bancoCobranca = extrairBancoDaOpcao(String(tipoCobranca || ''))
-    const saldoReal = calcularSaldoRealPedido({ ...venda, totalFinal: totalAtual })
-    const valorBase = Number(venda.valorPagamento ?? saldoReal)
+    const saldoDisponivel = calcularSaldoNaoDistribuidoPedido({ ...venda, totalFinal: totalAtual })
+    const valorBase = Number(venda.valorPagamento ?? saldoDisponivel)
 
     if (totalAtual <= 0) {
       alert('Inclua itens no pedido antes de gerar cobrança.')
@@ -2876,8 +2887,8 @@ function PedidoForm() {
       return
     }
 
-    if (saldoReal <= 0) {
-      alert('Este pedido não possui saldo pendente para cobrança.')
+    if (saldoDisponivel <= 0) {
+      alert('O valor total do pedido já foi distribuído entre as formas de pagamento.')
       return
     }
 
@@ -2886,8 +2897,8 @@ function PedidoForm() {
       return
     }
 
-    if (valorBase > saldoReal) {
-      alert(`O valor da cobrança não pode ultrapassar o saldo pendente de ${formatarMoedaInput(saldoReal)}.`)
+    if (valorBase > saldoDisponivel) {
+      alert(`O valor da cobrança não pode ultrapassar o saldo ainda não distribuído de ${formatarMoedaInput(saldoDisponivel)}.`)
       return
     }
 
@@ -2916,10 +2927,11 @@ function PedidoForm() {
       const dadosBancarios = montarTextoDadosBancarios(String(tipoCobranca || ''))
 
       return {
-        numero: index + 1,
+        numero: (venda.parcelas?.length || 0) + index + 1,
         vencimento,
         observacao: [observacaoParcela, dadosBancarios].filter(Boolean).join('\n\n'),
         valor: valorParcela,
+        formaPagamento,
         bancoCobranca,
         tipoCobranca,
         statusBoleto: 'Pendente',
@@ -2932,8 +2944,8 @@ function PedidoForm() {
           ...atual,
           bancoCobranca,
           tipoCobranca,
-          valorPagamento: valorBase,
-          parcelas,
+          valorPagamento: Number((saldoDisponivel - valorBase).toFixed(2)),
+          parcelas: [...(atual.parcelas || []), ...parcelas],
         }) as Venda,
     )
   }
@@ -3223,7 +3235,7 @@ function PedidoForm() {
             )),
       valorRecebido,
       saldoAberto,
-      formaPagamento: pedidoAtualizado.formaPagamento || '',
+      formaPagamento: parcela.formaPagamento || pedidoAtualizado.formaPagamento || '',
       bancoCobranca: parcela.bancoCobranca || pedidoAtualizado.bancoCobranca || '',
       tipoCobranca: String(parcela.tipoCobranca || pedidoAtualizado.tipoCobranca || ''),
       status: paga
@@ -7544,8 +7556,7 @@ Synergias Distribuidora`,
                           ({
                             ...atual,
                             parcelamento: e.target.value,
-                            parcelas: [],
-                            valorPagamento: calcularTotais(atual).totalFinal,
+                            valorPagamento: calcularSaldoNaoDistribuidoPedido(atual),
                           }) as Venda,
                       )
                     }
@@ -7565,7 +7576,7 @@ Synergias Distribuidora`,
                   <input
                     type="text"
                     value={formatarMoedaInput(
-                      venda.valorPagamento ?? calcularSaldoRealPedido({ ...venda, totalFinal: totais.totalFinal }),
+                      venda.valorPagamento ?? calcularSaldoNaoDistribuidoPedido({ ...venda, totalFinal: totais.totalFinal }),
                     )}
                     onChange={(e) =>
                       atualizarVenda(

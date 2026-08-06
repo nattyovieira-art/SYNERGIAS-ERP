@@ -1252,7 +1252,23 @@ definirColecaoMemoria('clientes', Array.isArray(clientes.data) ? clientes.data :
   // SYNERGIAS_V292A: a coleção central do MySQL é a única fonte de vendas.
   // Nenhuma importação, reconstrução, mesclagem com cache local ou correção pontual
   // pode regravar a coleção completa durante a abertura do ERP.
-  let vendasEstaveis = vendasServidor as any[]
+  let vendasEstaveis = vendasServidor as any[]
+
+  // SYNERGIAS_2458_XML_DANFE_V310: correção dirigida e idempotente.
+  // Vincula os documentos reais da NF-e 2358 ao Pedido 2458 sem recriar o pedido.
+  try {
+    vendasEstaveis = await inserirOrcamento2380Pedido2458Nfe2358(
+      vendasEstaveis,
+      Array.isArray(produtos.data) ? produtos.data : [],
+      atualizarRegistroColecaoCentral,
+      carregarColecaoCentral,
+    )
+  } catch (erro) {
+    console.warn('[Synergias ERP] XML e DANFE da NF-e 2358 não foram vinculados ao Pedido 2458.', erro)
+  }
+
+
+
 // A abertura apenas carrega os dados atuais. Migrações históricas já aplicadas
   // não devem bloquear todos os novos acessos ao ERP.
 definirColecaoMemoria('clientes', Array.isArray(clientes.data) ? clientes.data : [])

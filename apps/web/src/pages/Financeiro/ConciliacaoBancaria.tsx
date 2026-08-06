@@ -1394,6 +1394,7 @@ function ConciliacaoBancaria() {
               <option value="">Banco não informado</option>
               <option value="Banco Inter">Banco Inter</option>
               <option value="C6 Bank">C6 Bank</option>
+              <option value="Banco Cora">Banco Cora (histÃ³rico)</option>
             </select>
           </div>
           <div className="financeiro-toolbar-right-actions">

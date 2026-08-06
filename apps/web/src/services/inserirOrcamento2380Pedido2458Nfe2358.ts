@@ -1,4 +1,6 @@
-const MARCADOR = 'SYNERGIAS_2380_2458_NFE2358_DESCRICAO_V309'
+import { DANFE_PDF_NFE_2358_PEDIDO_2458_BASE64, XML_NFE_2358_PEDIDO_2458 } from './documentosNfe2358Pedido2458'
+
+const MARCADOR = 'SYNERGIAS_2380_2458_NFE2358_XML_DANFE_V310'
 
 const ITENS = [
   ['ALCOOL GEL 70 5L FLOPS', 1, 35.90, '38089419', '5102'],
@@ -87,7 +89,13 @@ export async function inserirOrcamento2380Pedido2458Nfe2358(
   recarregar: <T>(colecao: 'vendas') => Promise<{ data: T[] }>,
 ) {
   let vendas = Array.isArray(vendasEntrada) ? vendasEntrada : []
-  if (vendas.some((venda) => venda?.marcadorImportacao === MARCADOR)) return vendas
+  const pedidoJaCompleto = vendas.find((venda) =>
+    String(venda?.numeroPedido || '').replace(/\D/g, '') === '2458' &&
+    String(venda?.chaveAcessoNotaFiscal || '') === '43260650432175000146550010000023581100024585' &&
+    Boolean(String(venda?.xmlNotaFiscal || '').trim()) &&
+    Boolean(String(venda?.danfePdf || '').trim()) &&
+    venda?.marcadorImportacao === MARCADOR)
+  if (pedidoJaCompleto) return vendas
   const conflitoNfe = vendas.find((venda) =>
     String(venda?.chaveAcessoNotaFiscal || '') === '43260650432175000146550010000023581100024585' &&
     String(venda?.numeroPedido || '').replace(/\D/g, '') !== '2458')
@@ -166,6 +174,27 @@ export async function inserirOrcamento2380Pedido2458Nfe2358(
     dataEmissaoNotaFiscal: '2026-06-29T00:18:29-03:00',
     ambienteNotaFiscal: 'PRODUCAO',
     cStatNotaFiscal: '100',
+    xmlNotaFiscal: XML_NFE_2358_PEDIDO_2458,
+    danfePdf: DANFE_PDF_NFE_2358_PEDIDO_2458_BASE64,
+    historicoNotaFiscal: [
+      ...(Array.isArray(pedidoExistente?.historicoNotaFiscal)
+        ? pedidoExistente.historicoNotaFiscal.filter((item: any) =>
+            String(item?.chaveAcesso || '') !== '43260650432175000146550010000023581100024585')
+        : []),
+      {
+        id: 'nfe-2358-autorizada-caravaggio',
+        ambiente: 'PRODUCAO',
+        status: 'Autorizada',
+        numero: '2358',
+        serie: '1',
+        chaveAcesso: '43260650432175000146550010000023581100024585',
+        protocolo: '243260300175833',
+        cStat: '100',
+        motivo: 'Autorizado o uso da NF-e',
+        xml: XML_NFE_2358_PEDIDO_2458,
+        criadoEm: '2026-06-29T00:18:29-03:00',
+      },
+    ],
     formaPagamento: 'BOLETO BANCO CORA',
     tipoCobranca: 'BOLETO BANCO CORA',
     bancoCobranca: 'Cora',
@@ -182,8 +211,14 @@ export async function inserirOrcamento2380Pedido2458Nfe2358(
   const confirmado = vendas.find((venda) =>
     String(venda?.numeroPedido || '') === '2458' &&
     String(venda?.chaveAcessoNotaFiscal || '') === pedido.chaveAcessoNotaFiscal)
-  if (!confirmado || confirmado.itens?.length !== 22 || confirmado.parcelas?.length !== 3) {
-    throw new Error('O MySQL não confirmou integralmente o pedido histórico 2458.')
+  if (
+    !confirmado ||
+    confirmado.itens?.length !== 22 ||
+    confirmado.parcelas?.length !== 3 ||
+    !String(confirmado.xmlNotaFiscal || '').includes('<nfeProc') ||
+    !String(confirmado.danfePdf || '').trim()
+  ) {
+    throw new Error('O MySQL não confirmou integralmente o Pedido 2458 com XML e DANFE.')
   }
   return vendas
 }

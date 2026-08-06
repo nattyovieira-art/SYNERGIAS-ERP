@@ -131,6 +131,69 @@ function detectarAmbienteFiscal(venda: VendaComMetadados): 'PRODUCAO' | 'HOMOLOG
   return ambiente === 'PRODUCAO' || ambiente === 'HOMOLOGACAO' ? ambiente : ''
 }
 
+const PAGAMENTO_NFE_POR_CODIGO: Record<string, { forma: string; tipo: string }> = {
+  '01': { forma: 'DINHEIRO', tipo: 'DINHEIRO' },
+  '03': { forma: 'CARTAO', tipo: 'CARTAO CREDITO' },
+  '04': { forma: 'CARTAO', tipo: 'CARTAO DEBITO' },
+  '15': { forma: 'BOLETO', tipo: 'BOLETO' },
+  '16': { forma: 'TRANSFERENCIA', tipo: 'DEPOSITO BANCARIO' },
+  '17': { forma: 'PIX', tipo: 'PIX' },
+  '18': { forma: 'TRANSFERENCIA', tipo: 'TRANSFERENCIA BANCARIA' },
+}
+
+function extrairPagamentoNfeHistorica(venda: VendaComMetadados) {
+  if (!venda.importacaoHistorica || typeof DOMParser === 'undefined') return null
+  let xml = String(venda.xmlNotaFiscal || '')
+  if (!xml) return null
+  try {
+    if (!xml.includes('<')) xml = atob(xml.replace(/^data:[^,]+,/, ''))
+    const documento = new DOMParser().parseFromString(xml, 'application/xml')
+    if (documento.querySelector('parsererror')) return null
+
+    const textoXml = xml.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+    const bancoCora = textoXml.includes('CORA')
+    const detalhes = Array.from(documento.querySelectorAll('pag detPag'))
+    const codigo = detalhes.map((detalhe) => detalhe.querySelector('tPag')?.textContent?.trim() || '')
+      .find((valor) => PAGAMENTO_NFE_POR_CODIGO[valor]) || ''
+    const duplicatas = Array.from(documento.querySelectorAll('cobr dup'))
+    const base = duplicatas.length
+      ? { forma: 'BOLETO', tipo: 'BOLETO' }
+      : PAGAMENTO_NFE_POR_CODIGO[codigo]
+    if (!base) return null
+
+    const tipo = bancoCora
+      ? base.forma === 'BOLETO'
+        ? 'BOLETO BANCO CORA'
+        : base.forma === 'PIX'
+          ? 'PIX BANCO CORA'
+          : base.forma === 'TRANSFERENCIA'
+            ? 'TRANSFERENCIA BANCO CORA'
+            : base.tipo
+      : base.tipo
+    const total = Number(venda.totalFinal || (venda as any).valorTotal || 0)
+    const parcelas = duplicatas.map((duplicata, indice) => ({
+      numero: Number(duplicata.querySelector('nDup')?.textContent || indice + 1),
+      vencimento: duplicata.querySelector('dVenc')?.textContent?.trim() || venda.dataEmissao,
+      valor: Number(duplicata.querySelector('vDup')?.textContent || 0),
+      tipoCobranca: tipo as ParcelaVenda['tipoCobranca'],
+      bancoCobranca: (bancoCora ? 'Cora' : '') as ParcelaVenda['bancoCobranca'],
+    }))
+    if (!parcelas.length) {
+      const valorNfe = detalhes.reduce((soma, detalhe) => soma + Number(detalhe.querySelector('vPag')?.textContent || 0), 0)
+      parcelas.push({
+        numero: 1,
+        vencimento: venda.dataEmissao,
+        valor: valorNfe || total,
+        tipoCobranca: tipo as ParcelaVenda['tipoCobranca'],
+        bancoCobranca: (bancoCora ? 'Cora' : '') as ParcelaVenda['bancoCobranca'],
+      })
+    }
+    return { forma: base.forma, tipo, banco: bancoCora ? 'Cora' : '', parcelas }
+  } catch {
+    return null
+  }
+}
+
 function normalizarVenda(venda: VendaComMetadados): VendaComMetadados {
   const tipoNormalizado = String((venda as any).tipo || '')
     .normalize('NFD')
@@ -142,8 +205,15 @@ function normalizarVenda(venda: VendaComMetadados): VendaComMetadados {
   const statusOrcamento = String((venda as any).statusOrcamento || '').toUpperCase().trim() === 'EFETIVADO'
     ? 'Gerado'
     : (venda as any).statusOrcamento
-  const parcelas = Array.isArray(venda.parcelas)
-    ? venda.parcelas.map((parcela) => normalizarParcela(parcela))
+  const pagamentoNfe = extrairPagamentoNfeHistorica(venda)
+  const parcelasOriginais = pagamentoNfe?.parcelas?.length
+    ? pagamentoNfe.parcelas.map((parcela, indice) => ({
+        ...(Array.isArray(venda.parcelas) ? venda.parcelas[indice] : undefined),
+        ...parcela,
+      }))
+    : venda.parcelas
+  const parcelas = Array.isArray(parcelasOriginais)
+    ? parcelasOriginais.map((parcela) => normalizarParcela(parcela))
     : []
   const pedidoHistoricoEntregue = String((venda as any).tipo || '').toLowerCase() === 'pedido'
     && Boolean((venda as any).importacaoHistorica)
@@ -169,6 +239,14 @@ function normalizarVenda(venda: VendaComMetadados): VendaComMetadados {
       ? { status: 'CONCLUÍDO', statusPedido: 'Entregue', logisticaStatus: 'Entregue' }
       : {}),
     parcelas,
+    ...(pagamentoNfe
+      ? {
+          formaPagamento: pagamentoNfe.forma as Venda['formaPagamento'],
+          tipoCobranca: pagamentoNfe.tipo as Venda['tipoCobranca'],
+          bancoCobranca: pagamentoNfe.banco as Venda['bancoCobranca'],
+          valorPagamento: pagamentoNfe.parcelas.reduce((total, parcela) => total + Number(parcela.valor || 0), 0),
+        }
+      : {}),
     ...((ambienteFiscalDetectado && (venda.statusNotaFiscal === 'Autorizada' || venda.statusNotaFiscal === 'Emitida'))
       ? { ambienteNotaFiscal: ambienteFiscalDetectado }
       : {}),

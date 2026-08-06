@@ -142,6 +142,7 @@ export type ParcelaVenda = {
   observacao?: string
   valor: number
 
+  formaPagamento?: string
   bancoCobranca?: BancoCobranca
   tipoCobranca?: TipoCobranca
 
