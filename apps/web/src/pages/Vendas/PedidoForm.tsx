@@ -5138,7 +5138,8 @@ Endereço: ${EMPRESA_ENDERECO}`
         xmlNotaFiscal: vendaComBoleto.xmlNotaFiscal || venda.xmlNotaFiscal || '',
         danfePdf: vendaComBoleto.danfePdf || venda.danfePdf || '',
       }
-      const danfeAtualBase64 = await gerarDanfeAtualDoSistemaParaEmail(vendaComDocumentos)
+      const danfeVinculada = String(vendaComDocumentos.danfePdf || '').trim()
+      const danfeAtualBase64 = danfeVinculada || await gerarDanfeAtualDoSistemaParaEmail(vendaComDocumentos)
       const payload = montarPayloadEmailNotaBoleto(
         vendaComDocumentos,
         emailDestino,
